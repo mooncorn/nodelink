@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Node Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        select, input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        #output {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.4;
+            min-height: 300px;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            border: 1px solid #4a5568;
+        }
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Node Manager</h1>
+        
+        <div class="form-group">
+            <label for="nodeSelect">Select Node:</label>
+            <select id="nodeSelect">
+                <option value="">No nodes available</option>
+            </select>
+            <span id="connectionStatus" class="status disconnected">Disconnected</span>
+        </div>
+        
+        <div class="form-group">
+            <label for="commandInput">Command:</label>
+            <input type="text" id="commandInput" placeholder="e.g., dir (Windows) or ls -l (Unix)" />
+        </div>
+        
+        <div class="form-group">
+            <button id="executeBtn" onclick="executeCommand()" disabled>Execute Command</button>
+        </div>
+        
+        <div class="form-group">
+            <label for="output">Output:</label>
+            <pre id="output">Connecting to server...</pre>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
