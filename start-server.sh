@@ -15,4 +15,4 @@ fi
 # Start the server
 cd server
 echo "Starting HTTPS server on port 8443..."
-node index.js 
+npx ts-node index.ts 

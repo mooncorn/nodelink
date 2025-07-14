@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Node {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  status    String    @default("offline")
+  apiKey    String
+  lastSeen  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  commands  Command[]
+
+  @@index([status])
+}
+
+model Command {
+  id         String   @id @default(uuid())
+  nodeId     String
+  userId     String
+  type       String   @default("shell") // "shell" or "action"
+  action     String? // Pre-defined action (e.g., "start_container")
+  actionData Json? // JSON data for action (e.g., { "containerId": "abc123", "image": "nginx" })
+  command    String? // Shell command (nullable for actions)
+  output     String?
+  exitCode   Int?
+  timestamp  DateTime @default(now())
+  node       Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@index([nodeId, timestamp])
+  @@index([type, action])
+}
+
+model User {
+  id          String               @id @default(uuid())
+  username    String               @unique
+  email       String               @unique // For password reset emails
+  password    String
+  role        String               @default("user")
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  commands    Command[]
+  resetTokens PasswordResetToken[]
+  AccessCode  AccessCode[]
+
+  @@index([username])
+  @@index([email])
+}
+
+model AccessCode {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  isUsed    Boolean   @default(false)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id])
+
+  @@index([code])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+}

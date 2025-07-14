@@ -1,4 +1,4 @@
-const ws = new WebSocket('wss://localhost:8443');
+const socket = io('https://localhost:8443');
 const nodeSelect = document.getElementById('nodeSelect');
 const commandInput = document.getElementById('commandInput');
 const output = document.getElementById('output');
@@ -7,46 +7,43 @@ const connectionStatus = document.getElementById('connectionStatus');
 
 let isConnected = false;
 
-// WebSocket connection handlers
-ws.onopen = () => {
+// Socket.IO connection handlers
+socket.on('connect', () => {
     console.log('Connected to server');
     isConnected = true;
     updateConnectionStatus(true);
     output.textContent = 'Connected to server. Waiting for nodes...\n';
-};
+});
 
-ws.onclose = () => {
+socket.on('disconnect', () => {
     console.log('Disconnected from server');
     isConnected = false;
     updateConnectionStatus(false);
     output.textContent += 'Disconnected from server.\n';
     executeBtn.disabled = true;
-};
+});
 
-ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
+socket.on('connect_error', (error) => {
+    console.error('Socket.IO connection error:', error);
     output.textContent += 'Connection error. Please check if the server is running.\n';
-};
+});
 
-ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
+// Socket.IO event handlers
+socket.on('node_list', (data) => {
+    updateNodeList(data.nodes);
+});
 
-    if (data.type === 'node_list') {
-        updateNodeList(data.nodes);
-    }
+socket.on('command_output', (data) => {
+    output.textContent += data.output;
+    output.scrollTop = output.scrollHeight;
+});
 
-    if (data.type === 'command_output') {
-        output.textContent += data.output;
-        output.scrollTop = output.scrollHeight;
-    }
-
-    if (data.type === 'command_finished') {
-        output.textContent += `\n--- Command finished with exit code ${data.exitCode} ---\n\n`;
-        output.scrollTop = output.scrollHeight;
-        executeBtn.disabled = false;
-        executeBtn.textContent = 'Execute Command';
-    }
-};
+socket.on('command_finished', (data) => {
+    output.textContent += `\n--- Command finished with exit code ${data.exitCode} ---\n\n`;
+    output.scrollTop = output.scrollHeight;
+    executeBtn.disabled = false;
+    executeBtn.textContent = 'Execute Command';
+});
 
 // Update connection status indicator
 function updateConnectionStatus(connected) {
@@ -101,12 +98,11 @@ function executeCommand() {
     }
 
     const requestId = `req-${Date.now()}`;
-    ws.send(JSON.stringify({ 
-        type: 'execute_command', 
+    socket.emit('execute_command', { 
         requestId, 
         nodeId, 
         command 
-    }));
+    });
     
     output.textContent += `\n=== Executing "${command}" on ${nodeId} ===\n`;
     output.scrollTop = output.scrollHeight;

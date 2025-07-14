@@ -7,4 +7,4 @@ echo "Starting Node Agent: $NODE_ID"
 
 # Start the node agent
 cd node-agent
-node index.js $NODE_ID 
+npx ts-node index.ts $NODE_ID 
