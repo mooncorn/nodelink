@@ -10,9 +10,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "nodelink-shared": "file:../shared",
+    "dockerode": "^4.0.2"
   },
   "devDependencies": {
+    "@types/dockerode": "^3.3.23",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }

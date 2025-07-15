@@ -1,10 +1,20 @@
-# Node Manager - Node.js Application
+# NodeLink - TypeScript Application
 
 # Dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+package-lock.json
+
+# TypeScript Build Outputs
+dist/
+build/
+*/dist/
+*/build/
+shared/dist/
+server/dist/
+node-agent/dist/
 
 # Runtime data
 pids
@@ -15,34 +25,90 @@ pids
 # Coverage directory used by tools like istanbul
 coverage/
 *.lcov
-
-# nyc test coverage
 .nyc_output
 
-# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
-.grunt
+# Test artifacts
+test-results/
+test-output/
+*.test.js
+*.spec.js
 
-# Bower dependency directory (https://bower.io/)
-bower_components
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
-# node-waf configuration
-.lock-wscript
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
 
-# Compiled binary addons (https://nodejs.org/api/addons.html)
-build/Release
+# SSL Certificates (generated locally)
+server/certs/*.pem
+server/certs/*.key
+server/certs/*.crt
+server/certs/*.p12
+server/certs/*.pfx
 
-# Dependency directories
-node_modules/
-jspm_packages/
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
-# TypeScript v1 declaration files
-typings/
+# Prisma
+prisma/migrations/
+.prisma/
+
+# Docker
+.dockerignore
+Dockerfile.*
+docker-compose.override.yml
+.docker/
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+.temp/
+
+# TypeScript specific
+*.tsbuildinfo
+.tscache/
+
+# ESLint
+.eslintcache
+
+# Prettier
+.prettierignore
 
 # Optional npm cache directory
 .npm
-
-# Optional eslint cache
-.eslintcache
 
 # Optional REPL history
 .node_repl_history
@@ -53,42 +119,29 @@ typings/
 # Yarn Integrity file
 .yarn-integrity
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
 
-# SSL Certificates (generated locally)
-server/certs/*.pem
-server/certs/*.key
-server/certs/*.crt
+# Dependency directories
+jspm_packages/
 
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-lerna-debug.log*
+# TypeScript v1 declaration files
+typings/
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Optional dependencies
+.pnp
+.pnp.js
 
-# IDE/Editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
 
-# Temporary files
-tmp/
-temp/
+# Optional stylelint cache
+.stylelintcache
+
+# SvelteKit build / generate output
+.svelte-kit
+
+# End of https://www.toptal.com/developers/gitignore/api/node
