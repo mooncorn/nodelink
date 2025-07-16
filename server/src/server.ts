@@ -64,6 +64,72 @@ export class NodeLinkServer {
     });
   }
 
+  private validateNodeRegistration(
+    registration: NodeRegistration
+  ): string | null {
+    // Check required fields
+    if (!registration.id || typeof registration.id !== "string") {
+      return "Node ID is required and must be a string";
+    }
+
+    if (!registration.token || typeof registration.token !== "string") {
+      return "Token is required and must be a string";
+    }
+
+    if (!Array.isArray(registration.capabilities)) {
+      return "Capabilities must be an array";
+    }
+
+    if (
+      !registration.systemInfo ||
+      typeof registration.systemInfo !== "object"
+    ) {
+      return "System info is required";
+    }
+
+    const { systemInfo } = registration;
+    if (!systemInfo.platform || typeof systemInfo.platform !== "string") {
+      return "System platform is required";
+    }
+
+    if (!systemInfo.arch || typeof systemInfo.arch !== "string") {
+      return "System architecture is required";
+    }
+
+    if (!systemInfo.hostname || typeof systemInfo.hostname !== "string") {
+      return "System hostname is required";
+    }
+
+    if (!systemInfo.version || typeof systemInfo.version !== "string") {
+      return "System version is required";
+    }
+
+    // Validate node ID format (alphanumeric with dashes/underscores)
+    if (!/^[a-zA-Z0-9_-]+$/.test(registration.id)) {
+      return "Node ID must contain only alphanumeric characters, dashes, and underscores";
+    }
+
+    // Validate capabilities are valid action types
+    const validCapabilities = [
+      "shell.execute",
+      "system.info",
+      "system.health",
+      "docker.run",
+      "docker.delete",
+      "docker.start",
+      "docker.stop",
+      "docker.list",
+    ];
+
+    for (const capability of registration.capabilities) {
+      if (!validCapabilities.includes(capability)) {
+        return `Invalid capability: ${capability}`;
+      }
+    }
+
+    return null; // No validation errors
+  }
+
   private setupRoutes(): void {
     // Enable JSON parsing
     this.app.use(express.json());
@@ -220,7 +286,17 @@ export class NodeLinkServer {
       // Now this will work correctly with full type safety!
       // Handle node registration
       typedSocket.on("node.register", (registration: NodeRegistration) => {
-        // TODO: validate registration
+        // Validate registration data
+        const validationError = this.validateNodeRegistration(registration);
+        if (validationError) {
+          console.log(
+            `Invalid registration from ${socket.id}: ${validationError}`
+          );
+          socket.emit("node.register.failed", { error: validationError });
+          socket.disconnect();
+          return;
+        }
+
         const success = this.nodeManager.registerNode(socket, registration);
 
         if (success) {
@@ -231,67 +307,11 @@ export class NodeLinkServer {
           console.log(
             `Invalid registration attempt for node ${registration.id}`
           );
+          socket.emit("node.register.failed", {
+            error: "Authentication failed",
+          });
           socket.disconnect();
         }
-      });
-
-      // Handle frontend task creation
-      // TODO: convert to use REST pattern
-      typedSocket.on(
-        "task.create",
-        (data: { nodeId: string; type: string; payload: any }) => {
-          const { nodeId, type, payload } = data;
-
-          // Validate action
-          const validation = validateActionWithDetails(type, payload);
-          if (!validation.valid) {
-            // socket.emit("error", {
-            //   message: "Invalid action",
-            //   details: validation.error,
-            // });
-            return;
-          }
-
-          // Check if node is online
-          if (!this.nodeManager.isNodeOnline(nodeId)) {
-            // socket.emit("error", {
-            //   message: "Node is not online",
-            //   nodeId,
-            // });
-            return;
-          }
-
-          // Create task
-          try {
-            const task = this.taskManager.createTask(
-              type as ActionType,
-              nodeId,
-              payload
-            );
-
-            // Notify frontend of task creation
-            socket.emit("task.created", { task });
-          } catch (error) {
-            // socket.emit("error", {
-            //   message: "Failed to create task",
-            //   error: error instanceof Error ? error.message : "Unknown error",
-            // });
-          }
-        }
-      );
-
-      // Handle task cancellation
-      // TODO: convert to use REST pattern
-      socket.on("task.cancel", (data: { taskId: string }) => {
-        this.taskManager.cancelTask(data.taskId);
-      });
-
-      // Handle node list request
-      // TODO: convert to use REST pattern
-      socket.on("node.list", () => {
-        socket.emit("node.list", {
-          nodes: this.nodeManager.getNodeList(),
-        });
       });
 
       // Handle disconnect

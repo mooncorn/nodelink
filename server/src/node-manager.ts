@@ -29,7 +29,7 @@ export class NodeManager extends EventEmitter {
 
     // Validate token
     if (
-      timingSafeEqual(
+      !timingSafeEqual(
         Buffer.from(this.validTokens.get(id) || ""),
         Buffer.from(token)
       )

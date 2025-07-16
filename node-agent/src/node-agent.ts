@@ -1,6 +1,8 @@
 import { EventEmitter } from "events";
 import { io, Socket } from "socket.io-client";
 import * as os from "os";
+import { promisify } from "util";
+import { exec } from "child_process";
 import {
   NodeRegistration,
   NodeHeartbeat,
@@ -25,6 +27,8 @@ type ClientListenEvents = EventsToCallbacks<ServerToNodeEvents>;
 type ClientEmitEvents = EventsToCallbacks<NodeToServerEvents>;
 
 type TypedClientSocket = Socket<ClientListenEvents, ClientEmitEvents>;
+
+const execAsync = promisify(exec);
 
 export class NodeAgent extends EventEmitter {
   private socket: TypedClientSocket;
@@ -186,7 +190,63 @@ export class NodeAgent extends EventEmitter {
     }
   }
 
-  private sendHeartbeat(): void {
+  private async getCpuUsage(): Promise<number> {
+    return new Promise((resolve) => {
+      const startMeasure = os.cpus();
+
+      setTimeout(() => {
+        const endMeasure = os.cpus();
+
+        let totalIdle = 0;
+        let totalTick = 0;
+
+        for (let i = 0; i < startMeasure.length; i++) {
+          const startCpu = startMeasure[i];
+          const endCpu = endMeasure[i];
+
+          const idleDifference = endCpu.times.idle - startCpu.times.idle;
+          const totalDifference =
+            Object.values(endCpu.times).reduce((a, b) => a + b, 0) -
+            Object.values(startCpu.times).reduce((a, b) => a + b, 0);
+
+          totalIdle += idleDifference;
+          totalTick += totalDifference;
+        }
+
+        const cpuUsage = 100 - (100 * totalIdle) / totalTick;
+        resolve(Math.round(cpuUsage * 100) / 100); // Round to 2 decimal places
+      }, 100); // Measure over 100ms interval
+    });
+  }
+
+  private async getDiskUsage(): Promise<number> {
+    try {
+      let command: string;
+      if (os.platform() === "win32") {
+        // Windows command
+        command = "wmic logicaldisk get size,freespace,caption";
+      } else {
+        // Unix-like systems (Linux, macOS)
+        command = "df -h / | tail -1 | awk '{print $5}' | sed 's/%//'";
+      }
+
+      const { stdout } = await execAsync(command);
+
+      if (os.platform() === "win32") {
+        // Parse Windows output (simplified - would need more robust parsing)
+        return 0; // Placeholder for Windows implementation
+      } else {
+        // Parse Unix output
+        const usage = parseFloat(stdout.trim());
+        return isNaN(usage) ? 0 : usage;
+      }
+    } catch (error) {
+      console.warn("Failed to get disk usage:", error);
+      return 0;
+    }
+  }
+
+  private async sendHeartbeat(): Promise<void> {
     if (!this.connected) return;
 
     const heartbeat: NodeHeartbeat = {
@@ -198,10 +258,15 @@ export class NodeAgent extends EventEmitter {
 
     // Add system metrics if enabled
     if (this.config.enableMetrics) {
+      const [cpuUsage, diskUsage] = await Promise.all([
+        this.getCpuUsage(),
+        this.getDiskUsage(),
+      ]);
+
       heartbeat.systemMetrics = {
-        cpuUsage: 0, // TODO: implement CPU usage calculation
+        cpuUsage,
         memoryUsage: ((os.totalmem() - os.freemem()) / os.totalmem()) * 100,
-        diskUsage: 0, // TODO: implement disk usage calculation
+        diskUsage,
       };
     }
 

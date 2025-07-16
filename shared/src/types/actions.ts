@@ -38,6 +38,7 @@ export interface DockerStartAction {
 
 export interface DockerStopAction {
   containerId: string;
+  force?: boolean; // default: false
 }
 
 export interface DockerListAction {

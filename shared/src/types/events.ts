@@ -28,16 +28,10 @@ export interface ServerToFrontendEvents {
   "task.completed": { task: Task };
 }
 
-// TODO: replace with REST pattern
-// Events sent from frontend to server
+// Events sent from frontend to server (minimal - most operations use REST API)
 export interface FrontendToServerEvents {
-  "task.create": {
-    nodeId: string;
-    type: string;
-    payload: any;
-  };
-  "task.cancel": { taskId: string };
-  "node.list": {};
+  // Future WebSocket events can be added here
+  // Most operations now use REST endpoints instead
 }
 
 export interface NodeRegistration {

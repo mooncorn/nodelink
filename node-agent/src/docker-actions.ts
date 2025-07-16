@@ -3,9 +3,13 @@ import {
   DockerStartAction,
   DockerStopAction,
   DockerListAction,
+  DockerDeleteAction,
   DockerStartResponse,
   DockerStopResponse,
   DockerListResponse,
+  DockerDeleteResponse,
+  DockerRunResponse,
+  DockerRunAction,
 } from "nodelink-shared";
 
 export class DockerActions {
@@ -15,9 +19,7 @@ export class DockerActions {
     this.docker = new Docker();
   }
 
-  async startContainer(
-    action: DockerStartAction
-  ): Promise<DockerStartResponse> {
+  async runContainer(action: DockerRunAction): Promise<DockerRunResponse> {
     const {
       image,
       containerName,
@@ -86,6 +88,54 @@ export class DockerActions {
       };
     } catch (error) {
       throw new Error(`Failed to start container: ${error}`);
+    }
+  }
+
+  async startContainer(
+    action: DockerStartAction
+  ): Promise<DockerStartResponse> {
+    const { containerId } = action;
+
+    try {
+      const container = this.docker.getContainer(containerId);
+      await container.start();
+
+      return {
+        containerId,
+      };
+    } catch (error) {
+      throw new Error(`Failed to start container: ${error}`);
+    }
+  }
+
+  async deleteContainer(
+    action: DockerDeleteAction
+  ): Promise<DockerDeleteResponse> {
+    const { containerId, force = false, removeVolumes = false } = action;
+
+    try {
+      const container = this.docker.getContainer(containerId);
+
+      // Stop container first if it's running and force is true
+      if (force) {
+        try {
+          await container.kill();
+        } catch (error) {
+          // Ignore error if container is already stopped
+        }
+      }
+
+      // Remove container
+      await container.remove({
+        v: removeVolumes, // Remove volumes
+        force: force,
+      });
+
+      return {
+        containerId,
+      };
+    } catch (error) {
+      throw new Error(`Failed to delete container: ${error}`);
     }
   }
 

@@ -216,9 +216,11 @@ class NodeLinkClient {
         
         let payload = {};
         
-        if (action === 'docker.start') {
+        if (action === 'docker.run') {
             const image = document.getElementById('dockerImage').value;
             const containerName = document.getElementById('dockerContainerName').value;
+            const portHost = document.getElementById('dockerPortHost').value;
+            const portContainer = document.getElementById('dockerPortContainer').value;
             
             if (!image) {
                 this.log('Please enter a Docker image');
@@ -227,7 +229,16 @@ class NodeLinkClient {
             
             payload = { image };
             if (containerName) payload.containerName = containerName;
-        } else if (action === 'docker.stop') {
+            
+            // Add port mapping if specified
+            if (portHost && portContainer) {
+                payload.ports = [{
+                    host: parseInt(portHost),
+                    container: parseInt(portContainer),
+                    protocol: 'tcp'
+                }];
+            }
+        } else if (action === 'docker.start' || action === 'docker.stop' || action === 'docker.delete') {
             const containerId = document.getElementById('dockerContainerId').value;
             
             if (!containerId) {
@@ -236,6 +247,12 @@ class NodeLinkClient {
             }
             
             payload = { containerId };
+            
+            // Add additional options for delete action
+            if (action === 'docker.delete') {
+                payload.force = document.getElementById('dockerForce')?.checked || false;
+                payload.removeVolumes = document.getElementById('dockerRemoveVolumes')?.checked || false;
+            }
         } else if (action === 'docker.list') {
             payload = {
                 all: document.getElementById('dockerShowAll')?.checked || false
@@ -297,7 +314,7 @@ class NodeLinkClient {
         
         let html = '';
         
-        if (action === 'docker.start') {
+        if (action === 'docker.run') {
             html = `
                 <div class="form-group">
                     <label>Docker Image:</label>
@@ -307,12 +324,37 @@ class NodeLinkClient {
                     <label>Container Name (optional):</label>
                     <input type="text" id="dockerContainerName" placeholder="my-container">
                 </div>
+                <div class="form-group">
+                    <label>Port Mapping (optional):</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="number" id="dockerPortHost" placeholder="Host Port (e.g. 8080)" style="flex: 1;">
+                        <span style="align-self: center;">→</span>
+                        <input type="number" id="dockerPortContainer" placeholder="Container Port (e.g. 80)" style="flex: 1;">
+                    </div>
+                </div>
             `;
-        } else if (action === 'docker.stop') {
+        } else if (action === 'docker.start' || action === 'docker.stop') {
             html = `
                 <div class="form-group">
                     <label>Container ID:</label>
                     <input type="text" id="dockerContainerId" placeholder="container-id">
+                </div>
+            `;
+        } else if (action === 'docker.delete') {
+            html = `
+                <div class="form-group">
+                    <label>Container ID:</label>
+                    <input type="text" id="dockerContainerId" placeholder="container-id">
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="dockerForce"> Force delete (stop running container)
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="dockerRemoveVolumes"> Remove associated volumes
+                    </label>
                 </div>
             `;
         } else if (action === 'docker.list') {

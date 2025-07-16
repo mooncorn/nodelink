@@ -19,6 +19,8 @@ import {
   DockerStartResponse,
   DockerStopResponse,
   DockerListResponse,
+  DockerRunAction,
+  DockerDeleteAction,
 } from "nodelink-shared";
 
 import { DockerActions } from "./docker-actions";
@@ -35,6 +37,7 @@ export class ActionExecutor {
 
   async executeTask(execution: TaskExecution): Promise<TaskResult> {
     const { taskId, action, payload } = execution;
+    const startTime = Date.now();
 
     console.log(`Executing task ${taskId}: ${action}`);
 
@@ -54,6 +57,11 @@ export class ActionExecutor {
         case "system.health":
           result = await this.getSystemHealth(payload as SystemHealthAction);
           break;
+        case "docker.run":
+          result = await this.dockerActions.runContainer(
+            payload as DockerRunAction
+          );
+          break;
         case "docker.start":
           result = await this.dockerActions.startContainer(
             payload as DockerStartAction
@@ -62,6 +70,11 @@ export class ActionExecutor {
         case "docker.stop":
           result = await this.dockerActions.stopContainer(
             payload as DockerStopAction
+          );
+          break;
+        case "docker.delete":
+          result = await this.dockerActions.deleteContainer(
+            payload as DockerDeleteAction
           );
           break;
         case "docker.list":
@@ -73,19 +86,23 @@ export class ActionExecutor {
           throw new Error(`Unknown action type: ${action}`);
       }
 
+      const duration = Date.now() - startTime;
+
       return {
         taskId,
         success: true,
         result,
-        duration: 0, // TODO: implement timing
+        duration,
       };
     } catch (error) {
       console.error(`Task ${taskId} failed:`, error);
+      const duration = Date.now() - startTime;
+
       return {
         taskId,
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
-        duration: 0,
+        duration,
       };
     }
   }
@@ -166,14 +183,45 @@ export class ActionExecutor {
     });
   }
 
+  private async getCpuUsage(): Promise<number> {
+    return new Promise((resolve) => {
+      const startMeasure = os.cpus();
+
+      setTimeout(() => {
+        const endMeasure = os.cpus();
+
+        let totalIdle = 0;
+        let totalTick = 0;
+
+        for (let i = 0; i < startMeasure.length; i++) {
+          const startCpu = startMeasure[i];
+          const endCpu = endMeasure[i];
+
+          const idleDifference = endCpu.times.idle - startCpu.times.idle;
+          const totalDifference =
+            Object.values(endCpu.times).reduce((a, b) => a + b, 0) -
+            Object.values(startCpu.times).reduce((a, b) => a + b, 0);
+
+          totalIdle += idleDifference;
+          totalTick += totalDifference;
+        }
+
+        const cpuUsage = 100 - (100 * totalIdle) / totalTick;
+        resolve(Math.round(cpuUsage * 100) / 100); // Round to 2 decimal places
+      }, 100); // Measure over 100ms interval
+    });
+  }
+
   private async getSystemInfo(
     action: SystemInfoAction
   ): Promise<SystemInfoResponse> {
     const {
-      includeMetrics = false,
+      includeMetrics = true,
       includeProcesses = false,
       includeNetwork = false,
     } = action;
+
+    const cpuUsage = await this.getCpuUsage();
 
     const info: SystemInfoResponse = {
       platform: os.platform(),
@@ -190,7 +238,7 @@ export class ActionExecutor {
       cpu: {
         model: os.cpus()[0]?.model || "Unknown",
         cores: os.cpus().length,
-        usage: 0, // TODO: implement CPU usage calculation
+        usage: cpuUsage,
       },
       disk: {
         total: 0,
