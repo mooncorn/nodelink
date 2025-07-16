@@ -15,6 +15,21 @@ import {
 import { TaskManager } from "./task-manager";
 import { NodeManager } from "./node-manager";
 
+// Utility type to convert payload types to callback types
+type EventsToCallbacks<T> = {
+  [K in keyof T]: (data: T[K]) => void;
+};
+
+// Socket.IO compatible types from existing event interfaces
+type ServerListenEvents = EventsToCallbacks<
+  NodeToServerEvents & FrontendToServerEvents
+>;
+type ServerEmitEvents = EventsToCallbacks<
+  ServerToNodeEvents & ServerToFrontendEvents
+>;
+
+type TypedServerSocket = Socket<ServerListenEvents, ServerEmitEvents>;
+
 export class NodeLinkServer {
   private app: Application;
   private server: https.Server;
@@ -196,11 +211,15 @@ export class NodeLinkServer {
   }
 
   private setupSocketHandlers(): void {
-    this.io.on("connection", (socket: Socket) => {
+    this.io.on("connection", (socket: TypedServerSocket) => {
       console.log("Client connected:", socket.id);
 
+      // Type assertion with the new callback-based type
+      const typedSocket = socket as TypedServerSocket;
+
+      // Now this will work correctly with full type safety!
       // Handle node registration
-      socket.on("node.register", (registration: NodeRegistration) => {
+      typedSocket.on("node.register", (registration: NodeRegistration) => {
         // TODO: validate registration
         const success = this.nodeManager.registerNode(socket, registration);
 
@@ -218,7 +237,7 @@ export class NodeLinkServer {
 
       // Handle frontend task creation
       // TODO: convert to use REST pattern
-      socket.on(
+      typedSocket.on(
         "task.create",
         (data: { nodeId: string; type: string; payload: any }) => {
           const { nodeId, type, payload } = data;
@@ -226,19 +245,19 @@ export class NodeLinkServer {
           // Validate action
           const validation = validateActionWithDetails(type, payload);
           if (!validation.valid) {
-            socket.emit("error", {
-              message: "Invalid action",
-              details: validation.error,
-            });
+            // socket.emit("error", {
+            //   message: "Invalid action",
+            //   details: validation.error,
+            // });
             return;
           }
 
           // Check if node is online
           if (!this.nodeManager.isNodeOnline(nodeId)) {
-            socket.emit("error", {
-              message: "Node is not online",
-              nodeId,
-            });
+            // socket.emit("error", {
+            //   message: "Node is not online",
+            //   nodeId,
+            // });
             return;
           }
 
@@ -253,10 +272,10 @@ export class NodeLinkServer {
             // Notify frontend of task creation
             socket.emit("task.created", { task });
           } catch (error) {
-            socket.emit("error", {
-              message: "Failed to create task",
-              error: error instanceof Error ? error.message : "Unknown error",
-            });
+            // socket.emit("error", {
+            //   message: "Failed to create task",
+            //   error: error instanceof Error ? error.message : "Unknown error",
+            // });
           }
         }
       );

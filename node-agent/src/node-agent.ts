@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import * as os from "os";
 import {
   NodeRegistration,
@@ -9,12 +9,25 @@ import {
   TaskResult,
   TaskUpdate,
   createTaskUpdate,
+  ServerToNodeEvents,
+  NodeToServerEvents,
 } from "nodelink-shared";
 
 import { ActionExecutor } from "./action-executor";
 
+// Utility type to convert payload types to callback types
+type EventsToCallbacks<T> = {
+  [K in keyof T]: (data: T[K]) => void;
+};
+
+// Create Socket.IO compatible types from existing event interfaces
+type ClientListenEvents = EventsToCallbacks<ServerToNodeEvents>;
+type ClientEmitEvents = EventsToCallbacks<NodeToServerEvents>;
+
+type TypedClientSocket = Socket<ClientListenEvents, ClientEmitEvents>;
+
 export class NodeAgent extends EventEmitter {
-  private socket: any;
+  private socket: TypedClientSocket;
   private executor: ActionExecutor;
   private config: NodeConfig = {
     heartbeatInterval: 30000,
@@ -49,7 +62,7 @@ export class NodeAgent extends EventEmitter {
       this.register();
     });
 
-    this.socket.on("disconnect", (reason: string) => {
+    this.socket.on("disconnect", (reason) => {
       console.log(`Node ${this.nodeId} disconnected: ${reason}`);
       this.connected = false;
       this.stopHeartbeat();
@@ -67,28 +80,28 @@ export class NodeAgent extends EventEmitter {
       }
     });
 
-    this.socket.on("node.register.failed", (error: { error: string }) => {
+    this.socket.on("node.register.failed", (error) => {
       console.error(`Node ${this.nodeId} registration failed:`, error);
       this.authenticationFailed = true;
     });
 
-    this.socket.on("connect_error", (error: any) => {
+    this.socket.on("connect_error", (error) => {
       console.error(`Node ${this.nodeId} connection error:`, error);
     });
 
-    this.socket.on("task.execute", (execution: TaskExecution) => {
+    this.socket.on("task.execute", (execution) => {
       this.executeTask(execution);
     });
 
-    this.socket.on("task.cancel", (data: { taskId: string }) => {
+    this.socket.on("task.cancel", (data) => {
       this.cancelTask(data.taskId);
     });
 
-    this.socket.on("node.ping", (data: { timestamp: Date }) => {
+    this.socket.on("node.ping", (data) => {
       this.socket.emit("node.pong", { timestamp: data.timestamp });
     });
 
-    this.socket.on("node.config", (data: { config: NodeConfig }) => {
+    this.socket.on("node.config", (data) => {
       this.updateConfig(data.config);
     });
   }
