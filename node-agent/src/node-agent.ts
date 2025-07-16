@@ -25,6 +25,7 @@ export class NodeAgent extends EventEmitter {
   private heartbeatTimer?: NodeJS.Timeout;
   private runningTasks: Map<string, any> = new Map();
   private connected = false;
+  private authenticationFailed = false;
 
   constructor(
     private nodeId: string,
@@ -34,7 +35,7 @@ export class NodeAgent extends EventEmitter {
     super();
 
     this.executor = new ActionExecutor(nodeId);
-    this.socket = io(serverUrl, {
+    this.socket = io(this.serverUrl, {
       rejectUnauthorized: false, // For self-signed certificates
     });
 
@@ -53,10 +54,22 @@ export class NodeAgent extends EventEmitter {
       this.connected = false;
       this.stopHeartbeat();
 
+      if (this.authenticationFailed) {
+        // Authentication failed, stop trying to reconnect
+        console.error(`Node ${this.nodeId} authentication failed`);
+        this.stop();
+        return;
+      }
+
       if (reason === "io server disconnect") {
-        // Server disconnected us, try to reconnect
+        // Reconnect if the server disconnected us
         this.socket.connect();
       }
+    });
+
+    this.socket.on("node.register.failed", (error: { error: string }) => {
+      console.error(`Node ${this.nodeId} registration failed:`, error);
+      this.authenticationFailed = true;
     });
 
     this.socket.on("connect_error", (error: any) => {
@@ -103,7 +116,13 @@ export class NodeAgent extends EventEmitter {
     this.checkDockerAvailability()
       .then((available) => {
         if (available) {
-          capabilities.push("docker.start", "docker.stop", "docker.list");
+          capabilities.push(
+            "docker.run",
+            "docker.delete",
+            "docker.start",
+            "docker.stop",
+            "docker.list"
+          );
         }
       })
       .catch(() => {

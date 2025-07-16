@@ -94,18 +94,19 @@ export class TaskManager extends EventEmitter {
   // Handle task update from node
   private handleTaskUpdate(update: TaskUpdate): void {
     const task = this.tasks.get(update.taskId);
+
     if (!task) return;
 
     const updatedTask = updateTaskStatus(task, update.status);
 
     // Update additional fields
-    if (update.progress !== undefined) {
-      (updatedTask as any).progress = update.progress;
+    if (update.progress) {
+      updatedTask.progress = update.progress;
     }
-    if (update.output !== undefined) {
-      (updatedTask as any).output = update.output;
+    if (update.output) {
+      updatedTask.output = update.output;
     }
-    if (update.error !== undefined) {
+    if (update.error) {
       updatedTask.error = update.error;
     }
 
@@ -145,7 +146,7 @@ export class TaskManager extends EventEmitter {
     this.emit("task.output", output);
   }
 
-  // Update a task
+  // Whenever a task is updated, call this method to update the task in the task manager and emit the event
   private updateTask(task: Task): void {
     this.tasks.set(task.id, task);
     this.emit("task.updated", task);

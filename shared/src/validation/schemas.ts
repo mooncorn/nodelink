@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Action validation schemas
-export const DockerStartActionSchema = z.object({
+export const DockerRunActionSchema = z.object({
   image: z.string().min(1),
   containerName: z.string().optional(),
   ports: z
@@ -25,9 +25,17 @@ export const DockerStartActionSchema = z.object({
     .optional(),
 });
 
-export const DockerStopActionSchema = z.object({
+export const DockerDeleteActionSchema = z.object({
   containerId: z.string().min(1),
   force: z.boolean().optional(),
+});
+
+export const DockerStartActionSchema = z.object({
+  containerId: z.string().min(1),
+});
+
+export const DockerStopActionSchema = z.object({
+  containerId: z.string().min(1),
 });
 
 export const DockerListActionSchema = z.object({
@@ -127,6 +135,8 @@ export const TaskOutputSchema = z.object({
 
 // Action registry schema mapping
 export const ActionSchemaRegistry = {
+  "docker.run": DockerRunActionSchema,
+  "docker.delete": DockerDeleteActionSchema,
   "docker.start": DockerStartActionSchema,
   "docker.stop": DockerStopActionSchema,
   "docker.list": DockerListActionSchema,

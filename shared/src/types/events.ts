@@ -6,6 +6,7 @@ export interface ServerToNodeEvents {
   "task.cancel": { taskId: string };
   "node.ping": { timestamp: Date };
   "node.config": { config: NodeConfig };
+  "node.register.failed": { error: string };
 }
 
 // Events sent from nodes to server
@@ -27,6 +28,7 @@ export interface ServerToFrontendEvents {
   "task.completed": { task: Task };
 }
 
+// TODO: replace with REST pattern
 // Events sent from frontend to server
 export interface FrontendToServerEvents {
   "task.create": {
@@ -72,6 +74,7 @@ export interface NodeInfo {
     version: string;
     hostname: string;
   };
+  systemMetrics?: { cpuUsage: number; memoryUsage: number; diskUsage: number };
   lastSeen: Date;
   runningTasks: number;
 }

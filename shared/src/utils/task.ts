@@ -20,7 +20,7 @@ export function createTask<T extends ActionType>(
     createdAt: new Date(),
     timeout: options.timeout || 30000, // 30 seconds default
     retryCount: 0,
-    maxRetries: options.maxRetries || 3,
+    maxRetries: options.maxRetries || 0,
   };
 }
 

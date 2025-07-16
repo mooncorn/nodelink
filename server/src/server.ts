@@ -201,11 +201,13 @@ export class NodeLinkServer {
 
       // Handle node registration
       socket.on("node.register", (registration: NodeRegistration) => {
+        // TODO: validate registration
         const success = this.nodeManager.registerNode(socket, registration);
 
         if (success) {
           console.log(`Node ${registration.id} registered`);
           this.taskManager.registerNode(registration.id, socket);
+          this.frontendConnections.delete(socket);
         } else {
           console.log(
             `Invalid registration attempt for node ${registration.id}`
@@ -215,6 +217,7 @@ export class NodeLinkServer {
       });
 
       // Handle frontend task creation
+      // TODO: convert to use REST pattern
       socket.on(
         "task.create",
         (data: { nodeId: string; type: string; payload: any }) => {
@@ -247,6 +250,7 @@ export class NodeLinkServer {
               payload
             );
 
+            // Notify frontend of task creation
             socket.emit("task.created", { task });
           } catch (error) {
             socket.emit("error", {
@@ -258,11 +262,13 @@ export class NodeLinkServer {
       );
 
       // Handle task cancellation
+      // TODO: convert to use REST pattern
       socket.on("task.cancel", (data: { taskId: string }) => {
         this.taskManager.cancelTask(data.taskId);
       });
 
       // Handle node list request
+      // TODO: convert to use REST pattern
       socket.on("node.list", () => {
         socket.emit("node.list", {
           nodes: this.nodeManager.getNodeList(),

@@ -5,6 +5,7 @@ import {
   NodeInfo,
   NodeConfig,
 } from "nodelink-shared";
+import { timingSafeEqual } from "crypto";
 
 export class NodeManager extends EventEmitter {
   private nodes: Map<string, NodeInfo> = new Map();
@@ -27,7 +28,13 @@ export class NodeManager extends EventEmitter {
     const { id, token, capabilities, systemInfo } = registration;
 
     // Validate token
-    if (this.validTokens.get(id) !== token) {
+    if (
+      timingSafeEqual(
+        Buffer.from(this.validTokens.get(id) || ""),
+        Buffer.from(token)
+      )
+    ) {
+      socket.emit("node.register.failed", { error: "Invalid token" });
       return false;
     }
 
@@ -89,10 +96,9 @@ export class NodeManager extends EventEmitter {
 
     // Store metrics if available
     if (heartbeat.systemMetrics) {
-      (node as any).systemMetrics = heartbeat.systemMetrics;
+      node.systemMetrics = heartbeat.systemMetrics;
     }
 
-    this.nodes.set(heartbeat.nodeId, node);
     this.resetHeartbeatTimeout(heartbeat.nodeId);
 
     this.emit("node.heartbeat", heartbeat);
@@ -105,7 +111,6 @@ export class NodeManager extends EventEmitter {
     if (!node) return;
 
     node.lastSeen = timestamp;
-    this.nodes.set(nodeId, node);
     this.resetHeartbeatTimeout(nodeId);
   }
 
@@ -117,7 +122,6 @@ export class NodeManager extends EventEmitter {
     // Update status to offline
     node.status = "offline";
     node.lastSeen = new Date();
-    this.nodes.set(nodeId, node);
 
     // Remove connection
     this.nodeConnections.delete(nodeId);
@@ -157,7 +161,6 @@ export class NodeManager extends EventEmitter {
     // Mark as offline
     node.status = "offline";
     node.lastSeen = new Date();
-    this.nodes.set(nodeId, node);
 
     // Remove connection if it exists
     this.nodeConnections.delete(nodeId);

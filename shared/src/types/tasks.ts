@@ -21,6 +21,8 @@ export interface Task<T extends ActionType = ActionType> {
   maxRetries?: number;
   error?: string;
   result?: any;
+  progress?: number;
+  output?: string;
 }
 
 export interface TaskUpdate {

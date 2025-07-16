@@ -1,5 +1,5 @@
 // Response types for different actions
-export interface DockerStartResponse {
+export interface DockerRunResponse {
   containerId: string;
   containerName: string;
   status: string;
@@ -8,6 +8,14 @@ export interface DockerStartResponse {
     container: number;
     protocol: "tcp" | "udp";
   }>;
+}
+
+export interface DockerDeleteResponse {
+  containerId: string;
+}
+
+export interface DockerStartResponse {
+  containerId: string;
 }
 
 export interface DockerStopResponse {
@@ -107,6 +115,8 @@ export interface ErrorResponse {
 
 // Union type for all response types
 export type ActionResponse =
+  | DockerRunResponse
+  | DockerDeleteResponse
   | DockerStartResponse
   | DockerStopResponse
   | DockerListResponse

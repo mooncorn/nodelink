@@ -1,5 +1,7 @@
 // Action definitions for commands that can be sent to nodes
 export interface ActionRegistry {
+  "docker.run": DockerRunAction;
+  "docker.delete": DockerDeleteAction;
   "docker.start": DockerStartAction;
   "docker.stop": DockerStopAction;
   "docker.list": DockerListAction;
@@ -8,7 +10,7 @@ export interface ActionRegistry {
   "system.health": SystemHealthAction;
 }
 
-export interface DockerStartAction {
+export interface DockerRunAction {
   image: string;
   containerName?: string;
   ports?: Array<{
@@ -24,9 +26,18 @@ export interface DockerStartAction {
   }>;
 }
 
+export interface DockerDeleteAction {
+  containerId: string;
+  force?: boolean; // default: false
+  removeVolumes?: boolean; // default: false
+}
+
+export interface DockerStartAction {
+  containerId: string;
+}
+
 export interface DockerStopAction {
   containerId: string;
-  force?: boolean;
 }
 
 export interface DockerListAction {
