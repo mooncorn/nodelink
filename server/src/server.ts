@@ -1,6 +1,7 @@
 import express, { Application } from "express";
 import https from "https";
 import fs from "fs";
+import cors from "cors";
 import { Server, Socket } from "socket.io";
 import {
   NodeRegistration,
@@ -51,7 +52,13 @@ export class NodeLinkServer {
       this.app
     );
 
-    this.io = new Server(this.server);
+    this.io = new Server(this.server, {
+      cors: {
+        origin: ["http://localhost:3000", "https://localhost:3000"],
+        methods: ["GET", "POST"],
+        credentials: true,
+      },
+    });
     this.taskManager = new TaskManager();
     this.nodeManager = new NodeManager();
 
@@ -131,6 +138,16 @@ export class NodeLinkServer {
   }
 
   private setupRoutes(): void {
+    // Enable CORS for frontend access
+    this.app.use(
+      cors({
+        origin: ["http://localhost:3000", "https://localhost:3000"],
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+        credentials: true,
+      })
+    );
+
     // Enable JSON parsing
     this.app.use(express.json());
 
@@ -283,7 +300,6 @@ export class NodeLinkServer {
       // Type assertion with the new callback-based type
       const typedSocket = socket as TypedServerSocket;
 
-      // Now this will work correctly with full type safety!
       // Handle node registration
       typedSocket.on("node.register", (registration: NodeRegistration) => {
         // Validate registration data
