@@ -9,11 +9,39 @@ service EventService {
 }
 
 message Event {
+  string event_id = 1;
+  string agent_id = 2;
   oneof payload {
-    TaskAssigned task_assigned = 1;
+    ShellExecute shell_execute = 3;
+    DockerOperation docker_operation = 4;
   }
 }
 
-message TaskAssigned {
-  string task_id = 1;
+message ShellExecute {
+  string cmd = 1;
+}
+
+message DockerOperation {
+  oneof operation {
+    DockerRun docker_run = 1;
+    DockerStart docker_start = 2;
+    DockerStop docker_stop = 3;
+    DockerLogs docker_logs = 4;
+  }
+}
+
+message DockerRun {
+  string img = 1;
+}
+
+message DockerStart {
+  string id = 1;
+}
+
+message DockerStop {
+  string id = 1;
+}
+
+message DockerLogs {
+  string id = 1;
 }
