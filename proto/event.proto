@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package eventstream;
+
+option go_package = "github.com/mooncorn/nodelink/proto/eventstream";
+
+service EventService {
+  rpc StreamEvents(stream Event) returns (stream Event);
+}
+
+message Event {
+  oneof payload {
+    TaskAssigned task_assigned = 1;
+  }
+}
+
+message TaskAssigned {
+  string task_id = 1;
+}

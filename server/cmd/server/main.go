@@ -1,10 +1,17 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"net"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	eventstream "github.com/mooncorn/nodelink/proto"
+	grpclocal "github.com/mooncorn/nodelink/server/pkg/grpc"
 	"github.com/mooncorn/nodelink/server/pkg/sse"
+	"google.golang.org/grpc"
 )
 
 // Data to be broadcasted to a client.
@@ -14,6 +21,46 @@ type Data struct {
 }
 
 func main() {
+	// Create gRPC server
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+
+	grpcServer := grpc.NewServer()
+	eventServer := grpclocal.NewEventServer()
+	eventstream.RegisterEventServiceServer(grpcServer, eventServer)
+
+	// Add a simple event listener that logs all events
+	eventServer.AddListener(func(event *eventstream.Event) {
+		log.Printf("Server received event: %+v", event)
+	})
+
+	// Start gRPC server in background
+	go func() {
+		log.Println("gRPC Event Server starting on :50051")
+		if err := grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve gRPC: %v", err)
+		}
+	}()
+
+	// Publish demo events periodically
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		counter := 1
+
+		for range ticker.C {
+			taskID := fmt.Sprintf("demo-task-%d", counter)
+			eventServer.Broadcast(&eventstream.Event{
+				Payload: &eventstream.Event_TaskAssigned{
+					TaskAssigned: &eventstream.TaskAssigned{
+						TaskId: taskID}}})
+			counter++
+		}
+	}()
+
+	// HTTP/SSE server setup (existing code)
 	router := gin.Default()
 
 	config := sse.ManagerConfig{
@@ -40,22 +87,13 @@ func main() {
 			ClientId: string(client.ID),
 		}
 
-		// Send the data (this replaces your manual goroutine)
+		// Send the data
 		manager.Broadcast(data, "message")
 
 		// Handle the stream
 		sse.HandleSSEStream[Data](c)
 	})
 
+	log.Println("HTTP Server starting on :8080")
 	router.Run()
-}
-
-func HeadersMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Content-Type", "text/event-stream")
-		c.Writer.Header().Set("Cache-Control", "no-cache")
-		c.Writer.Header().Set("Connection", "keep-alive")
-		c.Writer.Header().Set("Transfer-Encoding", "chunked")
-		c.Next()
-	}
 }
