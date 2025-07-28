@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -28,12 +27,12 @@ func main() {
 	defer client.Close()
 
 	// Add a simple event listener that logs all events
-	client.AddListener(func(event *eventstream.Event) {
+	client.AddListener(func(event *eventstream.ServerToNodeEvent) {
 		log.Printf("Agent processed event: %+v", event)
 
 		// Specific handling for different event types
-		switch payload := event.Payload.(type) {
-		case *eventstream.Event_LogMessage:
+		switch payload := event.Task.(type) {
+		case *eventstream.ServerToNodeEvent_LogMessage:
 			log.Printf("Agent received log message: %s", payload.LogMessage.Msg)
 		}
 	})
@@ -47,19 +46,18 @@ func main() {
 	go func() {
 		ticker := time.NewTicker(15 * time.Second)
 		defer ticker.Stop()
-		counter := 1
 
 		for range ticker.C {
-			if err := client.SendEvent(&eventstream.Event{
-				Payload: &eventstream.Event_LogMessage{
+			if err := client.SendEvent(&eventstream.NodeToServerEvent{
+				AgentId: *agentID,
+				Event: &eventstream.NodeToServerEvent_LogMessage{
 					LogMessage: &eventstream.LogMessage{
-						Msg: fmt.Sprintf("Event from agent to server: %d", counter),
+						Msg: "msg from agent",
 					},
 				},
 			}); err != nil {
 				log.Printf("Failed to publish event: %v", err)
 			}
-			counter++
 		}
 	}()
 

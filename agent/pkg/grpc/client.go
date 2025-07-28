@@ -24,7 +24,7 @@ type EventClient struct {
 }
 
 // EventListener defines a function that processes incoming events
-type EventListener func(*eventstream.Event)
+type EventListener func(*eventstream.ServerToNodeEvent)
 
 // NewEventClient creates a new event client
 func NewEventClient(serverAddr string) (*EventClient, error) {
@@ -99,7 +99,7 @@ func (c *EventClient) listen() {
 }
 
 // SendEvent sends an event to the server
-func (c *EventClient) SendEvent(event *eventstream.Event) error {
+func (c *EventClient) SendEvent(event *eventstream.NodeToServerEvent) error {
 	if c.stream == nil {
 		return fmt.Errorf("not connected")
 	}

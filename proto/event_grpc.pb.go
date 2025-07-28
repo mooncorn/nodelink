@@ -43,8 +43,8 @@ func (c *eventServiceClient) StreamEvents(ctx context.Context, opts ...grpc.Call
 }
 
 type EventService_StreamEventsClient interface {
-	Send(*Event) error
-	Recv() (*Event, error)
+	Send(*NodeToServerEvent) error
+	Recv() (*ServerToNodeEvent, error)
 	grpc.ClientStream
 }
 
@@ -52,12 +52,12 @@ type eventServiceStreamEventsClient struct {
 	grpc.ClientStream
 }
 
-func (x *eventServiceStreamEventsClient) Send(m *Event) error {
+func (x *eventServiceStreamEventsClient) Send(m *NodeToServerEvent) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *eventServiceStreamEventsClient) Recv() (*Event, error) {
-	m := new(Event)
+func (x *eventServiceStreamEventsClient) Recv() (*ServerToNodeEvent, error) {
+	m := new(ServerToNodeEvent)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -97,8 +97,8 @@ func _EventService_StreamEvents_Handler(srv interface{}, stream grpc.ServerStrea
 }
 
 type EventService_StreamEventsServer interface {
-	Send(*Event) error
-	Recv() (*Event, error)
+	Send(*ServerToNodeEvent) error
+	Recv() (*NodeToServerEvent, error)
 	grpc.ServerStream
 }
 
@@ -106,12 +106,12 @@ type eventServiceStreamEventsServer struct {
 	grpc.ServerStream
 }
 
-func (x *eventServiceStreamEventsServer) Send(m *Event) error {
+func (x *eventServiceStreamEventsServer) Send(m *ServerToNodeEvent) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *eventServiceStreamEventsServer) Recv() (*Event, error) {
-	m := new(Event)
+func (x *eventServiceStreamEventsServer) Recv() (*NodeToServerEvent, error) {
+	m := new(NodeToServerEvent)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}

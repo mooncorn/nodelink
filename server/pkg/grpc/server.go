@@ -24,7 +24,7 @@ type EventServer struct {
 }
 
 // EventListener defines a function that processes incoming events
-type EventListener func(*eventstream.Event)
+type EventListener func(*eventstream.NodeToServerEvent)
 
 // NewEventServer creates a new event server
 func NewEventServer() *EventServer {
@@ -102,7 +102,7 @@ func (s *EventServer) StreamEvents(stream eventstream.EventService_StreamEventsS
 }
 
 // Broadcast sends an event to all connected agents
-func (s *EventServer) Broadcast(event *eventstream.Event) {
+func (s *EventServer) Broadcast(event *eventstream.ServerToNodeEvent) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

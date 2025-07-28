@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -32,13 +31,13 @@ func main() {
 	eventstream.RegisterEventServiceServer(grpcServer, eventServer)
 
 	// Add a simple event listener that logs all events
-	eventServer.AddListener(func(event *eventstream.Event) {
+	eventServer.AddListener(func(event *eventstream.NodeToServerEvent) {
 		log.Printf("Server received event: %+v", event)
 	})
 
 	// Start gRPC server in background
 	go func() {
-		log.Println("gRPC Event Server starting on :50051")
+		log.Println("gRPC Event Server starting on :9090")
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("Failed to serve gRPC: %v", err)
 		}
@@ -51,10 +50,12 @@ func main() {
 		counter := 1
 
 		for range ticker.C {
-			eventServer.Broadcast(&eventstream.Event{
-				Payload: &eventstream.Event_LogMessage{
+			eventServer.Broadcast(&eventstream.ServerToNodeEvent{
+				EventId: "1",
+				AgentId: "agent1",
+				Task: &eventstream.ServerToNodeEvent_LogMessage{
 					LogMessage: &eventstream.LogMessage{
-						Msg: fmt.Sprintf("Event from server to agent: %d", counter),
+						Msg: "message to agent1",
 					},
 				},
 			})
@@ -62,7 +63,7 @@ func main() {
 		}
 	}()
 
-	// HTTP/SSE server setup (existing code)
+	// HTTP/SSE server setup
 	router := gin.Default()
 
 	config := sse.ManagerConfig{
