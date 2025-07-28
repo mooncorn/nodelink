@@ -4,12 +4,13 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/mooncorn/nodelink/agent/pkg/grpc"
 	eventstream "github.com/mooncorn/nodelink/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func main() {
@@ -32,6 +33,36 @@ func main() {
 		switch payload := event.Task.(type) {
 		case *eventstream.ServerToNodeEvent_LogMessage:
 			log.Printf("Agent received log message: %s", payload.LogMessage.Msg)
+		case *eventstream.ServerToNodeEvent_ShellExecute:
+			cmd := payload.ShellExecute.Cmd
+
+			// Execute the command
+			out, err := exec.Command("sh", "-c", cmd).CombinedOutput()
+			output := string(out)
+			if err != nil {
+				output += "\nError: " + err.Error()
+			}
+
+			data, _ := structpb.NewStruct(map[string]interface{}{
+				"output": output,
+			})
+
+			err = client.Send(&eventstream.NodeToServerEvent{
+				Event: &eventstream.NodeToServerEvent_EventResponse{
+					EventResponse: &eventstream.EventResponse{
+						EventRef: event.EventId,
+						Status:   eventstream.EventResponse_SUCCESS,
+						Response: &eventstream.EventResponse_Result{
+							Result: &eventstream.EventResponseResult{
+								Data: data,
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				log.Printf("\nFailed to send event response: %v", err)
+			}
 		}
 	})
 
@@ -39,25 +70,6 @@ func main() {
 	if err := client.Connect(*agentID, *agentToken); err != nil {
 		log.Fatalf("Failed to connect to event stream: %v", err)
 	}
-
-	// Send demo events periodically
-	go func() {
-		ticker := time.NewTicker(15 * time.Second)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			if err := client.Send(&eventstream.NodeToServerEvent{
-				AgentId: *agentID,
-				Event: &eventstream.NodeToServerEvent_LogMessage{
-					LogMessage: &eventstream.LogMessage{
-						Msg: "msg from agent",
-					},
-				},
-			}); err != nil {
-				log.Printf("Failed to publish event: %v", err)
-			}
-		}
-	}()
 
 	// Wait for interrupt signal
 	c := make(chan os.Signal, 1)

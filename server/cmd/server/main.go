@@ -4,7 +4,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	eventstream "github.com/mooncorn/nodelink/proto"
@@ -30,9 +29,26 @@ func main() {
 	eventServer := grpclocal.NewEventServer()
 	eventstream.RegisterEventServiceServer(grpcServer, eventServer)
 
-	// Add a simple event listener that logs all events
+	config := sse.ManagerConfig{
+		BufferSize:     100,
+		EnableRooms:    true,
+		EnableMetadata: true,
+	}
+
+	eventHandler := sse.NewDefaultEventHandler[eventstream.NodeToServerEvent_EventResponse](true)
+	manager := sse.NewManager(config, eventHandler)
+	manager.Start()
+	defer manager.Stop()
+
+	// Listener that sends event responses to appropriate rooms
 	eventServer.AddListener(func(event *eventstream.NodeToServerEvent) {
 		log.Printf("Server received event: %+v", event)
+
+		switch event := event.Event.(type) {
+		case *eventstream.NodeToServerEvent_EventResponse:
+			manager.EnableRoomBuffering(event.EventResponse.EventRef, 3)
+			manager.SendToRoom(event.EventResponse.EventRef, *event, "response")
+		}
 	})
 
 	// Start gRPC server in background
@@ -43,78 +59,51 @@ func main() {
 		}
 	}()
 
-	// Publish demo events periodically
-	go func() {
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
-		counter := 1
-
-		var agentId = "agent1"
-
-		for range ticker.C {
-			eventId, err := eventServer.Send(&eventstream.ServerToNodeEvent{
-				AgentId: agentId,
-				Task: &eventstream.ServerToNodeEvent_LogMessage{
-					LogMessage: &eventstream.LogMessage{
-						Msg: "message to agent1",
-					},
-				},
-			})
-			if err != nil {
-				log.Printf("\nFailed to send event: %v", err)
-			}
-			log.Printf("\nEvent %s sent to agent %s", eventId, agentId)
-			counter++
-		}
-	}()
-
 	// HTTP/SSE server setup
 	router := gin.Default()
 
-	config := sse.ManagerConfig{
-		BufferSize:     100,
-		EnableRooms:    true,
-		EnableMetadata: true,
-	}
-
-	eventHandler := sse.NewDefaultEventHandler[Data](true)
-	manager := sse.NewManager(config, eventHandler)
-	manager.Start()
-	defer manager.Stop()
-
+	// Subscribe client to event reference
+	// TODO: add auth
 	router.GET("/stream", sse.SSEHeaders(), sse.SSEConnection(manager), func(c *gin.Context) {
-		client, ok := sse.GetClientFromContext[Data](c)
+		client, ok := sse.GetClientFromContext[eventstream.NodeToServerEvent_EventResponse](c)
 		if !ok {
 			c.Status(http.StatusInternalServerError)
 			return
 		}
 
-		// Send welcome message
-		data := Data{
-			Message:  "New Client in town",
-			ClientId: string(client.ID),
+		eventRef := c.Query("ref")
+		if eventRef != "" {
+			manager.JoinRoom(client.ID, eventRef)
 		}
 
-		// Send the data
-		manager.Broadcast(data, "message")
-
 		// Handle the stream
-		sse.HandleSSEStream[Data](c)
+		sse.HandleSSEStream[eventstream.NodeToServerEvent_EventResponse](c)
 	})
 
 	router.POST("/agents/:agentId/shell", func(ctx *gin.Context) {
-		// expected body
-		// { cmd: "" }
+		agentId := ctx.Param("agentId")
+		var req struct {
+			Cmd string `json:"cmd"`
+		}
+		if err := ctx.ShouldBindJSON(&req); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+			return
+		}
 
-		// expected response
-		// { event_ref: "" }
-		// event ref can be used for client to subscribe to incoming events from nodes
+		eventId, err := eventServer.Send(&eventstream.ServerToNodeEvent{
+			AgentId: agentId,
+			Task: &eventstream.ServerToNodeEvent_ShellExecute{
+				ShellExecute: &eventstream.ShellExecute{
+					Cmd: req.Cmd,
+				},
+			},
+		})
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
-		// expected flow:
-		// client sends a shell request with ls command
-		// client recieves event_ref
-		// client establishes sse connection with provided event_ref (subscription)
-		// server relays events to interested clients using event_ref
+		ctx.JSON(http.StatusOK, gin.H{"ref": eventId})
 	})
 
 	log.Println("HTTP Server starting on :8080")

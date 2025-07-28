@@ -1,11 +1,14 @@
+
 # Generic SSE Connection Manager
 
 A highly generic and reusable Server-Sent Events (SSE) connection manager package for Go, designed to work with any custom data type and support multiple use cases.
+
 
 ## Features
 
 - **Generic Type Support**: Works with any data type using Go generics
 - **Room/Group Management**: Organize clients into rooms for targeted messaging
+- **Per-Room Event Buffering**: Optionally buffer recent events for selected rooms and replay them to clients who join late
 - **Client Metadata**: Attach custom metadata to clients
 - **Thread-Safe Operations**: All operations are thread-safe
 - **Event Handling**: Customizable event handlers for connection lifecycle
@@ -91,10 +94,17 @@ router.GET("/stream",
 - `GetClient(clientID)` - Get client by ID
 - `GetClientCount()` - Get total client count
 
+
 #### Messaging
 - `SendToClient(clientID, data, eventType)` - Send to specific client
 - `Broadcast(data, eventType)` - Send to all clients
 - `SendToRoom(room, data, eventType)` - Send to room members
+
+#### Room Buffering
+- `EnableRoomBuffering(room, size)` - Enable event buffering for a specific room (buffer size is configurable per room)
+- `DisableRoomBuffering(room)` - Disable buffering and clear buffer for a room
+
+When buffering is enabled for a room, recent events sent to that room are stored in a buffer. When a client joins a buffered room, all buffered events are immediately sent to the client before new live events. This is useful for cases where clients may join a room mid-action and need to catch up on recent events.
 
 #### Room Management
 - `JoinRoom(clientID, room)` - Add client to room
@@ -149,9 +159,13 @@ router.POST("/broadcast", func(c *gin.Context) {
 })
 ```
 
-### Room Operations
+
+### Room Operations & Buffering
 
 ```go
+// Enable buffering for a room (store last 20 events)
+manager.EnableRoomBuffering("myroom", 20)
+
 // Join room
 router.POST("/join/:clientID/:room", func(c *gin.Context) {
     clientID := pkg.ClientID(c.Param("clientID"))
@@ -171,6 +185,9 @@ router.POST("/room/:room", func(c *gin.Context) {
     manager.SendToRoom(room, message, "room_message")
     c.JSON(200, gin.H{"status": "sent to room"})
 })
+
+// Disable buffering for a room
+manager.DisableRoomBuffering("myroom")
 ```
 
 ## Client-Side Usage
@@ -273,9 +290,10 @@ The package provides comprehensive error handling:
 - Configurable error callbacks
 - Context-based cancellation
 
+
 ## Best Practices
 
-1. **Buffer Sizing**: Set appropriate buffer sizes based on expected message volume
+1. **Buffer Sizing**: Set appropriate buffer sizes for rooms where clients may join late and need recent event history. Not all rooms need buffering—enable it only where needed.
 2. **Room Management**: Use rooms for organizing clients by topics/channels
 3. **Metadata**: Store client-specific information in metadata
 4. **Error Handling**: Implement custom error handlers for production use

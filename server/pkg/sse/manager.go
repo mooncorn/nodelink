@@ -9,16 +9,23 @@ import (
 )
 
 // Manager manages SSE connections and message broadcasting
+type roomBuffer[T any] struct {
+	messages []Message[T]
+	size     int
+}
+
 type Manager[T any] struct {
-	clients      map[ClientID]*Client[T]
-	rooms        map[string]map[ClientID]*Client[T]
-	clientsMu    sync.RWMutex
-	roomsMu      sync.RWMutex
-	config       ManagerConfig
-	eventHandler EventHandler[T]
-	messageQueue chan Message[T]
-	running      atomic.Bool
-	done         chan struct{}
+	clients       map[ClientID]*Client[T]
+	rooms         map[string]map[ClientID]*Client[T]
+	clientsMu     sync.RWMutex
+	roomsMu       sync.RWMutex
+	config        ManagerConfig
+	eventHandler  EventHandler[T]
+	messageQueue  chan Message[T]
+	running       atomic.Bool
+	done          chan struct{}
+	roomBuffers   map[string]*roomBuffer[T] // only for buffered rooms
+	bufferedRooms map[string]struct{}       // set of room names to buffer
 }
 
 // NewManager creates a new SSE manager
@@ -28,15 +35,58 @@ func NewManager[T any](config ManagerConfig, handler EventHandler[T]) *Manager[T
 	}
 
 	manager := &Manager[T]{
-		clients:      make(map[ClientID]*Client[T]),
-		rooms:        make(map[string]map[ClientID]*Client[T]),
-		config:       config,
-		eventHandler: handler,
-		messageQueue: make(chan Message[T], config.BufferSize*10),
-		done:         make(chan struct{}),
+		clients:       make(map[ClientID]*Client[T]),
+		rooms:         make(map[string]map[ClientID]*Client[T]),
+		config:        config,
+		eventHandler:  handler,
+		messageQueue:  make(chan Message[T], config.BufferSize*10),
+		done:          make(chan struct{}),
+		roomBuffers:   make(map[string]*roomBuffer[T]),
+		bufferedRooms: make(map[string]struct{}),
 	}
 
 	return manager
+}
+
+// EnableRoomBuffering enables buffering for a specific room with a given buffer size
+func (m *Manager[T]) EnableRoomBuffering(room string, size int) {
+	m.roomsMu.Lock()
+	defer m.roomsMu.Unlock()
+	if size <= 0 {
+		size = 20 // default buffer size
+	}
+	m.bufferedRooms[room] = struct{}{}
+	if _, ok := m.roomBuffers[room]; !ok {
+		m.roomBuffers[room] = &roomBuffer[T]{size: size}
+	} else {
+		m.roomBuffers[room].size = size
+	}
+}
+
+// DisableRoomBuffering disables buffering for a specific room
+func (m *Manager[T]) DisableRoomBuffering(room string) {
+	m.roomsMu.Lock()
+	defer m.roomsMu.Unlock()
+	delete(m.bufferedRooms, room)
+	delete(m.roomBuffers, room)
+}
+
+// bufferRoomEvent appends a message to the buffer for a room if buffering is enabled
+func (m *Manager[T]) bufferRoomEvent(room string, message Message[T]) {
+	m.roomsMu.Lock()
+	defer m.roomsMu.Unlock()
+	if _, ok := m.bufferedRooms[room]; !ok {
+		return
+	}
+	buf, ok := m.roomBuffers[room]
+	if !ok {
+		buf = &roomBuffer[T]{size: 20}
+		m.roomBuffers[room] = buf
+	}
+	if len(buf.messages) >= buf.size {
+		buf.messages = buf.messages[1:]
+	}
+	buf.messages = append(buf.messages, message)
 }
 
 // Start starts the message processing goroutine
@@ -184,6 +234,9 @@ func (m *Manager[T]) SendToRoom(room string, data T, eventType string) error {
 		Room:      room,
 	}
 
+	// Buffer the event if this room is buffered
+	m.bufferRoomEvent(room, message)
+
 	select {
 	case m.messageQueue <- message:
 		return nil
@@ -210,6 +263,19 @@ func (m *Manager[T]) JoinRoom(clientID ClientID, room string) error {
 		m.rooms[room] = make(map[ClientID]*Client[T])
 	}
 	m.rooms[room][clientID] = client
+
+	// If this room is buffered, send buffered events to the client
+	if _, ok := m.bufferedRooms[room]; ok {
+		if buf, ok := m.roomBuffers[room]; ok {
+			for _, msg := range buf.messages {
+				select {
+				case client.Channel <- msg:
+				default:
+					// skip if client channel is full
+				}
+			}
+		}
+	}
 	m.roomsMu.Unlock()
 
 	return nil
@@ -233,6 +299,11 @@ func (m *Manager[T]) LeaveRoom(clientID ClientID, room string) error {
 		delete(m.rooms[room], clientID)
 		if len(m.rooms[room]) == 0 {
 			delete(m.rooms, room)
+			// Clean up buffer if this was a buffered room
+			if _, ok := m.bufferedRooms[room]; ok {
+				delete(m.roomBuffers, room)
+				delete(m.bufferedRooms, room)
+			}
 		}
 	}
 	m.roomsMu.Unlock()
@@ -362,6 +433,11 @@ func (m *Manager[T]) removeClientFromAllRooms(clientID ClientID) {
 		delete(clients, clientID)
 		if len(clients) == 0 {
 			delete(m.rooms, room)
+			// Clean up buffer if this was a buffered room
+			if _, ok := m.bufferedRooms[room]; ok {
+				delete(m.roomBuffers, room)
+				delete(m.bufferedRooms, room)
+			}
 		}
 	}
 }
