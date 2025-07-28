@@ -22,7 +22,7 @@ type Data struct {
 
 func main() {
 	// Create gRPC server
-	lis, err := net.Listen("tcp", ":50051")
+	lis, err := net.Listen("tcp", ":9090")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -51,11 +51,13 @@ func main() {
 		counter := 1
 
 		for range ticker.C {
-			taskID := fmt.Sprintf("demo-task-%d", counter)
 			eventServer.Broadcast(&eventstream.Event{
-				Payload: &eventstream.Event_TaskAssigned{
-					TaskAssigned: &eventstream.TaskAssigned{
-						TaskId: taskID}}})
+				Payload: &eventstream.Event_LogMessage{
+					LogMessage: &eventstream.LogMessage{
+						Msg: fmt.Sprintf("Event from server to agent: %d", counter),
+					},
+				},
+			})
 			counter++
 		}
 	}()

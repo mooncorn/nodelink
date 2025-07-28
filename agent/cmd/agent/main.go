@@ -21,7 +21,7 @@ func main() {
 	log.Println("Starting Agent...")
 
 	// Create event client
-	client, err := grpc.NewEventClient("localhost:50051")
+	client, err := grpc.NewEventClient("localhost:9090")
 	if err != nil {
 		log.Fatalf("Failed to create event client: %v", err)
 	}
@@ -33,8 +33,8 @@ func main() {
 
 		// Specific handling for different event types
 		switch payload := event.Payload.(type) {
-		case *eventstream.Event_TaskAssigned:
-			log.Printf("Agent received task assignment: %s", payload.TaskAssigned.TaskId)
+		case *eventstream.Event_LogMessage:
+			log.Printf("Agent received log message: %s", payload.LogMessage.Msg)
 		}
 	})
 
@@ -50,11 +50,13 @@ func main() {
 		counter := 1
 
 		for range ticker.C {
-			taskID := fmt.Sprintf("agent-task-%d", counter)
 			if err := client.SendEvent(&eventstream.Event{
-				Payload: &eventstream.Event_TaskAssigned{
-					TaskAssigned: &eventstream.TaskAssigned{
-						TaskId: taskID}}}); err != nil {
+				Payload: &eventstream.Event_LogMessage{
+					LogMessage: &eventstream.LogMessage{
+						Msg: fmt.Sprintf("Event from agent to server: %d", counter),
+					},
+				},
+			}); err != nil {
 				log.Printf("Failed to publish event: %v", err)
 			}
 			counter++
