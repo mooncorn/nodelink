@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/mooncorn/nodelink/agent/pkg/grpc"
 	eventstream "github.com/mooncorn/nodelink/proto"
@@ -34,35 +35,82 @@ func main() {
 		case *eventstream.ServerToNodeEvent_LogMessage:
 			log.Printf("Agent received log message: %s", payload.LogMessage.Msg)
 		case *eventstream.ServerToNodeEvent_ShellExecute:
-			cmd := payload.ShellExecute.Cmd
+			cmdStr := payload.ShellExecute.Cmd
 
-			// Execute the command
-			out, err := exec.Command("sh", "-c", cmd).CombinedOutput()
-			output := string(out)
-			if err != nil {
-				output += "\nError: " + err.Error()
+			cmd := exec.Command("sh", "-c", cmdStr)
+			stdout, _ := cmd.StdoutPipe()
+			stderr, _ := cmd.StderrPipe()
+
+			if err := cmd.Start(); err != nil {
+				log.Printf("Failed to start command: %v", err)
+				return
 			}
 
-			data, _ := structpb.NewStruct(map[string]interface{}{
-				"output": output,
-			})
+			var seqStdout, seqStderr int
 
-			err = client.Send(&eventstream.NodeToServerEvent{
-				Event: &eventstream.NodeToServerEvent_EventResponse{
-					EventResponse: &eventstream.EventResponse{
-						EventRef: event.EventId,
-						Status:   eventstream.EventResponse_SUCCESS,
-						Response: &eventstream.EventResponse_Result{
-							Result: &eventstream.EventResponseResult{
-								Data: data,
+			sendChunk := func(output, typ string, seq int, isFinal bool, exitCode int) {
+				data, _ := structpb.NewStruct(map[string]any{
+					"output":    output,
+					"type":      typ,
+					"timestamp": time.Now().UnixNano(),
+					"sequence":  seq,
+					"is_final":  isFinal,
+					"exit_code": exitCode,
+				})
+				client.Send(&eventstream.NodeToServerEvent{
+					Event: &eventstream.NodeToServerEvent_EventResponse{
+						EventResponse: &eventstream.EventResponse{
+							EventRef: event.EventId,
+							Status:   eventstream.EventResponse_SUCCESS,
+							Response: &eventstream.EventResponse_Result{
+								Result: &eventstream.EventResponseResult{
+									Data: data,
+								},
 							},
 						},
 					},
-				},
-			})
-			if err != nil {
-				log.Printf("\nFailed to send event response: %v", err)
+				})
 			}
+
+			// Stream stdout
+			go func() {
+				buf := make([]byte, 1024)
+				for {
+					n, err := stdout.Read(buf)
+					if n > 0 {
+						seqStdout++
+						sendChunk(string(buf[:n]), "stdout", seqStdout, false, 0)
+					}
+					if err != nil {
+						break
+					}
+				}
+			}()
+
+			// Stream stderr
+			go func() {
+				buf := make([]byte, 1024)
+				for {
+					n, err := stderr.Read(buf)
+					if n > 0 {
+						seqStderr++
+						sendChunk(string(buf[:n]), "stderr", seqStderr, false, 0)
+					}
+					if err != nil {
+						break
+					}
+				}
+			}()
+
+			err := cmd.Wait()
+			exitCode := 0
+			if err != nil {
+				if exitErr, ok := err.(*exec.ExitError); ok {
+					exitCode = exitErr.ExitCode()
+				}
+			}
+			// Send final message
+			sendChunk("", "stdout", seqStdout+1, true, exitCode)
 		}
 	})
 

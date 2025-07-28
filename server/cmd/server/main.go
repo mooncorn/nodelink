@@ -76,6 +76,8 @@ func main() {
 			manager.JoinRoom(client.ID, eventRef)
 		}
 
+		// TODO: Listen for disconnect and send cancel event
+
 		// Handle the stream
 		sse.HandleSSEStream[eventstream.NodeToServerEvent_EventResponse](c)
 	})

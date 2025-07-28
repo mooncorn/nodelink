@@ -38,4 +38,4 @@ const executeShell = async (agentId: string, cmd: string) => {
   }
 }
 
-executeShell("agent1", "ls")
+executeShell("agent1", "yes")
