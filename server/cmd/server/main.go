@@ -49,16 +49,21 @@ func main() {
 		defer ticker.Stop()
 		counter := 1
 
+		var agentId = "agent1"
+
 		for range ticker.C {
-			eventServer.Broadcast(&eventstream.ServerToNodeEvent{
-				EventId: "1",
-				AgentId: "agent1",
+			eventId, err := eventServer.Send(&eventstream.ServerToNodeEvent{
+				AgentId: agentId,
 				Task: &eventstream.ServerToNodeEvent_LogMessage{
 					LogMessage: &eventstream.LogMessage{
 						Msg: "message to agent1",
 					},
 				},
 			})
+			if err != nil {
+				log.Printf("\nFailed to send event: %v", err)
+			}
+			log.Printf("\nEvent %s sent to agent %s", eventId, agentId)
 			counter++
 		}
 	}()
@@ -95,6 +100,21 @@ func main() {
 
 		// Handle the stream
 		sse.HandleSSEStream[Data](c)
+	})
+
+	router.POST("/agents/:agentId/shell", func(ctx *gin.Context) {
+		// expected body
+		// { cmd: "" }
+
+		// expected response
+		// { event_ref: "" }
+		// event ref can be used for client to subscribe to incoming events from nodes
+
+		// expected flow:
+		// client sends a shell request with ls command
+		// client recieves event_ref
+		// client establishes sse connection with provided event_ref (subscription)
+		// server relays events to interested clients using event_ref
 	})
 
 	log.Println("HTTP Server starting on :8080")

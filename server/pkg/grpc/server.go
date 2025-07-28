@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/google/uuid"
 	eventstream "github.com/mooncorn/nodelink/proto"
 	"google.golang.org/grpc/metadata"
 )
@@ -101,16 +102,26 @@ func (s *EventServer) StreamEvents(stream eventstream.EventService_StreamEventsS
 	return nil
 }
 
-// Broadcast sends an event to all connected agents
-func (s *EventServer) Broadcast(event *eventstream.ServerToNodeEvent) {
+func (s *EventServer) Send(event *eventstream.ServerToNodeEvent) (string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	for agentId, agentStream := range s.agents {
-		go func(id string, c eventstream.EventService_StreamEventsServer) {
-			if err := c.Send(event); err != nil {
-				log.Printf("Error sending event to agent %s: %v", id, err)
-			}
-		}(agentId, agentStream)
+	// generate event id if not provided
+	if event.EventId == "" {
+		event.EventId = uuid.NewString()
 	}
+
+	// check if agent is connected
+	stream, ok := s.agents[event.AgentId]
+	if !ok {
+		return "", fmt.Errorf("agent with this id is not connected: %s", event.AgentId)
+	}
+
+	// send event
+	err := stream.Send(event)
+	if err != nil {
+		return "", fmt.Errorf("failed to send event to agent: %v", err)
+	}
+
+	return event.EventId, nil
 }

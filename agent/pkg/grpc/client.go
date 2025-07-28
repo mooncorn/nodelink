@@ -99,7 +99,7 @@ func (c *EventClient) listen() {
 }
 
 // SendEvent sends an event to the server
-func (c *EventClient) SendEvent(event *eventstream.NodeToServerEvent) error {
+func (c *EventClient) Send(event *eventstream.NodeToServerEvent) error {
 	if c.stream == nil {
 		return fmt.Errorf("not connected")
 	}

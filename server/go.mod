@@ -4,6 +4,7 @@ go 1.23.5
 
 require (
 	github.com/gin-gonic/gin v1.10.1
+	github.com/google/uuid v1.6.0
 	github.com/mooncorn/nodelink/proto v0.0.0
 	google.golang.org/grpc v1.74.2
 )

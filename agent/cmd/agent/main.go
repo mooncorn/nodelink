@@ -28,8 +28,6 @@ func main() {
 
 	// Add a simple event listener that logs all events
 	client.AddListener(func(event *eventstream.ServerToNodeEvent) {
-		log.Printf("Agent processed event: %+v", event)
-
 		// Specific handling for different event types
 		switch payload := event.Task.(type) {
 		case *eventstream.ServerToNodeEvent_LogMessage:
@@ -48,7 +46,7 @@ func main() {
 		defer ticker.Stop()
 
 		for range ticker.C {
-			if err := client.SendEvent(&eventstream.NodeToServerEvent{
+			if err := client.Send(&eventstream.NodeToServerEvent{
 				AgentId: *agentID,
 				Event: &eventstream.NodeToServerEvent_LogMessage{
 					LogMessage: &eventstream.LogMessage{

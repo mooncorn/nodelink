@@ -29,7 +29,7 @@ message NodeToServerEvent {
 }
 
 message EventResponse { 
-  string event_id = 1; 
+  string event_ref = 1;  // event_id from ServerToNodeEvent
 
   enum Status {
     UNKNOWN = 0;
