@@ -1,18 +1,24 @@
 package main
 
 import (
+	"bufio"
 	"flag"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"os/signal"
+	"sync"
 	"syscall"
-	"time"
 
 	"github.com/mooncorn/nodelink/agent/pkg/grpc"
-	eventstream "github.com/mooncorn/nodelink/proto"
-	"google.golang.org/protobuf/types/known/structpb"
+	pb "github.com/mooncorn/nodelink/proto"
 )
+
+// Track running tasks to enable cancellation
+var runningTasks = make(map[string]*os.Process)
+var cancelledTasks = make(map[string]bool)
+var tasksMutex sync.RWMutex
 
 func main() {
 	agentID := flag.String("agent_id", "", "Agent ID")
@@ -22,95 +28,22 @@ func main() {
 	log.Println("Starting Agent...")
 
 	// Create event client
-	client, err := grpc.NewEventClient("localhost:9090")
+	client, err := grpc.NewTaskClient("localhost:9090")
 	if err != nil {
 		log.Fatalf("Failed to create event client: %v", err)
 	}
 	defer client.Close()
 
 	// Add a simple event listener that logs all events
-	client.AddListener(func(event *eventstream.ServerToNodeEvent) {
-		// Specific handling for different event types
-		switch payload := event.Task.(type) {
-		case *eventstream.ServerToNodeEvent_LogMessage:
-			log.Printf("Agent received log message: %s", payload.LogMessage.Msg)
-		case *eventstream.ServerToNodeEvent_ShellExecute:
-			cmdStr := payload.ShellExecute.Cmd
-
-			cmd := exec.Command("sh", "-c", cmdStr)
-			stdout, _ := cmd.StdoutPipe()
-			stderr, _ := cmd.StderrPipe()
-
-			if err := cmd.Start(); err != nil {
-				log.Printf("Failed to start command: %v", err)
-				return
-			}
-
-			var seqStdout, seqStderr int
-
-			sendChunk := func(output, typ string, seq int, isFinal bool, exitCode int) {
-				data, _ := structpb.NewStruct(map[string]any{
-					"output":    output,
-					"type":      typ,
-					"timestamp": time.Now().UnixNano(),
-					"sequence":  seq,
-					"is_final":  isFinal,
-					"exit_code": exitCode,
-				})
-				client.Send(&eventstream.NodeToServerEvent{
-					Event: &eventstream.NodeToServerEvent_EventResponse{
-						EventResponse: &eventstream.EventResponse{
-							EventRef: event.EventId,
-							Status:   eventstream.EventResponse_SUCCESS,
-							Response: &eventstream.EventResponse_Result{
-								Result: &eventstream.EventResponseResult{
-									Data: data,
-								},
-							},
-						},
-					},
-				})
-			}
-
-			// Stream stdout
-			go func() {
-				buf := make([]byte, 1024)
-				for {
-					n, err := stdout.Read(buf)
-					if n > 0 {
-						seqStdout++
-						sendChunk(string(buf[:n]), "stdout", seqStdout, false, 0)
-					}
-					if err != nil {
-						break
-					}
-				}
-			}()
-
-			// Stream stderr
-			go func() {
-				buf := make([]byte, 1024)
-				for {
-					n, err := stderr.Read(buf)
-					if n > 0 {
-						seqStderr++
-						sendChunk(string(buf[:n]), "stderr", seqStderr, false, 0)
-					}
-					if err != nil {
-						break
-					}
-				}
-			}()
-
-			err := cmd.Wait()
-			exitCode := 0
-			if err != nil {
-				if exitErr, ok := err.(*exec.ExitError); ok {
-					exitCode = exitErr.ExitCode()
-				}
-			}
-			// Send final message
-			sendChunk("", "stdout", seqStdout+1, true, exitCode)
+	client.AddListener(func(taskRequest *pb.TaskRequest) {
+		// Specific handling for different task types
+		switch task := taskRequest.Task.(type) {
+		case *pb.TaskRequest_TaskCancel:
+			log.Printf("Agent received task cancel for task %s: %s", taskRequest.TaskId, task.TaskCancel.Reason)
+			handleTaskCancel(taskRequest, client)
+		case *pb.TaskRequest_ShellExecute:
+			log.Printf("Agent received shell execute for task %s: %s", taskRequest.TaskId, task.ShellExecute.Cmd)
+			handleShellExecute(taskRequest, task.ShellExecute, client)
 		}
 	})
 
@@ -127,4 +60,190 @@ func main() {
 	<-c
 
 	log.Println("Agent shutting down...")
+}
+
+// handleTaskCancel handles task cancellation requests
+func handleTaskCancel(taskRequest *pb.TaskRequest, client *grpc.TaskClient) {
+	taskID := taskRequest.TaskId
+	tasksMutex.Lock()
+	process, exists := runningTasks[taskID]
+	if exists {
+		log.Printf("Cancelling task %s", taskID)
+
+		// Kill the process
+		if process != nil {
+			err := process.Kill()
+			if err != nil {
+				log.Printf("Error killing process for task %s: %v", taskID, err)
+			} else {
+				log.Printf("Successfully killed process for task %s", taskID)
+			}
+		}
+
+		// Mark task as cancelled
+		cancelledTasks[taskID] = true
+		delete(runningTasks, taskID)
+	} else {
+		log.Printf("Task %s not found in running tasks", taskID)
+	}
+	tasksMutex.Unlock()
+
+	// Send cancellation acknowledgment
+	client.Send(&pb.TaskResponse{
+		AgentId:   taskRequest.AgentId,
+		TaskId:    taskID,
+		IsFinal:   true,
+		Status:    pb.TaskResponse_COMPLETED,
+		Cancelled: true,
+		Response: &pb.TaskResponse_TaskCancel{
+			TaskCancel: &pb.TaskCancelResponse{
+				Message: "Task cancelled succesfully",
+			},
+		},
+	})
+}
+
+func handleShellExecute(taskRequest *pb.TaskRequest, shellExecute *pb.ShellExecute, client *grpc.TaskClient) {
+	cmdStr := shellExecute.Cmd
+	cmd := exec.Command("bash", "-c", cmdStr)
+
+	// Get pipes before starting
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Printf("Failed to create stdout pipe: %v", err)
+		sendErrorResponse(taskRequest, client, err)
+		return
+	}
+	defer stdout.Close()
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		log.Printf("Failed to create stderr pipe: %v", err)
+		sendErrorResponse(taskRequest, client, err)
+		return
+	}
+	defer stderr.Close()
+
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		log.Printf("Failed to start command: %v", err)
+		sendErrorResponse(taskRequest, client, err)
+		return
+	}
+
+	// Store the running command AFTER it starts
+	tasksMutex.Lock()
+	runningTasks[taskRequest.TaskId] = cmd.Process
+	tasksMutex.Unlock()
+
+	// Remove from running tasks when done
+	defer func() {
+		tasksMutex.Lock()
+		delete(runningTasks, taskRequest.TaskId)
+		tasksMutex.Unlock()
+	}()
+
+	// Use channels to coordinate goroutines and prevent race conditions
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	// Stream stdout
+	go func() {
+		defer wg.Done()
+		streamOutput(taskRequest, client, stdout, true)
+	}()
+
+	// Stream stderr
+	go func() {
+		defer wg.Done()
+		streamOutput(taskRequest, client, stderr, false)
+	}()
+
+	// Wait for streaming to complete
+	wg.Wait()
+
+	// Wait for process to complete
+	err = cmd.Wait()
+	exitCode := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			exitCode = exitErr.ExitCode()
+		}
+	}
+
+	// Check if task was cancelled
+	tasksMutex.RLock()
+	wasCancelled := cancelledTasks[taskRequest.TaskId]
+	tasksMutex.RUnlock()
+
+	// Send final response
+	client.Send(&pb.TaskResponse{
+		AgentId:   taskRequest.AgentId,
+		TaskId:    taskRequest.TaskId,
+		Status:    pb.TaskResponse_COMPLETED,
+		IsFinal:   true,
+		Cancelled: wasCancelled,
+		Response: &pb.TaskResponse_ShellExecute{
+			ShellExecute: &pb.ShellExecuteResponse{
+				Stdout:   "",
+				Stderr:   "",
+				ExitCode: int32(exitCode),
+			},
+		},
+	})
+
+	// Clean up cancellation tracking
+	tasksMutex.Lock()
+	delete(cancelledTasks, taskRequest.TaskId)
+	tasksMutex.Unlock()
+}
+
+// Helper function to send error responses
+func sendErrorResponse(taskRequest *pb.TaskRequest, client *grpc.TaskClient, err error) {
+	client.Send(&pb.TaskResponse{
+		AgentId:   taskRequest.AgentId,
+		TaskId:    taskRequest.TaskId,
+		Status:    pb.TaskResponse_FAILURE,
+		IsFinal:   true,
+		Cancelled: false,
+		Response: &pb.TaskResponse_ShellExecute{
+			ShellExecute: &pb.ShellExecuteResponse{
+				Stdout:   "",
+				Stderr:   err.Error(),
+				ExitCode: 1,
+			},
+		},
+	})
+}
+
+// Helper function to stream output without race conditions
+func streamOutput(taskRequest *pb.TaskRequest, client *grpc.TaskClient, reader io.Reader, isStdout bool) {
+	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024) // More efficient buffering
+
+	for scanner.Scan() {
+		text := scanner.Text() + "\n"
+
+		var stdout, stderr string
+		if isStdout {
+			stdout = text
+		} else {
+			stderr = text
+		}
+
+		client.Send(&pb.TaskResponse{
+			AgentId:   taskRequest.AgentId,
+			TaskId:    taskRequest.TaskId,
+			Status:    pb.TaskResponse_IN_PROGRESS,
+			IsFinal:   false,
+			Cancelled: false,
+			Response: &pb.TaskResponse_ShellExecute{
+				ShellExecute: &pb.ShellExecuteResponse{
+					Stdout:   stdout,
+					Stderr:   stderr,
+					ExitCode: 0,
+				},
+			},
+		})
+	}
 }

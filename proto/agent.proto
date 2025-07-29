@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/mooncorn/nodelink/proto/pb";
+
+service AgentService {
+  rpc StreamTasks(stream TaskResponse) returns (stream TaskRequest);
+}
+
+message TaskRequest {
+  string agent_id = 1;
+  string task_id = 2;
+  oneof task {
+    ShellExecute shell_execute = 3;
+    DockerOperation docker_operation = 4;
+    LogMessage log_message = 5;
+    TaskCancel task_cancel = 6;
+  }
+}
+
+message TaskResponse {
+  string agent_id = 1;
+  string task_id = 2;
+
+  enum Status {
+    UNKNOWN = 0;
+    COMPLETED = 1;
+    FAILURE = 2;
+    IN_PROGRESS = 3;
+  }
+  Status status = 3;
+
+  bool is_final = 4;
+  bool cancelled = 5;
+
+  oneof response {
+    ShellExecuteResponse shell_execute = 6;
+    TaskCancelResponse task_cancel = 7;
+  }
+}
+
+message ShellExecute {
+  string cmd = 1;
+}
+
+message ShellExecuteResponse {
+  string stdout = 1;        // stdout chunk (can be partial)
+  string stderr = 2;        // stderr chunk (can be partial)
+  int32 exit_code = 3;      // exit code (set only on final)
+}
+
+message DockerOperation {
+  oneof operation {
+    DockerRun docker_run = 1;
+    DockerStart docker_start = 2;
+    DockerStop docker_stop = 3;
+    DockerLogs docker_logs = 4;
+  }
+}
+
+message DockerRun {
+  string img = 1;
+}
+
+message DockerStart {
+  string id = 1;
+}
+
+message DockerStop {
+  string id = 1;
+}
+
+message DockerLogs {
+  string id = 1;
+}
+
+message LogMessage {
+  string msg = 1;
+}
+
+message TaskCancel {
+  string reason = 1;
+}
+
+message TaskCancelResponse {
+  string message = 1;
+}

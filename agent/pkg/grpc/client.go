@@ -7,109 +7,107 @@ import (
 	"log"
 	"sync"
 
-	eventstream "github.com/mooncorn/nodelink/proto"
+	pb "github.com/mooncorn/nodelink/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
-// EventClient handles client-side event streaming
-type EventClient struct {
+// TaskClient handles client-side task streaming
+type TaskClient struct {
 	conn      *grpc.ClientConn
-	client    eventstream.EventServiceClient
-	stream    eventstream.EventService_StreamEventsClient
+	client    pb.AgentServiceClient
+	stream    pb.AgentService_StreamTasksClient
 	ctx       context.Context
 	cancel    context.CancelFunc
 	mu        sync.RWMutex
-	listeners []EventListener
+	listeners []TaskListener
 }
 
-// EventListener defines a function that processes incoming events
-type EventListener func(*eventstream.ServerToNodeEvent)
+type TaskListener func(*pb.TaskRequest)
 
-// NewEventClient creates a new event client
-func NewEventClient(serverAddr string) (*EventClient, error) {
+// NewTaskClient creates a new task client
+func NewTaskClient(serverAddr string) (*TaskClient, error) {
 	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
 
-	client := eventstream.NewEventServiceClient(conn)
+	client := pb.NewAgentServiceClient(conn)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &EventClient{
+	return &TaskClient{
 		conn:      conn,
 		client:    client,
 		ctx:       ctx,
 		cancel:    cancel,
-		listeners: make([]EventListener, 0),
+		listeners: make([]TaskListener, 0),
 	}, nil
 }
 
-// AddListener adds an event listener that will be called for each received event
-func (c *EventClient) AddListener(listener EventListener) {
+func (c *TaskClient) AddListener(listener TaskListener) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.listeners = append(c.listeners, listener)
 }
 
 // Connect establishes the streaming connection
-func (c *EventClient) Connect(agentID, agentToken string) error {
+func (c *TaskClient) Connect(agentID, agentToken string) error {
 	md := metadata.New(map[string]string{
 		"agent_id":    agentID,
 		"agent_token": agentToken,
 	})
 	ctx := metadata.NewOutgoingContext(c.ctx, md)
 
-	stream, err := c.client.StreamEvents(ctx)
+	stream, err := c.client.StreamTasks(ctx)
 	if err != nil {
 		return err
 	}
 
 	c.stream = stream
 
-	// Start listening for incoming events
+	// Start listening for incoming tasks
 	go c.listen()
 
-	log.Println("Agent connected to event stream")
+	log.Println("Agent connected to task stream")
 	return nil
 }
 
-// listen continuously listens for incoming events
-func (c *EventClient) listen() {
+// listen continuously listens for incoming tasks
+func (c *TaskClient) listen() {
 	for {
-		event, err := c.stream.Recv()
+		task, err := c.stream.Recv()
 		if err == io.EOF {
-			log.Println("Event stream ended")
+			log.Println("task stream ended")
 			break
 		}
 		if err != nil {
-			log.Printf("Error receiving event: %v", err)
+			log.Printf("Error receiving task: %v", err)
 			break
 		}
 
-		log.Printf("Agent received event: %+v", event)
+		log.Printf("Agent received task: %+v", task)
 
 		// Call all listeners
 		c.mu.RLock()
 		for _, listener := range c.listeners {
-			go listener(event)
+			go listener(task)
 		}
 		c.mu.RUnlock()
 	}
 }
 
-// SendEvent sends an event to the server
-func (c *EventClient) Send(event *eventstream.NodeToServerEvent) error {
+// Send sends a task response to the server
+func (c *TaskClient) Send(task *pb.TaskResponse) error {
 	if c.stream == nil {
 		return fmt.Errorf("not connected")
 	}
 
-	log.Printf("Agent sending event: %+v", event)
-	return c.stream.Send(event)
+	log.Printf("Agent sending task: %+v", task)
+	return c.stream.Send(task)
 }
 
 // Close closes the connection
-func (c *EventClient) Close() error {
+func (c *TaskClient) Close() error {
 	if c.cancel != nil {
 		c.cancel()
 	}

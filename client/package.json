@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "dev": "ts-node client.ts"
+    "dev": "ts-node client.ts",
+    "test-shell": "ts-node shell-test.ts",
+    "test-cancellation": "ts-node test-cancellation.ts"
   },
   "author": "",
   "license": "ISC",

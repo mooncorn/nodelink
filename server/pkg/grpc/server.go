@@ -6,44 +6,31 @@ import (
 	"log"
 	"sync"
 
-	"github.com/google/uuid"
-	eventstream "github.com/mooncorn/nodelink/proto"
+	pb "github.com/mooncorn/nodelink/proto"
 	"google.golang.org/grpc/metadata"
 )
 
 var AllowedAgents map[string]string = map[string]string{
 	"agent1": "secret_token1",
+	"agent2": "secret_token2",
 }
 
-// EventServer implements the EventService
-type EventServer struct {
-	eventstream.UnimplementedEventServiceServer
+type TaskServer struct {
+	pb.UnimplementedAgentServiceServer
+
 	mu     sync.RWMutex
-	agents map[string]eventstream.EventService_StreamEventsServer
-
-	listeners []EventListener
+	agents map[string]pb.AgentService_StreamTasksServer
+	respCh chan<- *pb.TaskResponse
 }
 
-// EventListener defines a function that processes incoming events
-type EventListener func(*eventstream.NodeToServerEvent)
-
-// NewEventServer creates a new event server
-func NewEventServer() *EventServer {
-	return &EventServer{
-		agents:    make(map[string]eventstream.EventService_StreamEventsServer),
-		listeners: make([]EventListener, 0),
+func NewTaskServer(respCh chan<- *pb.TaskResponse) *TaskServer {
+	return &TaskServer{
+		agents: make(map[string]pb.AgentService_StreamTasksServer),
+		respCh: respCh,
 	}
 }
 
-// AddListener adds an event listener that will be called for each received event
-func (s *EventServer) AddListener(listener EventListener) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.listeners = append(s.listeners, listener)
-}
-
-// StreamEvents implements bidirectional streaming
-func (s *EventServer) StreamEvents(stream eventstream.EventService_StreamEventsServer) error {
+func (s *TaskServer) StreamTasks(stream pb.AgentService_StreamTasksServer) error {
 	// Authenticate agent
 	md, ok := metadata.FromIncomingContext(stream.Context())
 	if !ok {
@@ -78,50 +65,47 @@ func (s *EventServer) StreamEvents(stream eventstream.EventService_StreamEventsS
 		log.Printf("agent %s disconnected", agentID)
 	}()
 
-	// Listen for incoming events from agent
+	// Listen for incoming task responses from agent
 	for {
-		event, err := stream.Recv()
+		task, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			log.Printf("Error receiving event from %s: %v", agentID, err)
+			log.Printf("Error receiving task from %s: %v", agentID, err)
 			return err
 		}
 
-		log.Printf("Received event from %s: %+v", agentID, event)
+		log.Printf("Received task from %s: %+v", agentID, task)
 
-		// Call all listeners
-		s.mu.RLock()
-		for _, listener := range s.listeners {
-			go listener(event)
+		// Send response to task manager via channel
+		if s.respCh != nil {
+			select {
+			case s.respCh <- task:
+			default:
+				log.Printf("Task response channel full, dropping response for task %s", task.TaskId)
+			}
 		}
-		s.mu.RUnlock()
 	}
 
 	return nil
 }
 
-func (s *EventServer) Send(event *eventstream.ServerToNodeEvent) (string, error) {
+func (s *TaskServer) Send(task *pb.TaskRequest) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// generate event id if not provided
-	if event.EventId == "" {
-		event.EventId = uuid.NewString()
-	}
-
 	// check if agent is connected
-	stream, ok := s.agents[event.AgentId]
+	stream, ok := s.agents[task.AgentId]
 	if !ok {
-		return "", fmt.Errorf("agent with this id is not connected: %s", event.AgentId)
+		return fmt.Errorf("agent with this id is not connected: %s", task.AgentId)
 	}
 
-	// send event
-	err := stream.Send(event)
+	// send task
+	err := stream.Send(task)
 	if err != nil {
-		return "", fmt.Errorf("failed to send event to agent: %v", err)
+		return fmt.Errorf("failed to send task to agent: %v", err)
 	}
 
-	return event.EventId, nil
+	return nil
 }
