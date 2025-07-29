@@ -92,22 +92,34 @@ var tasksMutex sync.RWMutex
 ```
 
 The agent maintains two maps:
-- `runningTasks`: Maps task IDs to running processes
+- `runningTasks`: Maps task IDs to running processes (for shell commands)
 - `cancelledTasks`: Tracks which tasks were cancelled for final response
+
+Additionally, metrics tasks are tracked separately by the `MetricsCollector` which maintains the current streaming task ID.
 
 #### Task Cancellation Handler
 ```go
-func handleTaskCancel(taskRequest *pb.TaskRequest, client *grpc.TaskClient) {
-    // Find and kill the running process
-    // Mark task as cancelled
+func handleTaskCancel(taskRequest *pb.TaskRequest, client *grpc.TaskClient, metricsHandler *metrics.Handler) {
+    taskID := taskRequest.TaskId
+    
+    // Check for shell command processes
+    if process, exists := runningTasks[taskID]; exists {
+        // Kill the shell process
+        process.Kill()
+        // Mark as cancelled and cleanup
+    } else if metricsHandler.GetCollector().IsStreamingTask(taskID) {
+        // Stop metrics streaming
+        metricsHandler.GetCollector().StopStreaming()
+    }
+    
     // Send acknowledgment response
-    // Clean up tracking
 }
 ```
 
 Process termination:
-- Uses `process.Kill()` for immediate termination (SIGKILL)
-- Handles missing processes gracefully
+- **Shell Commands**: Uses `process.Kill()` for immediate termination (SIGKILL)
+- **Metrics Streaming**: Stops the collection loop gracefully via channel signal
+- Handles missing tasks gracefully
 - Updates tracking maps atomically
 
 #### Shell Execution with Cancellation Support
@@ -142,6 +154,28 @@ Error Responses:
 - 404: Task not found
 - 400: Task already in final state (completed/failed/cancelled)
 ```
+
+## Supported Task Types
+
+The cancellation system supports different types of tasks with appropriate termination methods:
+
+### 1. Shell Command Tasks
+- **Cancellation Method**: Process termination via `SIGKILL`
+- **Resource Cleanup**: Process memory, file handles, child processes
+- **Response**: Immediate termination with exit code
+- **Use Case**: Long-running scripts, system commands, build processes
+
+### 2. Metrics Streaming Tasks
+- **Cancellation Method**: Graceful stop via channel signal
+- **Resource Cleanup**: Collection loop termination, metric buffers
+- **Response**: Stream stops, final metrics data sent
+- **Use Case**: Real-time monitoring sessions, SSE disconnections
+
+### 3. Future Task Types
+The framework is designed to support additional task types:
+- Docker operations (container stop/kill)
+- File transfer operations (connection close)
+- Network operations (socket close)
 
 ## Usage Examples
 
@@ -178,7 +212,25 @@ stream.addEventListener("response", (event) => {
 setTimeout(() => client.cancelTask(taskId), 10000);
 ```
 
-### 3. Race Condition Handling
+### 3. Metrics Streaming Cancellation
+
+```typescript
+// Start metrics streaming
+const task = await client.startMetricsStreaming("agent1", { interval_seconds: 5 });
+
+// Cancel metrics streaming (alternative to manual stop)
+setTimeout(async () => {
+    await client.cancelTask(task.task_id);
+    console.log("Metrics streaming cancelled");
+}, 30000);
+```
+
+**Note**: With automatic SSE streaming management, metrics cancellation is typically handled automatically when SSE clients disconnect. Manual cancellation is useful for:
+- Administrative control
+- Testing scenarios
+- Custom applications not using SSE
+
+### 4. Race Condition Handling
 
 ```typescript
 // Test cancelling a quick task (might complete before cancellation)

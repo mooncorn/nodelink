@@ -73,6 +73,55 @@ func (TaskResponse_Status) EnumDescriptor() ([]byte, []int) {
 	return file_agent_proto_rawDescGZIP(), []int{1, 0}
 }
 
+type MetricsStreamRequest_Action int32
+
+const (
+	MetricsStreamRequest_START           MetricsStreamRequest_Action = 0
+	MetricsStreamRequest_STOP            MetricsStreamRequest_Action = 1
+	MetricsStreamRequest_UPDATE_INTERVAL MetricsStreamRequest_Action = 2
+)
+
+// Enum value maps for MetricsStreamRequest_Action.
+var (
+	MetricsStreamRequest_Action_name = map[int32]string{
+		0: "START",
+		1: "STOP",
+		2: "UPDATE_INTERVAL",
+	}
+	MetricsStreamRequest_Action_value = map[string]int32{
+		"START":           0,
+		"STOP":            1,
+		"UPDATE_INTERVAL": 2,
+	}
+)
+
+func (x MetricsStreamRequest_Action) Enum() *MetricsStreamRequest_Action {
+	p := new(MetricsStreamRequest_Action)
+	*p = x
+	return p
+}
+
+func (x MetricsStreamRequest_Action) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MetricsStreamRequest_Action) Descriptor() protoreflect.EnumDescriptor {
+	return file_agent_proto_enumTypes[1].Descriptor()
+}
+
+func (MetricsStreamRequest_Action) Type() protoreflect.EnumType {
+	return &file_agent_proto_enumTypes[1]
+}
+
+func (x MetricsStreamRequest_Action) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MetricsStreamRequest_Action.Descriptor instead.
+func (MetricsStreamRequest_Action) EnumDescriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{14, 0}
+}
+
 type TaskRequest struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	AgentId string                 `protobuf:"bytes,1,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
@@ -83,6 +132,7 @@ type TaskRequest struct {
 	//	*TaskRequest_DockerOperation
 	//	*TaskRequest_LogMessage
 	//	*TaskRequest_TaskCancel
+	//	*TaskRequest_MetricsRequest
 	Task          isTaskRequest_Task `protobuf_oneof:"task"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -175,6 +225,15 @@ func (x *TaskRequest) GetTaskCancel() *TaskCancel {
 	return nil
 }
 
+func (x *TaskRequest) GetMetricsRequest() *MetricsRequest {
+	if x != nil {
+		if x, ok := x.Task.(*TaskRequest_MetricsRequest); ok {
+			return x.MetricsRequest
+		}
+	}
+	return nil
+}
+
 type isTaskRequest_Task interface {
 	isTaskRequest_Task()
 }
@@ -195,6 +254,10 @@ type TaskRequest_TaskCancel struct {
 	TaskCancel *TaskCancel `protobuf:"bytes,6,opt,name=task_cancel,json=taskCancel,proto3,oneof"`
 }
 
+type TaskRequest_MetricsRequest struct {
+	MetricsRequest *MetricsRequest `protobuf:"bytes,7,opt,name=metrics_request,json=metricsRequest,proto3,oneof"`
+}
+
 func (*TaskRequest_ShellExecute) isTaskRequest_Task() {}
 
 func (*TaskRequest_DockerOperation) isTaskRequest_Task() {}
@@ -202,6 +265,8 @@ func (*TaskRequest_DockerOperation) isTaskRequest_Task() {}
 func (*TaskRequest_LogMessage) isTaskRequest_Task() {}
 
 func (*TaskRequest_TaskCancel) isTaskRequest_Task() {}
+
+func (*TaskRequest_MetricsRequest) isTaskRequest_Task() {}
 
 type TaskResponse struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
@@ -214,6 +279,7 @@ type TaskResponse struct {
 	//
 	//	*TaskResponse_ShellExecute
 	//	*TaskResponse_TaskCancel
+	//	*TaskResponse_MetricsResponse
 	Response      isTaskResponse_Response `protobuf_oneof:"response"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -309,6 +375,15 @@ func (x *TaskResponse) GetTaskCancel() *TaskCancelResponse {
 	return nil
 }
 
+func (x *TaskResponse) GetMetricsResponse() *MetricsResponse {
+	if x != nil {
+		if x, ok := x.Response.(*TaskResponse_MetricsResponse); ok {
+			return x.MetricsResponse
+		}
+	}
+	return nil
+}
+
 type isTaskResponse_Response interface {
 	isTaskResponse_Response()
 }
@@ -321,9 +396,15 @@ type TaskResponse_TaskCancel struct {
 	TaskCancel *TaskCancelResponse `protobuf:"bytes,7,opt,name=task_cancel,json=taskCancel,proto3,oneof"`
 }
 
+type TaskResponse_MetricsResponse struct {
+	MetricsResponse *MetricsResponse `protobuf:"bytes,8,opt,name=metrics_response,json=metricsResponse,proto3,oneof"`
+}
+
 func (*TaskResponse_ShellExecute) isTaskResponse_Response() {}
 
 func (*TaskResponse_TaskCancel) isTaskResponse_Response() {}
+
+func (*TaskResponse_MetricsResponse) isTaskResponse_Response() {}
 
 type ShellExecute struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -851,11 +932,1964 @@ func (x *TaskCancelResponse) GetMessage() string {
 	return ""
 }
 
+// Metrics request types
+type MetricsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to RequestType:
+	//
+	//	*MetricsRequest_SystemInfo
+	//	*MetricsRequest_StreamRequest
+	//	*MetricsRequest_QueryRequest
+	RequestType   isMetricsRequest_RequestType `protobuf_oneof:"request_type"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MetricsRequest) Reset() {
+	*x = MetricsRequest{}
+	mi := &file_agent_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetricsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetricsRequest) ProtoMessage() {}
+
+func (x *MetricsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetricsRequest.ProtoReflect.Descriptor instead.
+func (*MetricsRequest) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *MetricsRequest) GetRequestType() isMetricsRequest_RequestType {
+	if x != nil {
+		return x.RequestType
+	}
+	return nil
+}
+
+func (x *MetricsRequest) GetSystemInfo() *SystemInfoRequest {
+	if x != nil {
+		if x, ok := x.RequestType.(*MetricsRequest_SystemInfo); ok {
+			return x.SystemInfo
+		}
+	}
+	return nil
+}
+
+func (x *MetricsRequest) GetStreamRequest() *MetricsStreamRequest {
+	if x != nil {
+		if x, ok := x.RequestType.(*MetricsRequest_StreamRequest); ok {
+			return x.StreamRequest
+		}
+	}
+	return nil
+}
+
+func (x *MetricsRequest) GetQueryRequest() *MetricsQueryRequest {
+	if x != nil {
+		if x, ok := x.RequestType.(*MetricsRequest_QueryRequest); ok {
+			return x.QueryRequest
+		}
+	}
+	return nil
+}
+
+type isMetricsRequest_RequestType interface {
+	isMetricsRequest_RequestType()
+}
+
+type MetricsRequest_SystemInfo struct {
+	SystemInfo *SystemInfoRequest `protobuf:"bytes,1,opt,name=system_info,json=systemInfo,proto3,oneof"`
+}
+
+type MetricsRequest_StreamRequest struct {
+	StreamRequest *MetricsStreamRequest `protobuf:"bytes,2,opt,name=stream_request,json=streamRequest,proto3,oneof"`
+}
+
+type MetricsRequest_QueryRequest struct {
+	QueryRequest *MetricsQueryRequest `protobuf:"bytes,3,opt,name=query_request,json=queryRequest,proto3,oneof"`
+}
+
+func (*MetricsRequest_SystemInfo) isMetricsRequest_RequestType() {}
+
+func (*MetricsRequest_StreamRequest) isMetricsRequest_RequestType() {}
+
+func (*MetricsRequest_QueryRequest) isMetricsRequest_RequestType() {}
+
+type SystemInfoRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	IncludeHardware bool                   `protobuf:"varint,1,opt,name=include_hardware,json=includeHardware,proto3" json:"include_hardware,omitempty"`
+	IncludeSoftware bool                   `protobuf:"varint,2,opt,name=include_software,json=includeSoftware,proto3" json:"include_software,omitempty"`
+	IncludeNetwork  bool                   `protobuf:"varint,3,opt,name=include_network,json=includeNetwork,proto3" json:"include_network,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *SystemInfoRequest) Reset() {
+	*x = SystemInfoRequest{}
+	mi := &file_agent_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SystemInfoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SystemInfoRequest) ProtoMessage() {}
+
+func (x *SystemInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SystemInfoRequest.ProtoReflect.Descriptor instead.
+func (*SystemInfoRequest) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *SystemInfoRequest) GetIncludeHardware() bool {
+	if x != nil {
+		return x.IncludeHardware
+	}
+	return false
+}
+
+func (x *SystemInfoRequest) GetIncludeSoftware() bool {
+	if x != nil {
+		return x.IncludeSoftware
+	}
+	return false
+}
+
+func (x *SystemInfoRequest) GetIncludeNetwork() bool {
+	if x != nil {
+		return x.IncludeNetwork
+	}
+	return false
+}
+
+type MetricsStreamRequest struct {
+	state           protoimpl.MessageState      `protogen:"open.v1"`
+	Action          MetricsStreamRequest_Action `protobuf:"varint,1,opt,name=action,proto3,enum=pb.MetricsStreamRequest_Action" json:"action,omitempty"`
+	IntervalSeconds uint32                      `protobuf:"varint,2,opt,name=interval_seconds,json=intervalSeconds,proto3" json:"interval_seconds,omitempty"`
+	Metrics         []string                    `protobuf:"bytes,3,rep,name=metrics,proto3" json:"metrics,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *MetricsStreamRequest) Reset() {
+	*x = MetricsStreamRequest{}
+	mi := &file_agent_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetricsStreamRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetricsStreamRequest) ProtoMessage() {}
+
+func (x *MetricsStreamRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetricsStreamRequest.ProtoReflect.Descriptor instead.
+func (*MetricsStreamRequest) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *MetricsStreamRequest) GetAction() MetricsStreamRequest_Action {
+	if x != nil {
+		return x.Action
+	}
+	return MetricsStreamRequest_START
+}
+
+func (x *MetricsStreamRequest) GetIntervalSeconds() uint32 {
+	if x != nil {
+		return x.IntervalSeconds
+	}
+	return 0
+}
+
+func (x *MetricsStreamRequest) GetMetrics() []string {
+	if x != nil {
+		return x.Metrics
+	}
+	return nil
+}
+
+type MetricsQueryRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Metrics        []string               `protobuf:"bytes,1,rep,name=metrics,proto3" json:"metrics,omitempty"`
+	StartTimestamp uint64                 `protobuf:"varint,2,opt,name=start_timestamp,json=startTimestamp,proto3" json:"start_timestamp,omitempty"`
+	EndTimestamp   uint64                 `protobuf:"varint,3,opt,name=end_timestamp,json=endTimestamp,proto3" json:"end_timestamp,omitempty"`
+	MaxPoints      uint32                 `protobuf:"varint,4,opt,name=max_points,json=maxPoints,proto3" json:"max_points,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *MetricsQueryRequest) Reset() {
+	*x = MetricsQueryRequest{}
+	mi := &file_agent_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetricsQueryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetricsQueryRequest) ProtoMessage() {}
+
+func (x *MetricsQueryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetricsQueryRequest.ProtoReflect.Descriptor instead.
+func (*MetricsQueryRequest) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *MetricsQueryRequest) GetMetrics() []string {
+	if x != nil {
+		return x.Metrics
+	}
+	return nil
+}
+
+func (x *MetricsQueryRequest) GetStartTimestamp() uint64 {
+	if x != nil {
+		return x.StartTimestamp
+	}
+	return 0
+}
+
+func (x *MetricsQueryRequest) GetEndTimestamp() uint64 {
+	if x != nil {
+		return x.EndTimestamp
+	}
+	return 0
+}
+
+func (x *MetricsQueryRequest) GetMaxPoints() uint32 {
+	if x != nil {
+		return x.MaxPoints
+	}
+	return 0
+}
+
+// Metrics response types
+type MetricsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to ResponseType:
+	//
+	//	*MetricsResponse_SystemInfo
+	//	*MetricsResponse_MetricsData
+	//	*MetricsResponse_QueryResponse
+	ResponseType  isMetricsResponse_ResponseType `protobuf_oneof:"response_type"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MetricsResponse) Reset() {
+	*x = MetricsResponse{}
+	mi := &file_agent_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetricsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetricsResponse) ProtoMessage() {}
+
+func (x *MetricsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetricsResponse.ProtoReflect.Descriptor instead.
+func (*MetricsResponse) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *MetricsResponse) GetResponseType() isMetricsResponse_ResponseType {
+	if x != nil {
+		return x.ResponseType
+	}
+	return nil
+}
+
+func (x *MetricsResponse) GetSystemInfo() *SystemInfoResponse {
+	if x != nil {
+		if x, ok := x.ResponseType.(*MetricsResponse_SystemInfo); ok {
+			return x.SystemInfo
+		}
+	}
+	return nil
+}
+
+func (x *MetricsResponse) GetMetricsData() *MetricsDataResponse {
+	if x != nil {
+		if x, ok := x.ResponseType.(*MetricsResponse_MetricsData); ok {
+			return x.MetricsData
+		}
+	}
+	return nil
+}
+
+func (x *MetricsResponse) GetQueryResponse() *MetricsQueryResponse {
+	if x != nil {
+		if x, ok := x.ResponseType.(*MetricsResponse_QueryResponse); ok {
+			return x.QueryResponse
+		}
+	}
+	return nil
+}
+
+type isMetricsResponse_ResponseType interface {
+	isMetricsResponse_ResponseType()
+}
+
+type MetricsResponse_SystemInfo struct {
+	SystemInfo *SystemInfoResponse `protobuf:"bytes,1,opt,name=system_info,json=systemInfo,proto3,oneof"`
+}
+
+type MetricsResponse_MetricsData struct {
+	MetricsData *MetricsDataResponse `protobuf:"bytes,2,opt,name=metrics_data,json=metricsData,proto3,oneof"`
+}
+
+type MetricsResponse_QueryResponse struct {
+	QueryResponse *MetricsQueryResponse `protobuf:"bytes,3,opt,name=query_response,json=queryResponse,proto3,oneof"`
+}
+
+func (*MetricsResponse_SystemInfo) isMetricsResponse_ResponseType() {}
+
+func (*MetricsResponse_MetricsData) isMetricsResponse_ResponseType() {}
+
+func (*MetricsResponse_QueryResponse) isMetricsResponse_ResponseType() {}
+
+// System information structures
+type SystemInfoResponse struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Hardware          *SystemHardware        `protobuf:"bytes,1,opt,name=hardware,proto3" json:"hardware,omitempty"`
+	Software          *SystemSoftware        `protobuf:"bytes,2,opt,name=software,proto3" json:"software,omitempty"`
+	NetworkInterfaces []*NetworkInterface    `protobuf:"bytes,3,rep,name=network_interfaces,json=networkInterfaces,proto3" json:"network_interfaces,omitempty"`
+	Timestamp         uint64                 `protobuf:"varint,4,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *SystemInfoResponse) Reset() {
+	*x = SystemInfoResponse{}
+	mi := &file_agent_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SystemInfoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SystemInfoResponse) ProtoMessage() {}
+
+func (x *SystemInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SystemInfoResponse.ProtoReflect.Descriptor instead.
+func (*SystemInfoResponse) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *SystemInfoResponse) GetHardware() *SystemHardware {
+	if x != nil {
+		return x.Hardware
+	}
+	return nil
+}
+
+func (x *SystemInfoResponse) GetSoftware() *SystemSoftware {
+	if x != nil {
+		return x.Software
+	}
+	return nil
+}
+
+func (x *SystemInfoResponse) GetNetworkInterfaces() []*NetworkInterface {
+	if x != nil {
+		return x.NetworkInterfaces
+	}
+	return nil
+}
+
+func (x *SystemInfoResponse) GetTimestamp() uint64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+type SystemHardware struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Cpu           *CpuInfo               `protobuf:"bytes,1,opt,name=cpu,proto3" json:"cpu,omitempty"`
+	Memory        *MemoryInfo            `protobuf:"bytes,2,opt,name=memory,proto3" json:"memory,omitempty"`
+	Disks         []*DiskInfo            `protobuf:"bytes,3,rep,name=disks,proto3" json:"disks,omitempty"`
+	Architecture  string                 `protobuf:"bytes,4,opt,name=architecture,proto3" json:"architecture,omitempty"`
+	CoreCount     uint32                 `protobuf:"varint,5,opt,name=core_count,json=coreCount,proto3" json:"core_count,omitempty"`
+	ThreadCount   uint32                 `protobuf:"varint,6,opt,name=thread_count,json=threadCount,proto3" json:"thread_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SystemHardware) Reset() {
+	*x = SystemHardware{}
+	mi := &file_agent_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SystemHardware) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SystemHardware) ProtoMessage() {}
+
+func (x *SystemHardware) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SystemHardware.ProtoReflect.Descriptor instead.
+func (*SystemHardware) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *SystemHardware) GetCpu() *CpuInfo {
+	if x != nil {
+		return x.Cpu
+	}
+	return nil
+}
+
+func (x *SystemHardware) GetMemory() *MemoryInfo {
+	if x != nil {
+		return x.Memory
+	}
+	return nil
+}
+
+func (x *SystemHardware) GetDisks() []*DiskInfo {
+	if x != nil {
+		return x.Disks
+	}
+	return nil
+}
+
+func (x *SystemHardware) GetArchitecture() string {
+	if x != nil {
+		return x.Architecture
+	}
+	return ""
+}
+
+func (x *SystemHardware) GetCoreCount() uint32 {
+	if x != nil {
+		return x.CoreCount
+	}
+	return 0
+}
+
+func (x *SystemHardware) GetThreadCount() uint32 {
+	if x != nil {
+		return x.ThreadCount
+	}
+	return 0
+}
+
+type CpuInfo struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Model            string                 `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	Cores            uint32                 `protobuf:"varint,2,opt,name=cores,proto3" json:"cores,omitempty"`
+	Threads          uint32                 `protobuf:"varint,3,opt,name=threads,proto3" json:"threads,omitempty"`
+	BaseFrequencyGhz float64                `protobuf:"fixed64,4,opt,name=base_frequency_ghz,json=baseFrequencyGhz,proto3" json:"base_frequency_ghz,omitempty"`
+	MaxFrequencyGhz  float64                `protobuf:"fixed64,5,opt,name=max_frequency_ghz,json=maxFrequencyGhz,proto3" json:"max_frequency_ghz,omitempty"`
+	Features         []string               `protobuf:"bytes,6,rep,name=features,proto3" json:"features,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *CpuInfo) Reset() {
+	*x = CpuInfo{}
+	mi := &file_agent_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CpuInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CpuInfo) ProtoMessage() {}
+
+func (x *CpuInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CpuInfo.ProtoReflect.Descriptor instead.
+func (*CpuInfo) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *CpuInfo) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *CpuInfo) GetCores() uint32 {
+	if x != nil {
+		return x.Cores
+	}
+	return 0
+}
+
+func (x *CpuInfo) GetThreads() uint32 {
+	if x != nil {
+		return x.Threads
+	}
+	return 0
+}
+
+func (x *CpuInfo) GetBaseFrequencyGhz() float64 {
+	if x != nil {
+		return x.BaseFrequencyGhz
+	}
+	return 0
+}
+
+func (x *CpuInfo) GetMaxFrequencyGhz() float64 {
+	if x != nil {
+		return x.MaxFrequencyGhz
+	}
+	return 0
+}
+
+func (x *CpuInfo) GetFeatures() []string {
+	if x != nil {
+		return x.Features
+	}
+	return nil
+}
+
+type MemoryInfo struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TotalBytes     uint64                 `protobuf:"varint,1,opt,name=total_bytes,json=totalBytes,proto3" json:"total_bytes,omitempty"`
+	AvailableBytes uint64                 `protobuf:"varint,2,opt,name=available_bytes,json=availableBytes,proto3" json:"available_bytes,omitempty"`
+	MemoryType     string                 `protobuf:"bytes,3,opt,name=memory_type,json=memoryType,proto3" json:"memory_type,omitempty"`
+	SpeedMhz       uint32                 `protobuf:"varint,4,opt,name=speed_mhz,json=speedMhz,proto3" json:"speed_mhz,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *MemoryInfo) Reset() {
+	*x = MemoryInfo{}
+	mi := &file_agent_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MemoryInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MemoryInfo) ProtoMessage() {}
+
+func (x *MemoryInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MemoryInfo.ProtoReflect.Descriptor instead.
+func (*MemoryInfo) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *MemoryInfo) GetTotalBytes() uint64 {
+	if x != nil {
+		return x.TotalBytes
+	}
+	return 0
+}
+
+func (x *MemoryInfo) GetAvailableBytes() uint64 {
+	if x != nil {
+		return x.AvailableBytes
+	}
+	return 0
+}
+
+func (x *MemoryInfo) GetMemoryType() string {
+	if x != nil {
+		return x.MemoryType
+	}
+	return ""
+}
+
+func (x *MemoryInfo) GetSpeedMhz() uint32 {
+	if x != nil {
+		return x.SpeedMhz
+	}
+	return 0
+}
+
+type DiskInfo struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Device         string                 `protobuf:"bytes,1,opt,name=device,proto3" json:"device,omitempty"`
+	MountPoint     string                 `protobuf:"bytes,2,opt,name=mount_point,json=mountPoint,proto3" json:"mount_point,omitempty"`
+	Filesystem     string                 `protobuf:"bytes,3,opt,name=filesystem,proto3" json:"filesystem,omitempty"`
+	TotalBytes     uint64                 `protobuf:"varint,4,opt,name=total_bytes,json=totalBytes,proto3" json:"total_bytes,omitempty"`
+	AvailableBytes uint64                 `protobuf:"varint,5,opt,name=available_bytes,json=availableBytes,proto3" json:"available_bytes,omitempty"`
+	DiskType       string                 `protobuf:"bytes,6,opt,name=disk_type,json=diskType,proto3" json:"disk_type,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *DiskInfo) Reset() {
+	*x = DiskInfo{}
+	mi := &file_agent_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiskInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiskInfo) ProtoMessage() {}
+
+func (x *DiskInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiskInfo.ProtoReflect.Descriptor instead.
+func (*DiskInfo) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *DiskInfo) GetDevice() string {
+	if x != nil {
+		return x.Device
+	}
+	return ""
+}
+
+func (x *DiskInfo) GetMountPoint() string {
+	if x != nil {
+		return x.MountPoint
+	}
+	return ""
+}
+
+func (x *DiskInfo) GetFilesystem() string {
+	if x != nil {
+		return x.Filesystem
+	}
+	return ""
+}
+
+func (x *DiskInfo) GetTotalBytes() uint64 {
+	if x != nil {
+		return x.TotalBytes
+	}
+	return 0
+}
+
+func (x *DiskInfo) GetAvailableBytes() uint64 {
+	if x != nil {
+		return x.AvailableBytes
+	}
+	return 0
+}
+
+func (x *DiskInfo) GetDiskType() string {
+	if x != nil {
+		return x.DiskType
+	}
+	return ""
+}
+
+type NetworkInterface struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	MacAddress    string                 `protobuf:"bytes,2,opt,name=mac_address,json=macAddress,proto3" json:"mac_address,omitempty"`
+	IpAddresses   []string               `protobuf:"bytes,3,rep,name=ip_addresses,json=ipAddresses,proto3" json:"ip_addresses,omitempty"`
+	SpeedMbps     uint64                 `protobuf:"varint,4,opt,name=speed_mbps,json=speedMbps,proto3" json:"speed_mbps,omitempty"`
+	IsUp          bool                   `protobuf:"varint,5,opt,name=is_up,json=isUp,proto3" json:"is_up,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NetworkInterface) Reset() {
+	*x = NetworkInterface{}
+	mi := &file_agent_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NetworkInterface) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NetworkInterface) ProtoMessage() {}
+
+func (x *NetworkInterface) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NetworkInterface.ProtoReflect.Descriptor instead.
+func (*NetworkInterface) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *NetworkInterface) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *NetworkInterface) GetMacAddress() string {
+	if x != nil {
+		return x.MacAddress
+	}
+	return ""
+}
+
+func (x *NetworkInterface) GetIpAddresses() []string {
+	if x != nil {
+		return x.IpAddresses
+	}
+	return nil
+}
+
+func (x *NetworkInterface) GetSpeedMbps() uint64 {
+	if x != nil {
+		return x.SpeedMbps
+	}
+	return 0
+}
+
+func (x *NetworkInterface) GetIsUp() bool {
+	if x != nil {
+		return x.IsUp
+	}
+	return false
+}
+
+type SystemSoftware struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Os            *OperatingSystem       `protobuf:"bytes,1,opt,name=os,proto3" json:"os,omitempty"`
+	Hostname      string                 `protobuf:"bytes,2,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	UptimeSeconds uint64                 `protobuf:"varint,3,opt,name=uptime_seconds,json=uptimeSeconds,proto3" json:"uptime_seconds,omitempty"`
+	Packages      []*InstalledPackage    `protobuf:"bytes,4,rep,name=packages,proto3" json:"packages,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SystemSoftware) Reset() {
+	*x = SystemSoftware{}
+	mi := &file_agent_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SystemSoftware) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SystemSoftware) ProtoMessage() {}
+
+func (x *SystemSoftware) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SystemSoftware.ProtoReflect.Descriptor instead.
+func (*SystemSoftware) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *SystemSoftware) GetOs() *OperatingSystem {
+	if x != nil {
+		return x.Os
+	}
+	return nil
+}
+
+func (x *SystemSoftware) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *SystemSoftware) GetUptimeSeconds() uint64 {
+	if x != nil {
+		return x.UptimeSeconds
+	}
+	return 0
+}
+
+func (x *SystemSoftware) GetPackages() []*InstalledPackage {
+	if x != nil {
+		return x.Packages
+	}
+	return nil
+}
+
+type OperatingSystem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	KernelVersion string                 `protobuf:"bytes,3,opt,name=kernel_version,json=kernelVersion,proto3" json:"kernel_version,omitempty"`
+	Distribution  string                 `protobuf:"bytes,4,opt,name=distribution,proto3" json:"distribution,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OperatingSystem) Reset() {
+	*x = OperatingSystem{}
+	mi := &file_agent_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OperatingSystem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OperatingSystem) ProtoMessage() {}
+
+func (x *OperatingSystem) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OperatingSystem.ProtoReflect.Descriptor instead.
+func (*OperatingSystem) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *OperatingSystem) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *OperatingSystem) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *OperatingSystem) GetKernelVersion() string {
+	if x != nil {
+		return x.KernelVersion
+	}
+	return ""
+}
+
+func (x *OperatingSystem) GetDistribution() string {
+	if x != nil {
+		return x.Distribution
+	}
+	return ""
+}
+
+type InstalledPackage struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Name           string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Version        string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	PackageManager string                 `protobuf:"bytes,3,opt,name=package_manager,json=packageManager,proto3" json:"package_manager,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *InstalledPackage) Reset() {
+	*x = InstalledPackage{}
+	mi := &file_agent_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstalledPackage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstalledPackage) ProtoMessage() {}
+
+func (x *InstalledPackage) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstalledPackage.ProtoReflect.Descriptor instead.
+func (*InstalledPackage) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *InstalledPackage) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *InstalledPackage) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *InstalledPackage) GetPackageManager() string {
+	if x != nil {
+		return x.PackageManager
+	}
+	return ""
+}
+
+// Real-time metrics data
+type MetricsDataResponse struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Timestamp         uint64                 `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Cpu               *CpuMetrics            `protobuf:"bytes,2,opt,name=cpu,proto3" json:"cpu,omitempty"`
+	Memory            *MemoryMetrics         `protobuf:"bytes,3,opt,name=memory,proto3" json:"memory,omitempty"`
+	Disks             []*DiskMetrics         `protobuf:"bytes,4,rep,name=disks,proto3" json:"disks,omitempty"`
+	NetworkInterfaces []*NetworkMetrics      `protobuf:"bytes,5,rep,name=network_interfaces,json=networkInterfaces,proto3" json:"network_interfaces,omitempty"`
+	Processes         *ProcessMetrics        `protobuf:"bytes,6,opt,name=processes,proto3" json:"processes,omitempty"`
+	Load              *LoadMetrics           `protobuf:"bytes,7,opt,name=load,proto3" json:"load,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *MetricsDataResponse) Reset() {
+	*x = MetricsDataResponse{}
+	mi := &file_agent_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetricsDataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetricsDataResponse) ProtoMessage() {}
+
+func (x *MetricsDataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetricsDataResponse.ProtoReflect.Descriptor instead.
+func (*MetricsDataResponse) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *MetricsDataResponse) GetTimestamp() uint64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+func (x *MetricsDataResponse) GetCpu() *CpuMetrics {
+	if x != nil {
+		return x.Cpu
+	}
+	return nil
+}
+
+func (x *MetricsDataResponse) GetMemory() *MemoryMetrics {
+	if x != nil {
+		return x.Memory
+	}
+	return nil
+}
+
+func (x *MetricsDataResponse) GetDisks() []*DiskMetrics {
+	if x != nil {
+		return x.Disks
+	}
+	return nil
+}
+
+func (x *MetricsDataResponse) GetNetworkInterfaces() []*NetworkMetrics {
+	if x != nil {
+		return x.NetworkInterfaces
+	}
+	return nil
+}
+
+func (x *MetricsDataResponse) GetProcesses() *ProcessMetrics {
+	if x != nil {
+		return x.Processes
+	}
+	return nil
+}
+
+func (x *MetricsDataResponse) GetLoad() *LoadMetrics {
+	if x != nil {
+		return x.Load
+	}
+	return nil
+}
+
+type CpuMetrics struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	UsagePercent       float64                `protobuf:"fixed64,1,opt,name=usage_percent,json=usagePercent,proto3" json:"usage_percent,omitempty"`
+	CoreUsage          []float64              `protobuf:"fixed64,2,rep,packed,name=core_usage,json=coreUsage,proto3" json:"core_usage,omitempty"`
+	UserPercent        float64                `protobuf:"fixed64,3,opt,name=user_percent,json=userPercent,proto3" json:"user_percent,omitempty"`
+	SystemPercent      float64                `protobuf:"fixed64,4,opt,name=system_percent,json=systemPercent,proto3" json:"system_percent,omitempty"`
+	IdlePercent        float64                `protobuf:"fixed64,5,opt,name=idle_percent,json=idlePercent,proto3" json:"idle_percent,omitempty"`
+	IowaitPercent      float64                `protobuf:"fixed64,6,opt,name=iowait_percent,json=iowaitPercent,proto3" json:"iowait_percent,omitempty"`
+	TemperatureCelsius float64                `protobuf:"fixed64,7,opt,name=temperature_celsius,json=temperatureCelsius,proto3" json:"temperature_celsius,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *CpuMetrics) Reset() {
+	*x = CpuMetrics{}
+	mi := &file_agent_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CpuMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CpuMetrics) ProtoMessage() {}
+
+func (x *CpuMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CpuMetrics.ProtoReflect.Descriptor instead.
+func (*CpuMetrics) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *CpuMetrics) GetUsagePercent() float64 {
+	if x != nil {
+		return x.UsagePercent
+	}
+	return 0
+}
+
+func (x *CpuMetrics) GetCoreUsage() []float64 {
+	if x != nil {
+		return x.CoreUsage
+	}
+	return nil
+}
+
+func (x *CpuMetrics) GetUserPercent() float64 {
+	if x != nil {
+		return x.UserPercent
+	}
+	return 0
+}
+
+func (x *CpuMetrics) GetSystemPercent() float64 {
+	if x != nil {
+		return x.SystemPercent
+	}
+	return 0
+}
+
+func (x *CpuMetrics) GetIdlePercent() float64 {
+	if x != nil {
+		return x.IdlePercent
+	}
+	return 0
+}
+
+func (x *CpuMetrics) GetIowaitPercent() float64 {
+	if x != nil {
+		return x.IowaitPercent
+	}
+	return 0
+}
+
+func (x *CpuMetrics) GetTemperatureCelsius() float64 {
+	if x != nil {
+		return x.TemperatureCelsius
+	}
+	return 0
+}
+
+type MemoryMetrics struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	TotalBytes       uint64                 `protobuf:"varint,1,opt,name=total_bytes,json=totalBytes,proto3" json:"total_bytes,omitempty"`
+	UsedBytes        uint64                 `protobuf:"varint,2,opt,name=used_bytes,json=usedBytes,proto3" json:"used_bytes,omitempty"`
+	AvailableBytes   uint64                 `protobuf:"varint,3,opt,name=available_bytes,json=availableBytes,proto3" json:"available_bytes,omitempty"`
+	FreeBytes        uint64                 `protobuf:"varint,4,opt,name=free_bytes,json=freeBytes,proto3" json:"free_bytes,omitempty"`
+	CachedBytes      uint64                 `protobuf:"varint,5,opt,name=cached_bytes,json=cachedBytes,proto3" json:"cached_bytes,omitempty"`
+	BuffersBytes     uint64                 `protobuf:"varint,6,opt,name=buffers_bytes,json=buffersBytes,proto3" json:"buffers_bytes,omitempty"`
+	UsagePercent     float64                `protobuf:"fixed64,7,opt,name=usage_percent,json=usagePercent,proto3" json:"usage_percent,omitempty"`
+	SwapTotalBytes   uint64                 `protobuf:"varint,8,opt,name=swap_total_bytes,json=swapTotalBytes,proto3" json:"swap_total_bytes,omitempty"`
+	SwapUsedBytes    uint64                 `protobuf:"varint,9,opt,name=swap_used_bytes,json=swapUsedBytes,proto3" json:"swap_used_bytes,omitempty"`
+	SwapFreeBytes    uint64                 `protobuf:"varint,10,opt,name=swap_free_bytes,json=swapFreeBytes,proto3" json:"swap_free_bytes,omitempty"`
+	SwapUsagePercent float64                `protobuf:"fixed64,11,opt,name=swap_usage_percent,json=swapUsagePercent,proto3" json:"swap_usage_percent,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *MemoryMetrics) Reset() {
+	*x = MemoryMetrics{}
+	mi := &file_agent_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MemoryMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MemoryMetrics) ProtoMessage() {}
+
+func (x *MemoryMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MemoryMetrics.ProtoReflect.Descriptor instead.
+func (*MemoryMetrics) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *MemoryMetrics) GetTotalBytes() uint64 {
+	if x != nil {
+		return x.TotalBytes
+	}
+	return 0
+}
+
+func (x *MemoryMetrics) GetUsedBytes() uint64 {
+	if x != nil {
+		return x.UsedBytes
+	}
+	return 0
+}
+
+func (x *MemoryMetrics) GetAvailableBytes() uint64 {
+	if x != nil {
+		return x.AvailableBytes
+	}
+	return 0
+}
+
+func (x *MemoryMetrics) GetFreeBytes() uint64 {
+	if x != nil {
+		return x.FreeBytes
+	}
+	return 0
+}
+
+func (x *MemoryMetrics) GetCachedBytes() uint64 {
+	if x != nil {
+		return x.CachedBytes
+	}
+	return 0
+}
+
+func (x *MemoryMetrics) GetBuffersBytes() uint64 {
+	if x != nil {
+		return x.BuffersBytes
+	}
+	return 0
+}
+
+func (x *MemoryMetrics) GetUsagePercent() float64 {
+	if x != nil {
+		return x.UsagePercent
+	}
+	return 0
+}
+
+func (x *MemoryMetrics) GetSwapTotalBytes() uint64 {
+	if x != nil {
+		return x.SwapTotalBytes
+	}
+	return 0
+}
+
+func (x *MemoryMetrics) GetSwapUsedBytes() uint64 {
+	if x != nil {
+		return x.SwapUsedBytes
+	}
+	return 0
+}
+
+func (x *MemoryMetrics) GetSwapFreeBytes() uint64 {
+	if x != nil {
+		return x.SwapFreeBytes
+	}
+	return 0
+}
+
+func (x *MemoryMetrics) GetSwapUsagePercent() float64 {
+	if x != nil {
+		return x.SwapUsagePercent
+	}
+	return 0
+}
+
+type DiskMetrics struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Device           string                 `protobuf:"bytes,1,opt,name=device,proto3" json:"device,omitempty"`
+	MountPoint       string                 `protobuf:"bytes,2,opt,name=mount_point,json=mountPoint,proto3" json:"mount_point,omitempty"`
+	TotalBytes       uint64                 `protobuf:"varint,3,opt,name=total_bytes,json=totalBytes,proto3" json:"total_bytes,omitempty"`
+	UsedBytes        uint64                 `protobuf:"varint,4,opt,name=used_bytes,json=usedBytes,proto3" json:"used_bytes,omitempty"`
+	AvailableBytes   uint64                 `protobuf:"varint,5,opt,name=available_bytes,json=availableBytes,proto3" json:"available_bytes,omitempty"`
+	UsagePercent     float64                `protobuf:"fixed64,6,opt,name=usage_percent,json=usagePercent,proto3" json:"usage_percent,omitempty"`
+	ReadBytesPerSec  uint64                 `protobuf:"varint,7,opt,name=read_bytes_per_sec,json=readBytesPerSec,proto3" json:"read_bytes_per_sec,omitempty"`
+	WriteBytesPerSec uint64                 `protobuf:"varint,8,opt,name=write_bytes_per_sec,json=writeBytesPerSec,proto3" json:"write_bytes_per_sec,omitempty"`
+	ReadOpsPerSec    uint64                 `protobuf:"varint,9,opt,name=read_ops_per_sec,json=readOpsPerSec,proto3" json:"read_ops_per_sec,omitempty"`
+	WriteOpsPerSec   uint64                 `protobuf:"varint,10,opt,name=write_ops_per_sec,json=writeOpsPerSec,proto3" json:"write_ops_per_sec,omitempty"`
+	IoUtilPercent    float64                `protobuf:"fixed64,11,opt,name=io_util_percent,json=ioUtilPercent,proto3" json:"io_util_percent,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *DiskMetrics) Reset() {
+	*x = DiskMetrics{}
+	mi := &file_agent_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiskMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiskMetrics) ProtoMessage() {}
+
+func (x *DiskMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiskMetrics.ProtoReflect.Descriptor instead.
+func (*DiskMetrics) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *DiskMetrics) GetDevice() string {
+	if x != nil {
+		return x.Device
+	}
+	return ""
+}
+
+func (x *DiskMetrics) GetMountPoint() string {
+	if x != nil {
+		return x.MountPoint
+	}
+	return ""
+}
+
+func (x *DiskMetrics) GetTotalBytes() uint64 {
+	if x != nil {
+		return x.TotalBytes
+	}
+	return 0
+}
+
+func (x *DiskMetrics) GetUsedBytes() uint64 {
+	if x != nil {
+		return x.UsedBytes
+	}
+	return 0
+}
+
+func (x *DiskMetrics) GetAvailableBytes() uint64 {
+	if x != nil {
+		return x.AvailableBytes
+	}
+	return 0
+}
+
+func (x *DiskMetrics) GetUsagePercent() float64 {
+	if x != nil {
+		return x.UsagePercent
+	}
+	return 0
+}
+
+func (x *DiskMetrics) GetReadBytesPerSec() uint64 {
+	if x != nil {
+		return x.ReadBytesPerSec
+	}
+	return 0
+}
+
+func (x *DiskMetrics) GetWriteBytesPerSec() uint64 {
+	if x != nil {
+		return x.WriteBytesPerSec
+	}
+	return 0
+}
+
+func (x *DiskMetrics) GetReadOpsPerSec() uint64 {
+	if x != nil {
+		return x.ReadOpsPerSec
+	}
+	return 0
+}
+
+func (x *DiskMetrics) GetWriteOpsPerSec() uint64 {
+	if x != nil {
+		return x.WriteOpsPerSec
+	}
+	return 0
+}
+
+func (x *DiskMetrics) GetIoUtilPercent() float64 {
+	if x != nil {
+		return x.IoUtilPercent
+	}
+	return 0
+}
+
+type NetworkMetrics struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Interface         string                 `protobuf:"bytes,1,opt,name=interface,proto3" json:"interface,omitempty"`
+	BytesSentPerSec   uint64                 `protobuf:"varint,2,opt,name=bytes_sent_per_sec,json=bytesSentPerSec,proto3" json:"bytes_sent_per_sec,omitempty"`
+	BytesRecvPerSec   uint64                 `protobuf:"varint,3,opt,name=bytes_recv_per_sec,json=bytesRecvPerSec,proto3" json:"bytes_recv_per_sec,omitempty"`
+	PacketsSentPerSec uint64                 `protobuf:"varint,4,opt,name=packets_sent_per_sec,json=packetsSentPerSec,proto3" json:"packets_sent_per_sec,omitempty"`
+	PacketsRecvPerSec uint64                 `protobuf:"varint,5,opt,name=packets_recv_per_sec,json=packetsRecvPerSec,proto3" json:"packets_recv_per_sec,omitempty"`
+	ErrorsIn          uint64                 `protobuf:"varint,6,opt,name=errors_in,json=errorsIn,proto3" json:"errors_in,omitempty"`
+	ErrorsOut         uint64                 `protobuf:"varint,7,opt,name=errors_out,json=errorsOut,proto3" json:"errors_out,omitempty"`
+	DropsIn           uint64                 `protobuf:"varint,8,opt,name=drops_in,json=dropsIn,proto3" json:"drops_in,omitempty"`
+	DropsOut          uint64                 `protobuf:"varint,9,opt,name=drops_out,json=dropsOut,proto3" json:"drops_out,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *NetworkMetrics) Reset() {
+	*x = NetworkMetrics{}
+	mi := &file_agent_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NetworkMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NetworkMetrics) ProtoMessage() {}
+
+func (x *NetworkMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NetworkMetrics.ProtoReflect.Descriptor instead.
+func (*NetworkMetrics) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *NetworkMetrics) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
+}
+
+func (x *NetworkMetrics) GetBytesSentPerSec() uint64 {
+	if x != nil {
+		return x.BytesSentPerSec
+	}
+	return 0
+}
+
+func (x *NetworkMetrics) GetBytesRecvPerSec() uint64 {
+	if x != nil {
+		return x.BytesRecvPerSec
+	}
+	return 0
+}
+
+func (x *NetworkMetrics) GetPacketsSentPerSec() uint64 {
+	if x != nil {
+		return x.PacketsSentPerSec
+	}
+	return 0
+}
+
+func (x *NetworkMetrics) GetPacketsRecvPerSec() uint64 {
+	if x != nil {
+		return x.PacketsRecvPerSec
+	}
+	return 0
+}
+
+func (x *NetworkMetrics) GetErrorsIn() uint64 {
+	if x != nil {
+		return x.ErrorsIn
+	}
+	return 0
+}
+
+func (x *NetworkMetrics) GetErrorsOut() uint64 {
+	if x != nil {
+		return x.ErrorsOut
+	}
+	return 0
+}
+
+func (x *NetworkMetrics) GetDropsIn() uint64 {
+	if x != nil {
+		return x.DropsIn
+	}
+	return 0
+}
+
+func (x *NetworkMetrics) GetDropsOut() uint64 {
+	if x != nil {
+		return x.DropsOut
+	}
+	return 0
+}
+
+type ProcessMetrics struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	TotalProcesses    uint32                 `protobuf:"varint,1,opt,name=total_processes,json=totalProcesses,proto3" json:"total_processes,omitempty"`
+	RunningProcesses  uint32                 `protobuf:"varint,2,opt,name=running_processes,json=runningProcesses,proto3" json:"running_processes,omitempty"`
+	SleepingProcesses uint32                 `protobuf:"varint,3,opt,name=sleeping_processes,json=sleepingProcesses,proto3" json:"sleeping_processes,omitempty"`
+	ZombieProcesses   uint32                 `protobuf:"varint,4,opt,name=zombie_processes,json=zombieProcesses,proto3" json:"zombie_processes,omitempty"`
+	TaskProcesses     []*TaskProcessMetrics  `protobuf:"bytes,5,rep,name=task_processes,json=taskProcesses,proto3" json:"task_processes,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ProcessMetrics) Reset() {
+	*x = ProcessMetrics{}
+	mi := &file_agent_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProcessMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProcessMetrics) ProtoMessage() {}
+
+func (x *ProcessMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProcessMetrics.ProtoReflect.Descriptor instead.
+func (*ProcessMetrics) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *ProcessMetrics) GetTotalProcesses() uint32 {
+	if x != nil {
+		return x.TotalProcesses
+	}
+	return 0
+}
+
+func (x *ProcessMetrics) GetRunningProcesses() uint32 {
+	if x != nil {
+		return x.RunningProcesses
+	}
+	return 0
+}
+
+func (x *ProcessMetrics) GetSleepingProcesses() uint32 {
+	if x != nil {
+		return x.SleepingProcesses
+	}
+	return 0
+}
+
+func (x *ProcessMetrics) GetZombieProcesses() uint32 {
+	if x != nil {
+		return x.ZombieProcesses
+	}
+	return 0
+}
+
+func (x *ProcessMetrics) GetTaskProcesses() []*TaskProcessMetrics {
+	if x != nil {
+		return x.TaskProcesses
+	}
+	return nil
+}
+
+type TaskProcessMetrics struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	TaskId             string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Pid                uint32                 `protobuf:"varint,2,opt,name=pid,proto3" json:"pid,omitempty"`
+	CpuPercent         float64                `protobuf:"fixed64,3,opt,name=cpu_percent,json=cpuPercent,proto3" json:"cpu_percent,omitempty"`
+	MemoryBytes        uint64                 `protobuf:"varint,4,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`
+	VirtualMemoryBytes uint64                 `protobuf:"varint,5,opt,name=virtual_memory_bytes,json=virtualMemoryBytes,proto3" json:"virtual_memory_bytes,omitempty"`
+	Threads            uint32                 `protobuf:"varint,6,opt,name=threads,proto3" json:"threads,omitempty"`
+	ReadBytes          uint64                 `protobuf:"varint,7,opt,name=read_bytes,json=readBytes,proto3" json:"read_bytes,omitempty"`
+	WriteBytes         uint64                 `protobuf:"varint,8,opt,name=write_bytes,json=writeBytes,proto3" json:"write_bytes,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *TaskProcessMetrics) Reset() {
+	*x = TaskProcessMetrics{}
+	mi := &file_agent_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskProcessMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskProcessMetrics) ProtoMessage() {}
+
+func (x *TaskProcessMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskProcessMetrics.ProtoReflect.Descriptor instead.
+func (*TaskProcessMetrics) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *TaskProcessMetrics) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *TaskProcessMetrics) GetPid() uint32 {
+	if x != nil {
+		return x.Pid
+	}
+	return 0
+}
+
+func (x *TaskProcessMetrics) GetCpuPercent() float64 {
+	if x != nil {
+		return x.CpuPercent
+	}
+	return 0
+}
+
+func (x *TaskProcessMetrics) GetMemoryBytes() uint64 {
+	if x != nil {
+		return x.MemoryBytes
+	}
+	return 0
+}
+
+func (x *TaskProcessMetrics) GetVirtualMemoryBytes() uint64 {
+	if x != nil {
+		return x.VirtualMemoryBytes
+	}
+	return 0
+}
+
+func (x *TaskProcessMetrics) GetThreads() uint32 {
+	if x != nil {
+		return x.Threads
+	}
+	return 0
+}
+
+func (x *TaskProcessMetrics) GetReadBytes() uint64 {
+	if x != nil {
+		return x.ReadBytes
+	}
+	return 0
+}
+
+func (x *TaskProcessMetrics) GetWriteBytes() uint64 {
+	if x != nil {
+		return x.WriteBytes
+	}
+	return 0
+}
+
+type LoadMetrics struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Load1         float64                `protobuf:"fixed64,1,opt,name=load1,proto3" json:"load1,omitempty"`
+	Load5         float64                `protobuf:"fixed64,2,opt,name=load5,proto3" json:"load5,omitempty"`
+	Load15        float64                `protobuf:"fixed64,3,opt,name=load15,proto3" json:"load15,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoadMetrics) Reset() {
+	*x = LoadMetrics{}
+	mi := &file_agent_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoadMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoadMetrics) ProtoMessage() {}
+
+func (x *LoadMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoadMetrics.ProtoReflect.Descriptor instead.
+func (*LoadMetrics) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *LoadMetrics) GetLoad1() float64 {
+	if x != nil {
+		return x.Load1
+	}
+	return 0
+}
+
+func (x *LoadMetrics) GetLoad5() float64 {
+	if x != nil {
+		return x.Load5
+	}
+	return 0
+}
+
+func (x *LoadMetrics) GetLoad15() float64 {
+	if x != nil {
+		return x.Load15
+	}
+	return 0
+}
+
+// Historical metrics query
+type MetricsQueryResponse struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	DataPoints          []*MetricsTimePoint    `protobuf:"bytes,1,rep,name=data_points,json=dataPoints,proto3" json:"data_points,omitempty"`
+	QueryStartTimestamp uint64                 `protobuf:"varint,2,opt,name=query_start_timestamp,json=queryStartTimestamp,proto3" json:"query_start_timestamp,omitempty"`
+	QueryEndTimestamp   uint64                 `protobuf:"varint,3,opt,name=query_end_timestamp,json=queryEndTimestamp,proto3" json:"query_end_timestamp,omitempty"`
+	TotalPoints         uint32                 `protobuf:"varint,4,opt,name=total_points,json=totalPoints,proto3" json:"total_points,omitempty"`
+	Truncated           bool                   `protobuf:"varint,5,opt,name=truncated,proto3" json:"truncated,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *MetricsQueryResponse) Reset() {
+	*x = MetricsQueryResponse{}
+	mi := &file_agent_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetricsQueryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetricsQueryResponse) ProtoMessage() {}
+
+func (x *MetricsQueryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetricsQueryResponse.ProtoReflect.Descriptor instead.
+func (*MetricsQueryResponse) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *MetricsQueryResponse) GetDataPoints() []*MetricsTimePoint {
+	if x != nil {
+		return x.DataPoints
+	}
+	return nil
+}
+
+func (x *MetricsQueryResponse) GetQueryStartTimestamp() uint64 {
+	if x != nil {
+		return x.QueryStartTimestamp
+	}
+	return 0
+}
+
+func (x *MetricsQueryResponse) GetQueryEndTimestamp() uint64 {
+	if x != nil {
+		return x.QueryEndTimestamp
+	}
+	return 0
+}
+
+func (x *MetricsQueryResponse) GetTotalPoints() uint32 {
+	if x != nil {
+		return x.TotalPoints
+	}
+	return 0
+}
+
+func (x *MetricsQueryResponse) GetTruncated() bool {
+	if x != nil {
+		return x.Truncated
+	}
+	return false
+}
+
+type MetricsTimePoint struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Timestamp     uint64                 `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Values        map[string]float64     `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed64,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MetricsTimePoint) Reset() {
+	*x = MetricsTimePoint{}
+	mi := &file_agent_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MetricsTimePoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MetricsTimePoint) ProtoMessage() {}
+
+func (x *MetricsTimePoint) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MetricsTimePoint.ProtoReflect.Descriptor instead.
+func (*MetricsTimePoint) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *MetricsTimePoint) GetTimestamp() uint64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+func (x *MetricsTimePoint) GetValues() map[string]float64 {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
 var File_agent_proto protoreflect.FileDescriptor
 
 const file_agent_proto_rawDesc = "" +
 	"\n" +
-	"\vagent.proto\x12\x02pb\"\xaa\x02\n" +
+	"\vagent.proto\x12\x02pb\"\xe9\x02\n" +
 	"\vTaskRequest\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x127\n" +
@@ -864,8 +2898,9 @@ const file_agent_proto_rawDesc = "" +
 	"\vlog_message\x18\x05 \x01(\v2\x0e.pb.LogMessageH\x00R\n" +
 	"logMessage\x121\n" +
 	"\vtask_cancel\x18\x06 \x01(\v2\x0e.pb.TaskCancelH\x00R\n" +
-	"taskCancelB\x06\n" +
-	"\x04task\"\xf8\x02\n" +
+	"taskCancel\x12=\n" +
+	"\x0fmetrics_request\x18\a \x01(\v2\x12.pb.MetricsRequestH\x00R\x0emetricsRequestB\x06\n" +
+	"\x04task\"\xba\x03\n" +
 	"\fTaskResponse\x12\x19\n" +
 	"\bagent_id\x18\x01 \x01(\tR\aagentId\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12/\n" +
@@ -874,7 +2909,8 @@ const file_agent_proto_rawDesc = "" +
 	"\tcancelled\x18\x05 \x01(\bR\tcancelled\x12?\n" +
 	"\rshell_execute\x18\x06 \x01(\v2\x18.pb.ShellExecuteResponseH\x00R\fshellExecute\x129\n" +
 	"\vtask_cancel\x18\a \x01(\v2\x16.pb.TaskCancelResponseH\x00R\n" +
-	"taskCancel\"B\n" +
+	"taskCancel\x12@\n" +
+	"\x10metrics_response\x18\b \x01(\v2\x13.pb.MetricsResponseH\x00R\x0fmetricsResponse\"B\n" +
 	"\x06Status\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\r\n" +
 	"\tCOMPLETED\x10\x01\x12\v\n" +
@@ -914,7 +2950,194 @@ const file_agent_proto_rawDesc = "" +
 	"TaskCancel\x12\x16\n" +
 	"\x06reason\x18\x01 \x01(\tR\x06reason\".\n" +
 	"\x12TaskCancelResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2D\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"\xdd\x01\n" +
+	"\x0eMetricsRequest\x128\n" +
+	"\vsystem_info\x18\x01 \x01(\v2\x15.pb.SystemInfoRequestH\x00R\n" +
+	"systemInfo\x12A\n" +
+	"\x0estream_request\x18\x02 \x01(\v2\x18.pb.MetricsStreamRequestH\x00R\rstreamRequest\x12>\n" +
+	"\rquery_request\x18\x03 \x01(\v2\x17.pb.MetricsQueryRequestH\x00R\fqueryRequestB\x0e\n" +
+	"\frequest_type\"\x92\x01\n" +
+	"\x11SystemInfoRequest\x12)\n" +
+	"\x10include_hardware\x18\x01 \x01(\bR\x0fincludeHardware\x12)\n" +
+	"\x10include_software\x18\x02 \x01(\bR\x0fincludeSoftware\x12'\n" +
+	"\x0finclude_network\x18\x03 \x01(\bR\x0eincludeNetwork\"\xc8\x01\n" +
+	"\x14MetricsStreamRequest\x127\n" +
+	"\x06action\x18\x01 \x01(\x0e2\x1f.pb.MetricsStreamRequest.ActionR\x06action\x12)\n" +
+	"\x10interval_seconds\x18\x02 \x01(\rR\x0fintervalSeconds\x12\x18\n" +
+	"\ametrics\x18\x03 \x03(\tR\ametrics\"2\n" +
+	"\x06Action\x12\t\n" +
+	"\x05START\x10\x00\x12\b\n" +
+	"\x04STOP\x10\x01\x12\x13\n" +
+	"\x0fUPDATE_INTERVAL\x10\x02\"\x9c\x01\n" +
+	"\x13MetricsQueryRequest\x12\x18\n" +
+	"\ametrics\x18\x01 \x03(\tR\ametrics\x12'\n" +
+	"\x0fstart_timestamp\x18\x02 \x01(\x04R\x0estartTimestamp\x12#\n" +
+	"\rend_timestamp\x18\x03 \x01(\x04R\fendTimestamp\x12\x1d\n" +
+	"\n" +
+	"max_points\x18\x04 \x01(\rR\tmaxPoints\"\xde\x01\n" +
+	"\x0fMetricsResponse\x129\n" +
+	"\vsystem_info\x18\x01 \x01(\v2\x16.pb.SystemInfoResponseH\x00R\n" +
+	"systemInfo\x12<\n" +
+	"\fmetrics_data\x18\x02 \x01(\v2\x17.pb.MetricsDataResponseH\x00R\vmetricsData\x12A\n" +
+	"\x0equery_response\x18\x03 \x01(\v2\x18.pb.MetricsQueryResponseH\x00R\rqueryResponseB\x0f\n" +
+	"\rresponse_type\"\xd7\x01\n" +
+	"\x12SystemInfoResponse\x12.\n" +
+	"\bhardware\x18\x01 \x01(\v2\x12.pb.SystemHardwareR\bhardware\x12.\n" +
+	"\bsoftware\x18\x02 \x01(\v2\x12.pb.SystemSoftwareR\bsoftware\x12C\n" +
+	"\x12network_interfaces\x18\x03 \x03(\v2\x14.pb.NetworkInterfaceR\x11networkInterfaces\x12\x1c\n" +
+	"\ttimestamp\x18\x04 \x01(\x04R\ttimestamp\"\xe1\x01\n" +
+	"\x0eSystemHardware\x12\x1d\n" +
+	"\x03cpu\x18\x01 \x01(\v2\v.pb.CpuInfoR\x03cpu\x12&\n" +
+	"\x06memory\x18\x02 \x01(\v2\x0e.pb.MemoryInfoR\x06memory\x12\"\n" +
+	"\x05disks\x18\x03 \x03(\v2\f.pb.DiskInfoR\x05disks\x12\"\n" +
+	"\farchitecture\x18\x04 \x01(\tR\farchitecture\x12\x1d\n" +
+	"\n" +
+	"core_count\x18\x05 \x01(\rR\tcoreCount\x12!\n" +
+	"\fthread_count\x18\x06 \x01(\rR\vthreadCount\"\xc5\x01\n" +
+	"\aCpuInfo\x12\x14\n" +
+	"\x05model\x18\x01 \x01(\tR\x05model\x12\x14\n" +
+	"\x05cores\x18\x02 \x01(\rR\x05cores\x12\x18\n" +
+	"\athreads\x18\x03 \x01(\rR\athreads\x12,\n" +
+	"\x12base_frequency_ghz\x18\x04 \x01(\x01R\x10baseFrequencyGhz\x12*\n" +
+	"\x11max_frequency_ghz\x18\x05 \x01(\x01R\x0fmaxFrequencyGhz\x12\x1a\n" +
+	"\bfeatures\x18\x06 \x03(\tR\bfeatures\"\x94\x01\n" +
+	"\n" +
+	"MemoryInfo\x12\x1f\n" +
+	"\vtotal_bytes\x18\x01 \x01(\x04R\n" +
+	"totalBytes\x12'\n" +
+	"\x0favailable_bytes\x18\x02 \x01(\x04R\x0eavailableBytes\x12\x1f\n" +
+	"\vmemory_type\x18\x03 \x01(\tR\n" +
+	"memoryType\x12\x1b\n" +
+	"\tspeed_mhz\x18\x04 \x01(\rR\bspeedMhz\"\xca\x01\n" +
+	"\bDiskInfo\x12\x16\n" +
+	"\x06device\x18\x01 \x01(\tR\x06device\x12\x1f\n" +
+	"\vmount_point\x18\x02 \x01(\tR\n" +
+	"mountPoint\x12\x1e\n" +
+	"\n" +
+	"filesystem\x18\x03 \x01(\tR\n" +
+	"filesystem\x12\x1f\n" +
+	"\vtotal_bytes\x18\x04 \x01(\x04R\n" +
+	"totalBytes\x12'\n" +
+	"\x0favailable_bytes\x18\x05 \x01(\x04R\x0eavailableBytes\x12\x1b\n" +
+	"\tdisk_type\x18\x06 \x01(\tR\bdiskType\"\x9e\x01\n" +
+	"\x10NetworkInterface\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
+	"\vmac_address\x18\x02 \x01(\tR\n" +
+	"macAddress\x12!\n" +
+	"\fip_addresses\x18\x03 \x03(\tR\vipAddresses\x12\x1d\n" +
+	"\n" +
+	"speed_mbps\x18\x04 \x01(\x04R\tspeedMbps\x12\x13\n" +
+	"\x05is_up\x18\x05 \x01(\bR\x04isUp\"\xaa\x01\n" +
+	"\x0eSystemSoftware\x12#\n" +
+	"\x02os\x18\x01 \x01(\v2\x13.pb.OperatingSystemR\x02os\x12\x1a\n" +
+	"\bhostname\x18\x02 \x01(\tR\bhostname\x12%\n" +
+	"\x0euptime_seconds\x18\x03 \x01(\x04R\ruptimeSeconds\x120\n" +
+	"\bpackages\x18\x04 \x03(\v2\x14.pb.InstalledPackageR\bpackages\"\x8a\x01\n" +
+	"\x0fOperatingSystem\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\x12%\n" +
+	"\x0ekernel_version\x18\x03 \x01(\tR\rkernelVersion\x12\"\n" +
+	"\fdistribution\x18\x04 \x01(\tR\fdistribution\"i\n" +
+	"\x10InstalledPackage\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\x12'\n" +
+	"\x0fpackage_manager\x18\x03 \x01(\tR\x0epackageManager\"\xc1\x02\n" +
+	"\x13MetricsDataResponse\x12\x1c\n" +
+	"\ttimestamp\x18\x01 \x01(\x04R\ttimestamp\x12 \n" +
+	"\x03cpu\x18\x02 \x01(\v2\x0e.pb.CpuMetricsR\x03cpu\x12)\n" +
+	"\x06memory\x18\x03 \x01(\v2\x11.pb.MemoryMetricsR\x06memory\x12%\n" +
+	"\x05disks\x18\x04 \x03(\v2\x0f.pb.DiskMetricsR\x05disks\x12A\n" +
+	"\x12network_interfaces\x18\x05 \x03(\v2\x12.pb.NetworkMetricsR\x11networkInterfaces\x120\n" +
+	"\tprocesses\x18\x06 \x01(\v2\x12.pb.ProcessMetricsR\tprocesses\x12#\n" +
+	"\x04load\x18\a \x01(\v2\x0f.pb.LoadMetricsR\x04load\"\x95\x02\n" +
+	"\n" +
+	"CpuMetrics\x12#\n" +
+	"\rusage_percent\x18\x01 \x01(\x01R\fusagePercent\x12\x1d\n" +
+	"\n" +
+	"core_usage\x18\x02 \x03(\x01R\tcoreUsage\x12!\n" +
+	"\fuser_percent\x18\x03 \x01(\x01R\vuserPercent\x12%\n" +
+	"\x0esystem_percent\x18\x04 \x01(\x01R\rsystemPercent\x12!\n" +
+	"\fidle_percent\x18\x05 \x01(\x01R\vidlePercent\x12%\n" +
+	"\x0eiowait_percent\x18\x06 \x01(\x01R\riowaitPercent\x12/\n" +
+	"\x13temperature_celsius\x18\a \x01(\x01R\x12temperatureCelsius\"\xac\x03\n" +
+	"\rMemoryMetrics\x12\x1f\n" +
+	"\vtotal_bytes\x18\x01 \x01(\x04R\n" +
+	"totalBytes\x12\x1d\n" +
+	"\n" +
+	"used_bytes\x18\x02 \x01(\x04R\tusedBytes\x12'\n" +
+	"\x0favailable_bytes\x18\x03 \x01(\x04R\x0eavailableBytes\x12\x1d\n" +
+	"\n" +
+	"free_bytes\x18\x04 \x01(\x04R\tfreeBytes\x12!\n" +
+	"\fcached_bytes\x18\x05 \x01(\x04R\vcachedBytes\x12#\n" +
+	"\rbuffers_bytes\x18\x06 \x01(\x04R\fbuffersBytes\x12#\n" +
+	"\rusage_percent\x18\a \x01(\x01R\fusagePercent\x12(\n" +
+	"\x10swap_total_bytes\x18\b \x01(\x04R\x0eswapTotalBytes\x12&\n" +
+	"\x0fswap_used_bytes\x18\t \x01(\x04R\rswapUsedBytes\x12&\n" +
+	"\x0fswap_free_bytes\x18\n" +
+	" \x01(\x04R\rswapFreeBytes\x12,\n" +
+	"\x12swap_usage_percent\x18\v \x01(\x01R\x10swapUsagePercent\"\xac\x03\n" +
+	"\vDiskMetrics\x12\x16\n" +
+	"\x06device\x18\x01 \x01(\tR\x06device\x12\x1f\n" +
+	"\vmount_point\x18\x02 \x01(\tR\n" +
+	"mountPoint\x12\x1f\n" +
+	"\vtotal_bytes\x18\x03 \x01(\x04R\n" +
+	"totalBytes\x12\x1d\n" +
+	"\n" +
+	"used_bytes\x18\x04 \x01(\x04R\tusedBytes\x12'\n" +
+	"\x0favailable_bytes\x18\x05 \x01(\x04R\x0eavailableBytes\x12#\n" +
+	"\rusage_percent\x18\x06 \x01(\x01R\fusagePercent\x12+\n" +
+	"\x12read_bytes_per_sec\x18\a \x01(\x04R\x0freadBytesPerSec\x12-\n" +
+	"\x13write_bytes_per_sec\x18\b \x01(\x04R\x10writeBytesPerSec\x12'\n" +
+	"\x10read_ops_per_sec\x18\t \x01(\x04R\rreadOpsPerSec\x12)\n" +
+	"\x11write_ops_per_sec\x18\n" +
+	" \x01(\x04R\x0ewriteOpsPerSec\x12&\n" +
+	"\x0fio_util_percent\x18\v \x01(\x01R\rioUtilPercent\"\xde\x02\n" +
+	"\x0eNetworkMetrics\x12\x1c\n" +
+	"\tinterface\x18\x01 \x01(\tR\tinterface\x12+\n" +
+	"\x12bytes_sent_per_sec\x18\x02 \x01(\x04R\x0fbytesSentPerSec\x12+\n" +
+	"\x12bytes_recv_per_sec\x18\x03 \x01(\x04R\x0fbytesRecvPerSec\x12/\n" +
+	"\x14packets_sent_per_sec\x18\x04 \x01(\x04R\x11packetsSentPerSec\x12/\n" +
+	"\x14packets_recv_per_sec\x18\x05 \x01(\x04R\x11packetsRecvPerSec\x12\x1b\n" +
+	"\terrors_in\x18\x06 \x01(\x04R\berrorsIn\x12\x1d\n" +
+	"\n" +
+	"errors_out\x18\a \x01(\x04R\terrorsOut\x12\x19\n" +
+	"\bdrops_in\x18\b \x01(\x04R\adropsIn\x12\x1b\n" +
+	"\tdrops_out\x18\t \x01(\x04R\bdropsOut\"\xff\x01\n" +
+	"\x0eProcessMetrics\x12'\n" +
+	"\x0ftotal_processes\x18\x01 \x01(\rR\x0etotalProcesses\x12+\n" +
+	"\x11running_processes\x18\x02 \x01(\rR\x10runningProcesses\x12-\n" +
+	"\x12sleeping_processes\x18\x03 \x01(\rR\x11sleepingProcesses\x12)\n" +
+	"\x10zombie_processes\x18\x04 \x01(\rR\x0fzombieProcesses\x12=\n" +
+	"\x0etask_processes\x18\x05 \x03(\v2\x16.pb.TaskProcessMetricsR\rtaskProcesses\"\x8f\x02\n" +
+	"\x12TaskProcessMetrics\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x10\n" +
+	"\x03pid\x18\x02 \x01(\rR\x03pid\x12\x1f\n" +
+	"\vcpu_percent\x18\x03 \x01(\x01R\n" +
+	"cpuPercent\x12!\n" +
+	"\fmemory_bytes\x18\x04 \x01(\x04R\vmemoryBytes\x120\n" +
+	"\x14virtual_memory_bytes\x18\x05 \x01(\x04R\x12virtualMemoryBytes\x12\x18\n" +
+	"\athreads\x18\x06 \x01(\rR\athreads\x12\x1d\n" +
+	"\n" +
+	"read_bytes\x18\a \x01(\x04R\treadBytes\x12\x1f\n" +
+	"\vwrite_bytes\x18\b \x01(\x04R\n" +
+	"writeBytes\"Q\n" +
+	"\vLoadMetrics\x12\x14\n" +
+	"\x05load1\x18\x01 \x01(\x01R\x05load1\x12\x14\n" +
+	"\x05load5\x18\x02 \x01(\x01R\x05load5\x12\x16\n" +
+	"\x06load15\x18\x03 \x01(\x01R\x06load15\"\xf2\x01\n" +
+	"\x14MetricsQueryResponse\x125\n" +
+	"\vdata_points\x18\x01 \x03(\v2\x14.pb.MetricsTimePointR\n" +
+	"dataPoints\x122\n" +
+	"\x15query_start_timestamp\x18\x02 \x01(\x04R\x13queryStartTimestamp\x12.\n" +
+	"\x13query_end_timestamp\x18\x03 \x01(\x04R\x11queryEndTimestamp\x12!\n" +
+	"\ftotal_points\x18\x04 \x01(\rR\vtotalPoints\x12\x1c\n" +
+	"\ttruncated\x18\x05 \x01(\bR\ttruncated\"\xa5\x01\n" +
+	"\x10MetricsTimePoint\x12\x1c\n" +
+	"\ttimestamp\x18\x01 \x01(\x04R\ttimestamp\x128\n" +
+	"\x06values\x18\x02 \x03(\v2 .pb.MetricsTimePoint.ValuesEntryR\x06values\x1a9\n" +
+	"\vValuesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x01R\x05value:\x028\x012D\n" +
 	"\fAgentService\x124\n" +
 	"\vStreamTasks\x12\x10.pb.TaskResponse\x1a\x0f.pb.TaskRequest(\x010\x01B'Z%github.com/mooncorn/nodelink/proto/pbb\x06proto3"
 
@@ -930,42 +3153,94 @@ func file_agent_proto_rawDescGZIP() []byte {
 	return file_agent_proto_rawDescData
 }
 
-var file_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_agent_proto_goTypes = []any{
-	(TaskResponse_Status)(0),     // 0: pb.TaskResponse.Status
-	(*TaskRequest)(nil),          // 1: pb.TaskRequest
-	(*TaskResponse)(nil),         // 2: pb.TaskResponse
-	(*ShellExecute)(nil),         // 3: pb.ShellExecute
-	(*ShellExecuteResponse)(nil), // 4: pb.ShellExecuteResponse
-	(*DockerOperation)(nil),      // 5: pb.DockerOperation
-	(*DockerRun)(nil),            // 6: pb.DockerRun
-	(*DockerStart)(nil),          // 7: pb.DockerStart
-	(*DockerStop)(nil),           // 8: pb.DockerStop
-	(*DockerLogs)(nil),           // 9: pb.DockerLogs
-	(*LogMessage)(nil),           // 10: pb.LogMessage
-	(*TaskCancel)(nil),           // 11: pb.TaskCancel
-	(*TaskCancelResponse)(nil),   // 12: pb.TaskCancelResponse
+	(TaskResponse_Status)(0),         // 0: pb.TaskResponse.Status
+	(MetricsStreamRequest_Action)(0), // 1: pb.MetricsStreamRequest.Action
+	(*TaskRequest)(nil),              // 2: pb.TaskRequest
+	(*TaskResponse)(nil),             // 3: pb.TaskResponse
+	(*ShellExecute)(nil),             // 4: pb.ShellExecute
+	(*ShellExecuteResponse)(nil),     // 5: pb.ShellExecuteResponse
+	(*DockerOperation)(nil),          // 6: pb.DockerOperation
+	(*DockerRun)(nil),                // 7: pb.DockerRun
+	(*DockerStart)(nil),              // 8: pb.DockerStart
+	(*DockerStop)(nil),               // 9: pb.DockerStop
+	(*DockerLogs)(nil),               // 10: pb.DockerLogs
+	(*LogMessage)(nil),               // 11: pb.LogMessage
+	(*TaskCancel)(nil),               // 12: pb.TaskCancel
+	(*TaskCancelResponse)(nil),       // 13: pb.TaskCancelResponse
+	(*MetricsRequest)(nil),           // 14: pb.MetricsRequest
+	(*SystemInfoRequest)(nil),        // 15: pb.SystemInfoRequest
+	(*MetricsStreamRequest)(nil),     // 16: pb.MetricsStreamRequest
+	(*MetricsQueryRequest)(nil),      // 17: pb.MetricsQueryRequest
+	(*MetricsResponse)(nil),          // 18: pb.MetricsResponse
+	(*SystemInfoResponse)(nil),       // 19: pb.SystemInfoResponse
+	(*SystemHardware)(nil),           // 20: pb.SystemHardware
+	(*CpuInfo)(nil),                  // 21: pb.CpuInfo
+	(*MemoryInfo)(nil),               // 22: pb.MemoryInfo
+	(*DiskInfo)(nil),                 // 23: pb.DiskInfo
+	(*NetworkInterface)(nil),         // 24: pb.NetworkInterface
+	(*SystemSoftware)(nil),           // 25: pb.SystemSoftware
+	(*OperatingSystem)(nil),          // 26: pb.OperatingSystem
+	(*InstalledPackage)(nil),         // 27: pb.InstalledPackage
+	(*MetricsDataResponse)(nil),      // 28: pb.MetricsDataResponse
+	(*CpuMetrics)(nil),               // 29: pb.CpuMetrics
+	(*MemoryMetrics)(nil),            // 30: pb.MemoryMetrics
+	(*DiskMetrics)(nil),              // 31: pb.DiskMetrics
+	(*NetworkMetrics)(nil),           // 32: pb.NetworkMetrics
+	(*ProcessMetrics)(nil),           // 33: pb.ProcessMetrics
+	(*TaskProcessMetrics)(nil),       // 34: pb.TaskProcessMetrics
+	(*LoadMetrics)(nil),              // 35: pb.LoadMetrics
+	(*MetricsQueryResponse)(nil),     // 36: pb.MetricsQueryResponse
+	(*MetricsTimePoint)(nil),         // 37: pb.MetricsTimePoint
+	nil,                              // 38: pb.MetricsTimePoint.ValuesEntry
 }
 var file_agent_proto_depIdxs = []int32{
-	3,  // 0: pb.TaskRequest.shell_execute:type_name -> pb.ShellExecute
-	5,  // 1: pb.TaskRequest.docker_operation:type_name -> pb.DockerOperation
-	10, // 2: pb.TaskRequest.log_message:type_name -> pb.LogMessage
-	11, // 3: pb.TaskRequest.task_cancel:type_name -> pb.TaskCancel
-	0,  // 4: pb.TaskResponse.status:type_name -> pb.TaskResponse.Status
-	4,  // 5: pb.TaskResponse.shell_execute:type_name -> pb.ShellExecuteResponse
-	12, // 6: pb.TaskResponse.task_cancel:type_name -> pb.TaskCancelResponse
-	6,  // 7: pb.DockerOperation.docker_run:type_name -> pb.DockerRun
-	7,  // 8: pb.DockerOperation.docker_start:type_name -> pb.DockerStart
-	8,  // 9: pb.DockerOperation.docker_stop:type_name -> pb.DockerStop
-	9,  // 10: pb.DockerOperation.docker_logs:type_name -> pb.DockerLogs
-	2,  // 11: pb.AgentService.StreamTasks:input_type -> pb.TaskResponse
-	1,  // 12: pb.AgentService.StreamTasks:output_type -> pb.TaskRequest
-	12, // [12:13] is the sub-list for method output_type
-	11, // [11:12] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	4,  // 0: pb.TaskRequest.shell_execute:type_name -> pb.ShellExecute
+	6,  // 1: pb.TaskRequest.docker_operation:type_name -> pb.DockerOperation
+	11, // 2: pb.TaskRequest.log_message:type_name -> pb.LogMessage
+	12, // 3: pb.TaskRequest.task_cancel:type_name -> pb.TaskCancel
+	14, // 4: pb.TaskRequest.metrics_request:type_name -> pb.MetricsRequest
+	0,  // 5: pb.TaskResponse.status:type_name -> pb.TaskResponse.Status
+	5,  // 6: pb.TaskResponse.shell_execute:type_name -> pb.ShellExecuteResponse
+	13, // 7: pb.TaskResponse.task_cancel:type_name -> pb.TaskCancelResponse
+	18, // 8: pb.TaskResponse.metrics_response:type_name -> pb.MetricsResponse
+	7,  // 9: pb.DockerOperation.docker_run:type_name -> pb.DockerRun
+	8,  // 10: pb.DockerOperation.docker_start:type_name -> pb.DockerStart
+	9,  // 11: pb.DockerOperation.docker_stop:type_name -> pb.DockerStop
+	10, // 12: pb.DockerOperation.docker_logs:type_name -> pb.DockerLogs
+	15, // 13: pb.MetricsRequest.system_info:type_name -> pb.SystemInfoRequest
+	16, // 14: pb.MetricsRequest.stream_request:type_name -> pb.MetricsStreamRequest
+	17, // 15: pb.MetricsRequest.query_request:type_name -> pb.MetricsQueryRequest
+	1,  // 16: pb.MetricsStreamRequest.action:type_name -> pb.MetricsStreamRequest.Action
+	19, // 17: pb.MetricsResponse.system_info:type_name -> pb.SystemInfoResponse
+	28, // 18: pb.MetricsResponse.metrics_data:type_name -> pb.MetricsDataResponse
+	36, // 19: pb.MetricsResponse.query_response:type_name -> pb.MetricsQueryResponse
+	20, // 20: pb.SystemInfoResponse.hardware:type_name -> pb.SystemHardware
+	25, // 21: pb.SystemInfoResponse.software:type_name -> pb.SystemSoftware
+	24, // 22: pb.SystemInfoResponse.network_interfaces:type_name -> pb.NetworkInterface
+	21, // 23: pb.SystemHardware.cpu:type_name -> pb.CpuInfo
+	22, // 24: pb.SystemHardware.memory:type_name -> pb.MemoryInfo
+	23, // 25: pb.SystemHardware.disks:type_name -> pb.DiskInfo
+	26, // 26: pb.SystemSoftware.os:type_name -> pb.OperatingSystem
+	27, // 27: pb.SystemSoftware.packages:type_name -> pb.InstalledPackage
+	29, // 28: pb.MetricsDataResponse.cpu:type_name -> pb.CpuMetrics
+	30, // 29: pb.MetricsDataResponse.memory:type_name -> pb.MemoryMetrics
+	31, // 30: pb.MetricsDataResponse.disks:type_name -> pb.DiskMetrics
+	32, // 31: pb.MetricsDataResponse.network_interfaces:type_name -> pb.NetworkMetrics
+	33, // 32: pb.MetricsDataResponse.processes:type_name -> pb.ProcessMetrics
+	35, // 33: pb.MetricsDataResponse.load:type_name -> pb.LoadMetrics
+	34, // 34: pb.ProcessMetrics.task_processes:type_name -> pb.TaskProcessMetrics
+	37, // 35: pb.MetricsQueryResponse.data_points:type_name -> pb.MetricsTimePoint
+	38, // 36: pb.MetricsTimePoint.values:type_name -> pb.MetricsTimePoint.ValuesEntry
+	3,  // 37: pb.AgentService.StreamTasks:input_type -> pb.TaskResponse
+	2,  // 38: pb.AgentService.StreamTasks:output_type -> pb.TaskRequest
+	38, // [38:39] is the sub-list for method output_type
+	37, // [37:38] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_agent_proto_init() }
@@ -978,10 +3253,12 @@ func file_agent_proto_init() {
 		(*TaskRequest_DockerOperation)(nil),
 		(*TaskRequest_LogMessage)(nil),
 		(*TaskRequest_TaskCancel)(nil),
+		(*TaskRequest_MetricsRequest)(nil),
 	}
 	file_agent_proto_msgTypes[1].OneofWrappers = []any{
 		(*TaskResponse_ShellExecute)(nil),
 		(*TaskResponse_TaskCancel)(nil),
+		(*TaskResponse_MetricsResponse)(nil),
 	}
 	file_agent_proto_msgTypes[4].OneofWrappers = []any{
 		(*DockerOperation_DockerRun)(nil),
@@ -989,13 +3266,23 @@ func file_agent_proto_init() {
 		(*DockerOperation_DockerStop)(nil),
 		(*DockerOperation_DockerLogs)(nil),
 	}
+	file_agent_proto_msgTypes[12].OneofWrappers = []any{
+		(*MetricsRequest_SystemInfo)(nil),
+		(*MetricsRequest_StreamRequest)(nil),
+		(*MetricsRequest_QueryRequest)(nil),
+	}
+	file_agent_proto_msgTypes[16].OneofWrappers = []any{
+		(*MetricsResponse_SystemInfo)(nil),
+		(*MetricsResponse_MetricsData)(nil),
+		(*MetricsResponse_QueryResponse)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_proto_rawDesc), len(file_agent_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   12,
+			NumEnums:      2,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

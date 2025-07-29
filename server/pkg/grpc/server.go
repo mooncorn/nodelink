@@ -7,7 +7,9 @@ import (
 	"sync"
 
 	pb "github.com/mooncorn/nodelink/proto"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
 var AllowedAgents map[string]string = map[string]string{
@@ -18,15 +20,23 @@ var AllowedAgents map[string]string = map[string]string{
 type TaskServer struct {
 	pb.UnimplementedAgentServiceServer
 
-	mu     sync.RWMutex
-	agents map[string]pb.AgentService_StreamTasksServer
-	respCh chan<- *pb.TaskResponse
+	mu           sync.RWMutex
+	agents       map[string]pb.AgentService_StreamTasksServer
+	respCh       chan<- *pb.TaskResponse
+	metricsStore MetricsStore
 }
 
-func NewTaskServer(respCh chan<- *pb.TaskResponse) *TaskServer {
+// MetricsStore interface for registering agents
+type MetricsStore interface {
+	RegisterAgent(agentID string)
+	UnregisterAgent(agentID string)
+}
+
+func NewTaskServer(respCh chan<- *pb.TaskResponse, metricsStore MetricsStore) *TaskServer {
 	return &TaskServer{
-		agents: make(map[string]pb.AgentService_StreamTasksServer),
-		respCh: respCh,
+		agents:       make(map[string]pb.AgentService_StreamTasksServer),
+		respCh:       respCh,
+		metricsStore: metricsStore,
 	}
 }
 
@@ -57,11 +67,22 @@ func (s *TaskServer) StreamTasks(stream pb.AgentService_StreamTasksServer) error
 
 	log.Printf("Agent %s connected", agentID)
 
+	// Register agent in metrics store immediately
+	if s.metricsStore != nil {
+		s.metricsStore.RegisterAgent(agentID)
+	}
+
 	// Remove agent when done
 	defer func() {
 		s.mu.Lock()
 		delete(s.agents, agentID)
 		s.mu.Unlock()
+
+		// Unregister agent from metrics store
+		if s.metricsStore != nil {
+			s.metricsStore.UnregisterAgent(agentID)
+		}
+
 		log.Printf("agent %s disconnected", agentID)
 	}()
 
@@ -69,10 +90,18 @@ func (s *TaskServer) StreamTasks(stream pb.AgentService_StreamTasksServer) error
 	for {
 		task, err := stream.Recv()
 		if err == io.EOF {
+			log.Printf("Agent %s closed connection gracefully", agentID)
 			break
 		}
 		if err != nil {
-			log.Printf("Error receiving task from %s: %v", agentID, err)
+			// Check if it's a network error that might be recoverable
+			if status.Code(err) == codes.Unavailable ||
+				status.Code(err) == codes.DeadlineExceeded ||
+				status.Code(err) == codes.Canceled {
+				log.Printf("Agent %s connection lost (recoverable): %v", agentID, err)
+			} else {
+				log.Printf("Agent %s connection error (non-recoverable): %v", agentID, err)
+			}
 			return err
 		}
 

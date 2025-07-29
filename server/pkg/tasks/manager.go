@@ -140,7 +140,12 @@ func (tm *TaskManager) processTaskResponse(taskResponse *pb.TaskResponse) {
 
 	if !exists {
 		tm.mu.Unlock()
-		log.Printf("Task %s not found for response", taskResponse.TaskId)
+		// Only log as warning for non-final responses, as the task might have been cleaned up
+		if taskResponse.IsFinal {
+			log.Printf("Task %s not found for final response - may have been cleaned up", taskResponse.TaskId)
+		} else {
+			log.Printf("Task %s not found for progress response - task may have been completed", taskResponse.TaskId)
+		}
 		return
 	}
 
@@ -171,14 +176,25 @@ func (tm *TaskManager) processTaskResponse(taskResponse *pb.TaskResponse) {
 	}
 
 	task.UpdatedAt = time.Now()
+
+	// For streaming tasks, identify them by checking if they have metrics_request with stream_request
+	isStreamingTask := task.Request != nil &&
+		task.Request.GetMetricsRequest() != nil &&
+		task.Request.GetMetricsRequest().GetStreamRequest() != nil
+
+	cleanupDelay := 5 * time.Second
+	if isStreamingTask && !isFinal {
+		cleanupDelay = 30 * time.Second // Longer delay for active streaming tasks
+	}
+
 	tm.mu.Unlock()
 
 	tm.notifyListeners(task)
 
-	// Cleanup if final - add a delay to allow cancellation requests
+	// Cleanup if final - add appropriate delay based on task type
 	if isFinal {
 		go func() {
-			time.Sleep(5 * time.Second) // Allow 5 seconds for potential cancellation attempts
+			time.Sleep(cleanupDelay)
 			tm.completeTask(taskResponse.TaskId)
 		}()
 	}

@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/mooncorn/nodelink/agent/pkg/grpc"
+	"github.com/mooncorn/nodelink/agent/pkg/metrics"
 	pb "github.com/mooncorn/nodelink/proto"
 )
 
@@ -34,16 +35,23 @@ func main() {
 	}
 	defer client.Close()
 
+	// Create metrics handler
+	metricsHandler := metrics.NewHandler(client)
+	defer metricsHandler.Close()
+
 	// Add a simple event listener that logs all events
 	client.AddListener(func(taskRequest *pb.TaskRequest) {
 		// Specific handling for different task types
 		switch task := taskRequest.Task.(type) {
 		case *pb.TaskRequest_TaskCancel:
 			log.Printf("Agent received task cancel for task %s: %s", taskRequest.TaskId, task.TaskCancel.Reason)
-			handleTaskCancel(taskRequest, client)
+			handleTaskCancel(taskRequest, client, metricsHandler)
 		case *pb.TaskRequest_ShellExecute:
 			log.Printf("Agent received shell execute for task %s: %s", taskRequest.TaskId, task.ShellExecute.Cmd)
-			handleShellExecute(taskRequest, task.ShellExecute, client)
+			handleShellExecute(taskRequest, task.ShellExecute, client, metricsHandler.GetCollector())
+		case *pb.TaskRequest_MetricsRequest:
+			log.Printf("Agent received metrics request for task %s", taskRequest.TaskId)
+			metricsHandler.HandleMetricsRequest(taskRequest, task.MetricsRequest)
 		}
 	})
 
@@ -63,12 +71,12 @@ func main() {
 }
 
 // handleTaskCancel handles task cancellation requests
-func handleTaskCancel(taskRequest *pb.TaskRequest, client *grpc.TaskClient) {
+func handleTaskCancel(taskRequest *pb.TaskRequest, client *grpc.TaskClient, metricsHandler *metrics.Handler) {
 	taskID := taskRequest.TaskId
 	tasksMutex.Lock()
 	process, exists := runningTasks[taskID]
 	if exists {
-		log.Printf("Cancelling task %s", taskID)
+		log.Printf("Cancelling shell task %s", taskID)
 
 		// Kill the process
 		if process != nil {
@@ -84,7 +92,13 @@ func handleTaskCancel(taskRequest *pb.TaskRequest, client *grpc.TaskClient) {
 		cancelledTasks[taskID] = true
 		delete(runningTasks, taskID)
 	} else {
-		log.Printf("Task %s not found in running tasks", taskID)
+		// Check if this is a metrics streaming task
+		if metricsHandler.GetCollector().IsStreamingTask(taskID) {
+			log.Printf("Cancelling metrics streaming task %s", taskID)
+			metricsHandler.GetCollector().StopStreaming()
+		} else {
+			log.Printf("Task %s not found in running tasks or metrics streaming", taskID)
+		}
 	}
 	tasksMutex.Unlock()
 
@@ -103,7 +117,7 @@ func handleTaskCancel(taskRequest *pb.TaskRequest, client *grpc.TaskClient) {
 	})
 }
 
-func handleShellExecute(taskRequest *pb.TaskRequest, shellExecute *pb.ShellExecute, client *grpc.TaskClient) {
+func handleShellExecute(taskRequest *pb.TaskRequest, shellExecute *pb.ShellExecute, client *grpc.TaskClient, metricsCollector *metrics.MetricsCollector) {
 	cmdStr := shellExecute.Cmd
 	cmd := exec.Command("bash", "-c", cmdStr)
 
@@ -136,11 +150,21 @@ func handleShellExecute(taskRequest *pb.TaskRequest, shellExecute *pb.ShellExecu
 	runningTasks[taskRequest.TaskId] = cmd.Process
 	tasksMutex.Unlock()
 
+	// Track process for metrics if collector is available
+	if metricsCollector != nil {
+		metricsCollector.AddTaskProcess(taskRequest.TaskId, int32(cmd.Process.Pid))
+	}
+
 	// Remove from running tasks when done
 	defer func() {
 		tasksMutex.Lock()
 		delete(runningTasks, taskRequest.TaskId)
 		tasksMutex.Unlock()
+
+		// Remove process tracking
+		if metricsCollector != nil {
+			metricsCollector.RemoveTaskProcess(taskRequest.TaskId)
+		}
 	}()
 
 	// Use channels to coordinate goroutines and prevent race conditions

@@ -16,6 +16,7 @@ message TaskRequest {
     DockerOperation docker_operation = 4;
     LogMessage log_message = 5;
     TaskCancel task_cancel = 6;
+    MetricsRequest metrics_request = 7;
   }
 }
 
@@ -37,6 +38,7 @@ message TaskResponse {
   oneof response {
     ShellExecuteResponse shell_execute = 6;
     TaskCancelResponse task_cancel = 7;
+    MetricsResponse metrics_response = 8;
   }
 }
 
@@ -85,4 +87,216 @@ message TaskCancel {
 
 message TaskCancelResponse {
   string message = 1;
+}
+
+// Metrics request types
+message MetricsRequest {
+  oneof request_type {
+    SystemInfoRequest system_info = 1;
+    MetricsStreamRequest stream_request = 2;
+    MetricsQueryRequest query_request = 3;
+  }
+}
+
+message SystemInfoRequest {
+  bool include_hardware = 1;
+  bool include_software = 2;
+  bool include_network = 3;
+}
+
+message MetricsStreamRequest {
+  enum Action {
+    START = 0;
+    STOP = 1;
+    UPDATE_INTERVAL = 2;
+  }
+  Action action = 1;
+  uint32 interval_seconds = 2;
+  repeated string metrics = 3;
+}
+
+message MetricsQueryRequest {
+  repeated string metrics = 1;
+  uint64 start_timestamp = 2;
+  uint64 end_timestamp = 3;
+  uint32 max_points = 4;
+}
+
+// Metrics response types
+message MetricsResponse {
+  oneof response_type {
+    SystemInfoResponse system_info = 1;
+    MetricsDataResponse metrics_data = 2;
+    MetricsQueryResponse query_response = 3;
+  }
+}
+
+// System information structures
+message SystemInfoResponse {
+  SystemHardware hardware = 1;
+  SystemSoftware software = 2;
+  repeated NetworkInterface network_interfaces = 3;
+  uint64 timestamp = 4;
+}
+
+message SystemHardware {
+  CpuInfo cpu = 1;
+  MemoryInfo memory = 2;
+  repeated DiskInfo disks = 3;
+  string architecture = 4;
+  uint32 core_count = 5;
+  uint32 thread_count = 6;
+}
+
+message CpuInfo {
+  string model = 1;
+  uint32 cores = 2;
+  uint32 threads = 3;
+  double base_frequency_ghz = 4;
+  double max_frequency_ghz = 5;
+  repeated string features = 6;
+}
+
+message MemoryInfo {
+  uint64 total_bytes = 1;
+  uint64 available_bytes = 2;
+  string memory_type = 3;
+  uint32 speed_mhz = 4;
+}
+
+message DiskInfo {
+  string device = 1;
+  string mount_point = 2;
+  string filesystem = 3;
+  uint64 total_bytes = 4;
+  uint64 available_bytes = 5;
+  string disk_type = 6;
+}
+
+message NetworkInterface {
+  string name = 1;
+  string mac_address = 2;
+  repeated string ip_addresses = 3;
+  uint64 speed_mbps = 4;
+  bool is_up = 5;
+}
+
+message SystemSoftware {
+  OperatingSystem os = 1;
+  string hostname = 2;
+  uint64 uptime_seconds = 3;
+  repeated InstalledPackage packages = 4;
+}
+
+message OperatingSystem {
+  string name = 1;
+  string version = 2;
+  string kernel_version = 3;
+  string distribution = 4;
+}
+
+message InstalledPackage {
+  string name = 1;
+  string version = 2;
+  string package_manager = 3;
+}
+
+// Real-time metrics data
+message MetricsDataResponse {
+  uint64 timestamp = 1;
+  CpuMetrics cpu = 2;
+  MemoryMetrics memory = 3;
+  repeated DiskMetrics disks = 4;
+  repeated NetworkMetrics network_interfaces = 5;
+  ProcessMetrics processes = 6;
+  LoadMetrics load = 7;
+}
+
+message CpuMetrics {
+  double usage_percent = 1;
+  repeated double core_usage = 2;
+  double user_percent = 3;
+  double system_percent = 4;
+  double idle_percent = 5;
+  double iowait_percent = 6;
+  double temperature_celsius = 7;
+}
+
+message MemoryMetrics {
+  uint64 total_bytes = 1;
+  uint64 used_bytes = 2;
+  uint64 available_bytes = 3;
+  uint64 free_bytes = 4;
+  uint64 cached_bytes = 5;
+  uint64 buffers_bytes = 6;
+  double usage_percent = 7;
+  uint64 swap_total_bytes = 8;
+  uint64 swap_used_bytes = 9;
+  uint64 swap_free_bytes = 10;
+  double swap_usage_percent = 11;
+}
+
+message DiskMetrics {
+  string device = 1;
+  string mount_point = 2;
+  uint64 total_bytes = 3;
+  uint64 used_bytes = 4;
+  uint64 available_bytes = 5;
+  double usage_percent = 6;
+  uint64 read_bytes_per_sec = 7;
+  uint64 write_bytes_per_sec = 8;
+  uint64 read_ops_per_sec = 9;
+  uint64 write_ops_per_sec = 10;
+  double io_util_percent = 11;
+}
+
+message NetworkMetrics {
+  string interface = 1;
+  uint64 bytes_sent_per_sec = 2;
+  uint64 bytes_recv_per_sec = 3;
+  uint64 packets_sent_per_sec = 4;
+  uint64 packets_recv_per_sec = 5;
+  uint64 errors_in = 6;
+  uint64 errors_out = 7;
+  uint64 drops_in = 8;
+  uint64 drops_out = 9;
+}
+
+message ProcessMetrics {
+  uint32 total_processes = 1;
+  uint32 running_processes = 2;
+  uint32 sleeping_processes = 3;
+  uint32 zombie_processes = 4;
+  repeated TaskProcessMetrics task_processes = 5;
+}
+
+message TaskProcessMetrics {
+  string task_id = 1;
+  uint32 pid = 2;
+  double cpu_percent = 3;
+  uint64 memory_bytes = 4;
+  uint64 virtual_memory_bytes = 5;
+  uint32 threads = 6;
+  uint64 read_bytes = 7;
+  uint64 write_bytes = 8;
+}
+
+message LoadMetrics {
+  double load1 = 1;
+  double load5 = 2;
+  double load15 = 3;
+}
+
+// Historical metrics query
+message MetricsQueryResponse {
+  repeated MetricsTimePoint data_points = 1;
+  uint64 query_start_timestamp = 2;
+  uint64 query_end_timestamp = 3;
+  uint32 total_points = 4;
+  bool truncated = 5;
+}
+
+message MetricsTimePoint {
+  uint64 timestamp = 1;
+  map<string, double> values = 2;
 }

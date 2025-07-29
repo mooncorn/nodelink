@@ -151,13 +151,15 @@ func (m *Manager[T]) RemoveClient(clientID ClientID) {
 	m.clientsMu.Unlock()
 
 	if exists {
+		// Call OnDisconnect handler BEFORE removing from rooms
+		// so the handler can still access the client's room membership
+		if m.eventHandler.OnDisconnect != nil {
+			m.eventHandler.OnDisconnect(client)
+		}
+
 		// Remove from all rooms
 		if m.config.EnableRooms {
 			m.removeClientFromAllRooms(clientID)
-		}
-
-		if m.eventHandler.OnDisconnect != nil {
-			m.eventHandler.OnDisconnect(client)
 		}
 
 		client.Close()

@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	pb "github.com/mooncorn/nodelink/proto"
 	servergrpc "github.com/mooncorn/nodelink/server/pkg/grpc"
+	"github.com/mooncorn/nodelink/server/pkg/metrics"
 	"github.com/mooncorn/nodelink/server/pkg/sse"
 	"github.com/mooncorn/nodelink/server/pkg/tasks"
 	"google.golang.org/grpc"
@@ -18,9 +19,18 @@ func main() {
 	// Create task manager
 	taskManager := tasks.NewTaskManager()
 
+	// Create metrics store and handlers
+	metricsStore := metrics.NewMetricsStore(7 * 24 * time.Hour) // 7 days retention
+	metricsHTTPHandler := metrics.NewHTTPHandler(metricsStore, taskManager)
+	metricsSSEHandler := metrics.NewSSEHandler(metricsStore, taskManager)
+
+	// Start metrics SSE handler
+	metricsSSEHandler.Start()
+	defer metricsSSEHandler.Stop()
+
 	// Create gRPC server and register it
 	grpcServer := grpc.NewServer()
-	agentServer := servergrpc.NewTaskServer(taskManager.GetResponseChannel())
+	agentServer := servergrpc.NewTaskServer(taskManager.GetResponseChannel(), metricsStore)
 	pb.RegisterAgentServiceServer(grpcServer, agentServer)
 
 	// Set the task server in task manager for sending tasks
@@ -32,10 +42,11 @@ func main() {
 		defer ticker.Stop()
 		for range ticker.C {
 			taskManager.CleanupCompletedTasks(30 * time.Minute)
+			metricsStore.CleanupOldData()
 		}
 	}()
 
-	// Create SSE manager
+	// Create SSE manager for tasks
 	config := sse.ManagerConfig{
 		BufferSize:     100,
 		EnableRooms:    true,
@@ -51,12 +62,23 @@ func main() {
 	taskManager.AddListener(func(task *tasks.Task) {
 		sseManager.EnableRoomBuffering(task.ID, 10)
 		sseManager.SendToRoom(task.ID, task.Response, "response")
+
+		// Process metrics responses
+		if task.Response != nil {
+			if metricsResp := task.Response.GetMetricsResponse(); metricsResp != nil {
+				metricsSSEHandler.ProcessMetricsResponse(task.Request.AgentId, metricsResp)
+			}
+		}
 	})
 
 	// HTTP/SSE server setup
 	router := gin.Default()
 	registerRESTRoutes(router, taskManager)
 	registerSSERoutes(router, sseManager)
+
+	// Register metrics routes
+	metricsHTTPHandler.RegisterRoutes(router)
+	metricsSSEHandler.RegisterRoutes(router)
 
 	// Start gRPC server in background
 	lis, err := net.Listen("tcp", ":9090")
