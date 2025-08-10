@@ -9,34 +9,30 @@ import (
 
 	"github.com/google/uuid"
 	pb "github.com/mooncorn/nodelink/proto"
-	"github.com/mooncorn/nodelink/server/pkg/grpc"
+	"github.com/mooncorn/nodelink/server/pkg/interfaces"
 )
 
 // TaskManager manages the lifecycle of tasks
 type TaskManager struct {
-	mu         sync.RWMutex
-	tasks      map[string]*Task
-	listeners  []TaskEventListener
-	taskServer *grpc.TaskServer
-	respCh     chan *pb.TaskResponse
-	stopCh     chan struct{}
+	mu        sync.RWMutex
+	tasks     map[string]*Task
+	listeners []TaskEventListener
+	eventBus  interfaces.EventBus
+	respCh    chan *pb.TaskResponse
+	stopCh    chan struct{}
 }
 
 // NewTaskManager creates a new task manager
-func NewTaskManager() *TaskManager {
+func NewTaskManager(eventBus interfaces.EventBus) *TaskManager {
 	tm := &TaskManager{
 		tasks:     make(map[string]*Task),
 		listeners: make([]TaskEventListener, 0),
+		eventBus:  eventBus,
 		respCh:    make(chan *pb.TaskResponse, 100),
 		stopCh:    make(chan struct{}),
 	}
 	go tm.responseLoop()
 	return tm
-}
-
-// SetTaskServer sets the task server for sending tasks to agents
-func (tm *TaskManager) SetTaskServer(taskServer *grpc.TaskServer) {
-	tm.taskServer = taskServer
 }
 
 // GetResponseChannel returns the channel for receiving task responses
@@ -77,11 +73,18 @@ func (tm *TaskManager) SendTask(taskRequest *pb.TaskRequest, timeout time.Durati
 	tm.tasks[task.ID] = task
 	tm.mu.Unlock()
 
-	// Send to agent
-	err := tm.taskServer.Send(taskRequest)
-	if err != nil {
+	// Send to agent via event bus
+	if tm.eventBus != nil {
+		event := interfaces.Event{
+			Type:      "task.send",
+			Data:      taskRequest,
+			Source:    "task_manager",
+			Timestamp: time.Now().Unix(),
+		}
+		tm.eventBus.Publish(event)
+	} else {
 		tm.UpdateTaskStatus(task.ID, TaskStatusFailed)
-		return nil, fmt.Errorf("failed to send task to agent: %s", err.Error())
+		return nil, fmt.Errorf("event bus not configured")
 	}
 
 	tm.UpdateTaskStatus(task.ID, TaskStatusSent)
@@ -219,8 +222,8 @@ func (tm *TaskManager) CancelTask(taskID string) error {
 	task.UpdatedAt = time.Now()
 	agentID := task.Request.AgentId
 	tm.mu.Unlock()
-	// Send cancel event to agent
-	if tm.taskServer != nil {
+	// Send cancel event to agent via event bus
+	if tm.eventBus != nil {
 		cancelEvent := &pb.TaskRequest{
 			AgentId: agentID,
 			TaskId:  taskID,
@@ -230,7 +233,13 @@ func (tm *TaskManager) CancelTask(taskID string) error {
 				},
 			},
 		}
-		_ = tm.taskServer.Send(cancelEvent)
+		event := interfaces.Event{
+			Type:      "task.send",
+			Data:      cancelEvent,
+			Source:    "task_manager",
+			Timestamp: time.Now().Unix(),
+		}
+		tm.eventBus.Publish(event)
 	}
 	return nil
 }

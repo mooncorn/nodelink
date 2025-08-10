@@ -59,6 +59,8 @@ func (h *Handler) handleSystemInfoRequest(taskRequest *pb.TaskRequest, sysInfoRe
 		Status:    pb.TaskResponse_COMPLETED,
 		IsFinal:   true,
 		Cancelled: false,
+		EventType: "metrics",
+		Timestamp: time.Now().Unix(),
 		Response: &pb.TaskResponse_MetricsResponse{
 			MetricsResponse: &pb.MetricsResponse{
 				ResponseType: &pb.MetricsResponse_SystemInfo{
@@ -127,6 +129,8 @@ func (h *Handler) handleQueryRequest(taskRequest *pb.TaskRequest, queryReq *pb.M
 		Status:    pb.TaskResponse_COMPLETED,
 		IsFinal:   true,
 		Cancelled: false,
+		EventType: "metrics",
+		Timestamp: time.Now().Unix(),
 		Response: &pb.TaskResponse_MetricsResponse{
 			MetricsResponse: &pb.MetricsResponse{
 				ResponseType: &pb.MetricsResponse_QueryResponse{
@@ -164,6 +168,8 @@ func (h *Handler) sendStreamResponse(taskRequest *pb.TaskRequest, message string
 		Status:    status,
 		IsFinal:   isStopMessage,
 		Cancelled: false,
+		EventType: "metrics",
+		Timestamp: time.Now().Unix(),
 		// No response payload - this is just a control message
 	}
 
@@ -178,6 +184,8 @@ func (h *Handler) sendErrorResponse(taskRequest *pb.TaskRequest, errorMsg string
 		Status:    pb.TaskResponse_FAILURE,
 		IsFinal:   true,
 		Cancelled: false,
+		EventType: "metrics",
+		Timestamp: time.Now().Unix(),
 		Response: &pb.TaskResponse_MetricsResponse{
 			MetricsResponse: &pb.MetricsResponse{
 				ResponseType: &pb.MetricsResponse_SystemInfo{

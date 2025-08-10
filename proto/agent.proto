@@ -35,10 +35,16 @@ message TaskResponse {
   bool is_final = 4;
   bool cancelled = 5;
 
+  // Enhanced with event metadata
+  string event_type = 6;      // "shell_output", "metrics", "docker_operation"
+  int64 timestamp = 7;        // Unix timestamp
+  map<string, string> metadata = 8; // Additional context
+
   oneof response {
-    ShellExecuteResponse shell_execute = 6;
-    TaskCancelResponse task_cancel = 7;
-    MetricsResponse metrics_response = 8;
+    ShellExecuteResponse shell_execute = 10;
+    TaskCancelResponse task_cancel = 11;
+    MetricsResponse metrics_response = 12;
+    DockerOperationResponse docker_operation = 13;
   }
 }
 
@@ -75,6 +81,32 @@ message DockerStop {
 
 message DockerLogs {
   string id = 1;
+}
+
+// Docker operation response types
+message DockerOperationResponse {
+  string operation = 1;       // "run", "start", "stop", "logs"
+  string container_id = 2;
+  string status = 3;
+  string message = 4;
+  oneof operation_data {
+    DockerRunResult run_result = 5;
+    DockerLogsChunk logs_chunk = 6;
+  }
+}
+
+message DockerRunResult {
+  string container_id = 1;
+  string image = 2;
+  repeated string ports = 3;
+  string status = 4;
+}
+
+message DockerLogsChunk {
+  string container_id = 1;
+  string log_line = 2;
+  string stream = 3;         // "stdout", "stderr"
+  int64 timestamp = 4;
 }
 
 message LogMessage {

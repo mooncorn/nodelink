@@ -8,16 +8,22 @@ import (
 
 	"github.com/gin-gonic/gin"
 	pb "github.com/mooncorn/nodelink/proto"
+	"github.com/mooncorn/nodelink/server/pkg/events"
+	"github.com/mooncorn/nodelink/server/pkg/events/processors"
 	servergrpc "github.com/mooncorn/nodelink/server/pkg/grpc"
 	"github.com/mooncorn/nodelink/server/pkg/metrics"
 	"github.com/mooncorn/nodelink/server/pkg/sse"
+	"github.com/mooncorn/nodelink/server/pkg/streams"
 	"github.com/mooncorn/nodelink/server/pkg/tasks"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	// Create task manager
-	taskManager := tasks.NewTaskManager()
+	// Create event bus for decoupled communication
+	eventBus := events.NewEventBus(true) // Use async mode for better performance
+
+	// Create task manager with event bus
+	taskManager := tasks.NewTaskManager(eventBus)
 
 	// Create metrics store and handlers
 	metricsStore := metrics.NewMetricsStore(7 * 24 * time.Hour) // 7 days retention
@@ -27,24 +33,6 @@ func main() {
 	// Start metrics SSE handler
 	metricsSSEHandler.Start()
 	defer metricsSSEHandler.Stop()
-
-	// Create gRPC server and register it
-	grpcServer := grpc.NewServer()
-	agentServer := servergrpc.NewTaskServer(taskManager.GetResponseChannel(), metricsStore)
-	pb.RegisterAgentServiceServer(grpcServer, agentServer)
-
-	// Set the task server in task manager for sending tasks
-	taskManager.SetTaskServer(agentServer)
-
-	// Start cleanup routine for completed tasks
-	go func() {
-		ticker := time.NewTicker(5 * time.Minute)
-		defer ticker.Stop()
-		for range ticker.C {
-			taskManager.CleanupCompletedTasks(30 * time.Minute)
-			metricsStore.CleanupOldData()
-		}
-	}()
 
 	// Create SSE manager for tasks
 	config := sse.ManagerConfig{
@@ -58,18 +46,52 @@ func main() {
 	sseManager.Start()
 	defer sseManager.Stop()
 
-	// Add task manager listener to forward task events to SSE
+	// Create event router with processors
+	eventRouter := events.NewEventRouter(sseManager, metricsStore)
+	defer eventRouter.Stop()
+
+	// Register event processors
+	eventRouter.RegisterProcessor(processors.NewShellProcessor())
+	eventRouter.RegisterProcessor(processors.NewMetricsProcessor(metricsStore))
+	eventRouter.RegisterProcessor(processors.NewDockerProcessor())
+
+	// Create gRPC server with event bus integration
+	grpcServer := grpc.NewServer()
+	agentServer := servergrpc.NewTaskServer(taskManager.GetResponseChannel(), metricsStore, eventBus)
+	pb.RegisterAgentServiceServer(grpcServer, agentServer)
+
+	// Event-driven architecture: No direct dependencies between TaskManager and TaskServer
+	// TaskManager publishes "task.send" events, TaskServer subscribes to them via event bus
+
+	// Add task manager listener to forward task events to event router
 	taskManager.AddListener(func(task *tasks.Task) {
 		sseManager.EnableRoomBuffering(task.ID, 10)
+
+		// Process the event through the event router
+		if task.Response != nil {
+			eventRouter.ProcessAndRelay(task.Response)
+		}
+
+		// Legacy compatibility: also send to room directly
 		sseManager.SendToRoom(task.ID, task.Response, "response")
 
-		// Process metrics responses
+		// Process metrics responses for legacy metrics handler
 		if task.Response != nil {
 			if metricsResp := task.Response.GetMetricsResponse(); metricsResp != nil {
 				metricsSSEHandler.ProcessMetricsResponse(task.Request.AgentId, metricsResp)
 			}
 		}
 	})
+
+	// Start cleanup routine for completed tasks
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			taskManager.CleanupCompletedTasks(30 * time.Minute)
+			metricsStore.CleanupOldData()
+		}
+	}()
 
 	// HTTP/SSE server setup
 	router := gin.Default()
@@ -116,6 +138,25 @@ func registerSSERoutes(router gin.IRouter, sseManager *sse.Manager[*pb.TaskRespo
 }
 
 func registerRESTRoutes(router gin.IRouter, taskManager *tasks.TaskManager) {
+	// New unified stream endpoints
+	router.GET("/api/streams/types", func(ctx *gin.Context) {
+		streamTypes := streams.GetAllStreamTypes()
+
+		var response []gin.H
+		for name, streamType := range streamTypes {
+			response = append(response, gin.H{
+				"name":                name,
+				"description":         streamType.Description,
+				"supports_processing": true,
+				"buffer_size":         streamType.BufferSize,
+				"buffered":            streamType.Buffered,
+				"auto_cleanup":        streamType.AutoCleanup,
+			})
+		}
+
+		ctx.JSON(http.StatusOK, gin.H{"stream_types": response})
+	})
+
 	// Create a shell execution task
 	router.POST("/tasks/shell", func(ctx *gin.Context) {
 		var req struct {

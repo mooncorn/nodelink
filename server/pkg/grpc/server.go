@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	pb "github.com/mooncorn/nodelink/proto"
+	"github.com/mooncorn/nodelink/server/pkg/interfaces"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -24,6 +25,7 @@ type TaskServer struct {
 	agents       map[string]pb.AgentService_StreamTasksServer
 	respCh       chan<- *pb.TaskResponse
 	metricsStore MetricsStore
+	eventBus     interfaces.EventBus
 }
 
 // MetricsStore interface for registering agents
@@ -32,12 +34,20 @@ type MetricsStore interface {
 	UnregisterAgent(agentID string)
 }
 
-func NewTaskServer(respCh chan<- *pb.TaskResponse, metricsStore MetricsStore) *TaskServer {
-	return &TaskServer{
+func NewTaskServer(respCh chan<- *pb.TaskResponse, metricsStore MetricsStore, eventBus interfaces.EventBus) *TaskServer {
+	server := &TaskServer{
 		agents:       make(map[string]pb.AgentService_StreamTasksServer),
 		respCh:       respCh,
 		metricsStore: metricsStore,
+		eventBus:     eventBus,
 	}
+
+	// Subscribe to task events
+	if eventBus != nil {
+		eventBus.Subscribe("task.send", server.handleTaskSendEvent)
+	}
+
+	return server
 }
 
 func (s *TaskServer) StreamTasks(stream pb.AgentService_StreamTasksServer) error {
@@ -137,4 +147,33 @@ func (s *TaskServer) Send(task *pb.TaskRequest) error {
 	}
 
 	return nil
+}
+
+// SendTask implements the TaskSender interface
+func (s *TaskServer) SendTask(request *pb.TaskRequest) error {
+	return s.Send(request)
+}
+
+// handleTaskSendEvent handles task send events from the event bus
+func (s *TaskServer) handleTaskSendEvent(event interfaces.Event) {
+	taskRequest, ok := event.Data.(*pb.TaskRequest)
+	if !ok {
+		log.Printf("Invalid task request data in event: %v", event.Data)
+		return
+	}
+
+	if err := s.Send(taskRequest); err != nil {
+		log.Printf("Failed to send task %s to agent %s: %v", taskRequest.TaskId, taskRequest.AgentId, err)
+
+		// Publish a task failure event
+		if s.eventBus != nil {
+			failureEvent := interfaces.Event{
+				Type:      "task.send.failed",
+				Data:      map[string]interface{}{"task_id": taskRequest.TaskId, "error": err.Error()},
+				Source:    "task_server",
+				Timestamp: event.Timestamp,
+			}
+			s.eventBus.Publish(failureEvent)
+		}
+	}
 }

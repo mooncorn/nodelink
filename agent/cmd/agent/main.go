@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/mooncorn/nodelink/agent/pkg/grpc"
 	"github.com/mooncorn/nodelink/agent/pkg/metrics"
@@ -109,6 +110,8 @@ func handleTaskCancel(taskRequest *pb.TaskRequest, client *grpc.TaskClient, metr
 		IsFinal:   true,
 		Status:    pb.TaskResponse_COMPLETED,
 		Cancelled: true,
+		EventType: "task_cancel",
+		Timestamp: time.Now().Unix(),
 		Response: &pb.TaskResponse_TaskCancel{
 			TaskCancel: &pb.TaskCancelResponse{
 				Message: "Task cancelled succesfully",
@@ -207,6 +210,8 @@ func handleShellExecute(taskRequest *pb.TaskRequest, shellExecute *pb.ShellExecu
 		Status:    pb.TaskResponse_COMPLETED,
 		IsFinal:   true,
 		Cancelled: wasCancelled,
+		EventType: "shell_output",
+		Timestamp: time.Now().Unix(),
 		Response: &pb.TaskResponse_ShellExecute{
 			ShellExecute: &pb.ShellExecuteResponse{
 				Stdout:   "",
@@ -230,6 +235,8 @@ func sendErrorResponse(taskRequest *pb.TaskRequest, client *grpc.TaskClient, err
 		Status:    pb.TaskResponse_FAILURE,
 		IsFinal:   true,
 		Cancelled: false,
+		EventType: "shell_output",
+		Timestamp: time.Now().Unix(),
 		Response: &pb.TaskResponse_ShellExecute{
 			ShellExecute: &pb.ShellExecuteResponse{
 				Stdout:   "",
@@ -261,6 +268,8 @@ func streamOutput(taskRequest *pb.TaskRequest, client *grpc.TaskClient, reader i
 			Status:    pb.TaskResponse_IN_PROGRESS,
 			IsFinal:   false,
 			Cancelled: false,
+			EventType: "shell_output",
+			Timestamp: time.Now().Unix(),
 			Response: &pb.TaskResponse_ShellExecute{
 				ShellExecute: &pb.ShellExecuteResponse{
 					Stdout:   stdout,

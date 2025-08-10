@@ -173,6 +173,8 @@ func (mc *MetricsCollector) sendMetrics(agentID, taskID string, metrics *pb.Metr
 		Status:    pb.TaskResponse_IN_PROGRESS,
 		IsFinal:   false,
 		Cancelled: false,
+		EventType: "metrics",
+		Timestamp: time.Now().Unix(),
 		Response: &pb.TaskResponse_MetricsResponse{
 			MetricsResponse: &pb.MetricsResponse{
 				ResponseType: &pb.MetricsResponse_MetricsData{
