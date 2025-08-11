@@ -5,10 +5,9 @@ import (
 	"sync"
 
 	pb "github.com/mooncorn/nodelink/proto"
-	"github.com/mooncorn/nodelink/server/pkg/interfaces"
-	"github.com/mooncorn/nodelink/server/pkg/metrics"
-	"github.com/mooncorn/nodelink/server/pkg/sse"
-	"github.com/mooncorn/nodelink/server/pkg/streams"
+	"github.com/mooncorn/nodelink/server/internal/interfaces"
+	"github.com/mooncorn/nodelink/server/internal/metrics"
+	"github.com/mooncorn/nodelink/server/internal/sse"
 )
 
 // EventRouter handles centralized event processing
@@ -17,7 +16,6 @@ type EventRouter struct {
 	processors map[string]interfaces.EventProcessor
 	sseManager *sse.Manager[*pb.TaskResponse]
 	metrics    *metrics.MetricsStore
-	streams    *streams.Manager
 }
 
 // NewEventRouter creates a new event router
@@ -26,7 +24,6 @@ func NewEventRouter(sseManager *sse.Manager[*pb.TaskResponse], metricsStore *met
 		processors: make(map[string]interfaces.EventProcessor),
 		sseManager: sseManager,
 		metrics:    metricsStore,
-		streams:    streams.NewManager(sseManager),
 	}
 
 	return router
@@ -94,16 +91,4 @@ func (er *EventRouter) relayProcessed(processed *interfaces.ProcessedEvent) {
 
 	// Also send to the original task room for compatibility
 	er.sseManager.SendToRoom(processed.OriginalEvent.TaskId, processed.OriginalEvent, "response")
-}
-
-// GetStreamsManager returns the streams manager
-func (er *EventRouter) GetStreamsManager() *streams.Manager {
-	return er.streams
-}
-
-// Stop stops the event router
-func (er *EventRouter) Stop() {
-	if er.streams != nil {
-		er.streams.Stop()
-	}
 }

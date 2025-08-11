@@ -6,7 +6,7 @@ import (
 	"time"
 
 	pb "github.com/mooncorn/nodelink/proto"
-	"github.com/mooncorn/nodelink/server/pkg/interfaces"
+	"github.com/mooncorn/nodelink/server/internal/interfaces"
 )
 
 // ShellProcessor handles shell execution events

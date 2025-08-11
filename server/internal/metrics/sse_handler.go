@@ -9,21 +9,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	pb "github.com/mooncorn/nodelink/proto"
-	"github.com/mooncorn/nodelink/server/pkg/sse"
-	"github.com/mooncorn/nodelink/server/pkg/tasks"
+	"github.com/mooncorn/nodelink/server/internal/sse"
 )
 
 // SSEHandler handles SSE streaming for metrics
 type SSEHandler struct {
 	store         *MetricsStore
 	sseManager    *sse.Manager[*pb.MetricsDataResponse]
-	taskManager   *tasks.TaskManager
+	taskSender    TaskSender
 	clientCounter map[string]int // tracks number of clients per agent
 	counterMutex  sync.RWMutex
 }
 
 // NewSSEHandler creates a new SSE handler for metrics
-func NewSSEHandler(store *MetricsStore, taskManager *tasks.TaskManager) *SSEHandler {
+func NewSSEHandler(store *MetricsStore, taskSender TaskSender) *SSEHandler {
 	// Create SSE manager for metrics
 	config := sse.ManagerConfig{
 		BufferSize:     100,
@@ -33,7 +32,7 @@ func NewSSEHandler(store *MetricsStore, taskManager *tasks.TaskManager) *SSEHand
 
 	handler := &SSEHandler{
 		store:         store,
-		taskManager:   taskManager,
+		taskSender:    taskSender,
 		clientCounter: make(map[string]int),
 	}
 
@@ -170,7 +169,7 @@ func (h *SSEHandler) ensureStreamingStarted(agentID string, interval int) {
 
 // startStreamingForAgent starts metrics streaming for an agent
 func (h *SSEHandler) startStreamingForAgent(agentID string, interval int) {
-	task, err := h.taskManager.SendTask(&pb.TaskRequest{
+	task, err := h.taskSender.SendTask(&pb.TaskRequest{
 		AgentId: agentID,
 		Task: &pb.TaskRequest_MetricsRequest{
 			MetricsRequest: &pb.MetricsRequest{
@@ -197,7 +196,7 @@ func (h *SSEHandler) startStreamingForAgent(agentID string, interval int) {
 
 // stopStreamingForAgent stops metrics streaming for an agent
 func (h *SSEHandler) stopStreamingForAgent(agentID string) {
-	task, err := h.taskManager.SendTask(&pb.TaskRequest{
+	task, err := h.taskSender.SendTask(&pb.TaskRequest{
 		AgentId: agentID,
 		Task: &pb.TaskRequest_MetricsRequest{
 			MetricsRequest: &pb.MetricsRequest{

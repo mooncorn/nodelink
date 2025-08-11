@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	pb "github.com/mooncorn/nodelink/proto"
-	"github.com/mooncorn/nodelink/server/pkg/interfaces"
+	"github.com/mooncorn/nodelink/server/internal/interfaces"
 )
 
 // DockerProcessor handles Docker-related events (placeholder for future implementation)

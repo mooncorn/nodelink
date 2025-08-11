@@ -8,27 +8,22 @@ import (
 
 	"github.com/gin-gonic/gin"
 	pb "github.com/mooncorn/nodelink/proto"
-	"github.com/mooncorn/nodelink/server/pkg/events"
-	"github.com/mooncorn/nodelink/server/pkg/events/processors"
-	servergrpc "github.com/mooncorn/nodelink/server/pkg/grpc"
-	"github.com/mooncorn/nodelink/server/pkg/metrics"
-	"github.com/mooncorn/nodelink/server/pkg/sse"
-	"github.com/mooncorn/nodelink/server/pkg/streams"
-	"github.com/mooncorn/nodelink/server/pkg/tasks"
+	"github.com/mooncorn/nodelink/server/internal/events"
+	"github.com/mooncorn/nodelink/server/internal/events/processors"
+	"github.com/mooncorn/nodelink/server/internal/metrics"
+	"github.com/mooncorn/nodelink/server/internal/sse"
+	"github.com/mooncorn/nodelink/server/internal/tasks"
+	"github.com/mooncorn/nodelink/server/internal/types"
 	"google.golang.org/grpc"
 )
 
 func main() {
-	// Create event bus for decoupled communication
-	eventBus := events.NewEventBus(true) // Use async mode for better performance
-
-	// Create task manager with event bus
-	taskManager := tasks.NewTaskManager(eventBus)
-
 	// Create metrics store and handlers
 	metricsStore := metrics.NewMetricsStore(7 * 24 * time.Hour) // 7 days retention
-	metricsHTTPHandler := metrics.NewHTTPHandler(metricsStore, taskManager)
-	metricsSSEHandler := metrics.NewSSEHandler(metricsStore, taskManager)
+
+	taskServer := tasks.NewTaskServer(metricsStore)
+	metricsHTTPHandler := metrics.NewHTTPHandler(metricsStore, taskServer)
+	metricsSSEHandler := metrics.NewSSEHandler(metricsStore, taskServer)
 
 	// Start metrics SSE handler
 	metricsSSEHandler.Start()
@@ -48,23 +43,18 @@ func main() {
 
 	// Create event router with processors
 	eventRouter := events.NewEventRouter(sseManager, metricsStore)
-	defer eventRouter.Stop()
 
 	// Register event processors
 	eventRouter.RegisterProcessor(processors.NewShellProcessor())
 	eventRouter.RegisterProcessor(processors.NewMetricsProcessor(metricsStore))
 	eventRouter.RegisterProcessor(processors.NewDockerProcessor())
 
-	// Create gRPC server with event bus integration
+	// Create gRPC server
 	grpcServer := grpc.NewServer()
-	agentServer := servergrpc.NewTaskServer(taskManager.GetResponseChannel(), metricsStore, eventBus)
-	pb.RegisterAgentServiceServer(grpcServer, agentServer)
+	pb.RegisterAgentServiceServer(grpcServer, taskServer)
 
-	// Event-driven architecture: No direct dependencies between TaskManager and TaskServer
-	// TaskManager publishes "task.send" events, TaskServer subscribes to them via event bus
-
-	// Add task manager listener to forward task events to event router
-	taskManager.AddListener(func(task *tasks.Task) {
+	// Add task listener to forward task events to event router
+	taskServer.AddListener(func(task *types.Task) {
 		sseManager.EnableRoomBuffering(task.ID, 10)
 
 		// Process the event through the event router
@@ -88,14 +78,14 @@ func main() {
 		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 		for range ticker.C {
-			taskManager.CleanupCompletedTasks(30 * time.Minute)
+			taskServer.CleanupCompletedTasks(30 * time.Minute)
 			metricsStore.CleanupOldData()
 		}
 	}()
 
 	// HTTP/SSE server setup
 	router := gin.Default()
-	registerRESTRoutes(router, taskManager)
+	registerRESTRoutes(router, taskServer)
 	registerSSERoutes(router, sseManager)
 
 	// Register metrics routes
@@ -137,25 +127,12 @@ func registerSSERoutes(router gin.IRouter, sseManager *sse.Manager[*pb.TaskRespo
 	})
 }
 
-func registerRESTRoutes(router gin.IRouter, taskManager *tasks.TaskManager) {
-	// New unified stream endpoints
-	router.GET("/api/streams/types", func(ctx *gin.Context) {
-		streamTypes := streams.GetAllStreamTypes()
-
-		var response []gin.H
-		for name, streamType := range streamTypes {
-			response = append(response, gin.H{
-				"name":                name,
-				"description":         streamType.Description,
-				"supports_processing": true,
-				"buffer_size":         streamType.BufferSize,
-				"buffered":            streamType.Buffered,
-				"auto_cleanup":        streamType.AutoCleanup,
-			})
-		}
-
-		ctx.JSON(http.StatusOK, gin.H{"stream_types": response})
-	})
+func registerRESTRoutes(router gin.IRouter, taskSender interface {
+	SendTask(request *pb.TaskRequest, timeout time.Duration) (*types.Task, error)
+	GetTask(taskID string) (*types.Task, bool)
+	CancelTask(taskID string) error
+	ListTasks(agentID string) []*types.Task
+}) {
 
 	// Create a shell execution task
 	router.POST("/tasks/shell", func(ctx *gin.Context) {
@@ -175,7 +152,7 @@ func registerRESTRoutes(router gin.IRouter, taskManager *tasks.TaskManager) {
 		}
 
 		// Create task
-		task, err := taskManager.SendTask(&pb.TaskRequest{
+		task, err := taskSender.SendTask(&pb.TaskRequest{
 			AgentId: req.AgentId,
 			Task: &pb.TaskRequest_ShellExecute{
 				ShellExecute: &pb.ShellExecute{
@@ -199,7 +176,7 @@ func registerRESTRoutes(router gin.IRouter, taskManager *tasks.TaskManager) {
 	// Get task status and details
 	router.GET("/tasks/:taskId", func(ctx *gin.Context) {
 		taskId := ctx.Param("taskId")
-		task, exists := taskManager.GetTask(taskId)
+		task, exists := taskSender.GetTask(taskId)
 		if !exists {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
 			return
@@ -218,7 +195,7 @@ func registerRESTRoutes(router gin.IRouter, taskManager *tasks.TaskManager) {
 	// Cancel a task
 	router.DELETE("/tasks/:taskId", func(ctx *gin.Context) {
 		taskId := ctx.Param("taskId")
-		err := taskManager.CancelTask(taskId)
+		err := taskSender.CancelTask(taskId)
 		if err != nil {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
@@ -230,7 +207,7 @@ func registerRESTRoutes(router gin.IRouter, taskManager *tasks.TaskManager) {
 	// List tasks for an agent
 	router.GET("/agents/:agentId/tasks", func(ctx *gin.Context) {
 		agentId := ctx.Param("agentId")
-		tasks := taskManager.ListTasks(agentId)
+		tasks := taskSender.ListTasks(agentId)
 
 		var taskList []gin.H
 		for _, task := range tasks {
@@ -251,7 +228,7 @@ func registerRESTRoutes(router gin.IRouter, taskManager *tasks.TaskManager) {
 
 	// List all tasks
 	router.GET("/tasks", func(ctx *gin.Context) {
-		allTasks := taskManager.ListTasks("")
+		allTasks := taskSender.ListTasks("")
 
 		var taskList []gin.H
 		for _, task := range allTasks {

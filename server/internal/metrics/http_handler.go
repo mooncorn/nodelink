@@ -8,20 +8,25 @@ import (
 
 	"github.com/gin-gonic/gin"
 	pb "github.com/mooncorn/nodelink/proto"
-	"github.com/mooncorn/nodelink/server/pkg/tasks"
+	"github.com/mooncorn/nodelink/server/internal/types"
 )
+
+// TaskSender interface for components that can send tasks to agents
+type TaskSender interface {
+	SendTask(request *pb.TaskRequest, timeout time.Duration) (*types.Task, error)
+}
 
 // HTTPHandler handles HTTP requests for metrics
 type HTTPHandler struct {
-	store       *MetricsStore
-	taskManager *tasks.TaskManager
+	store      *MetricsStore
+	taskSender TaskSender
 }
 
 // NewHTTPHandler creates a new HTTP handler for metrics
-func NewHTTPHandler(store *MetricsStore, taskManager *tasks.TaskManager) *HTTPHandler {
+func NewHTTPHandler(store *MetricsStore, taskSender TaskSender) *HTTPHandler {
 	return &HTTPHandler{
-		store:       store,
-		taskManager: taskManager,
+		store:      store,
+		taskSender: taskSender,
 	}
 }
 
@@ -152,7 +157,7 @@ func (h *HTTPHandler) StartMetricsStreaming(c *gin.Context) {
 	}
 
 	// Create metrics request task
-	task, err := h.taskManager.SendTask(&pb.TaskRequest{
+	task, err := h.taskSender.SendTask(&pb.TaskRequest{
 		AgentId: agentID,
 		Task: &pb.TaskRequest_MetricsRequest{
 			MetricsRequest: &pb.MetricsRequest{
@@ -186,8 +191,8 @@ func (h *HTTPHandler) StartMetricsStreaming(c *gin.Context) {
 func (h *HTTPHandler) StopMetricsStreaming(c *gin.Context) {
 	agentID := c.Param("agentId")
 
-	// Create metrics request task
-	task, err := h.taskManager.SendTask(&pb.TaskRequest{
+	// Create stop metrics request task
+	task, err := h.taskSender.SendTask(&pb.TaskRequest{
 		AgentId: agentID,
 		Task: &pb.TaskRequest_MetricsRequest{
 			MetricsRequest: &pb.MetricsRequest{
@@ -232,7 +237,7 @@ func (h *HTTPHandler) RefreshSystemInfo(c *gin.Context) {
 	}
 
 	// Create system info request task
-	task, err := h.taskManager.SendTask(&pb.TaskRequest{
+	task, err := h.taskSender.SendTask(&pb.TaskRequest{
 		AgentId: agentID,
 		Task: &pb.TaskRequest_MetricsRequest{
 			MetricsRequest: &pb.MetricsRequest{

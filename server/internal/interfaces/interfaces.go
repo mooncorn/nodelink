@@ -13,35 +13,6 @@ var (
 	ErrInvalidData        = errors.New("invalid data type")
 )
 
-// Event represents a system event
-type Event struct {
-	Type      string      `json:"type"`
-	Data      interface{} `json:"data"`
-	Source    string      `json:"source"`
-	Timestamp int64       `json:"timestamp"`
-}
-
-// EventHandler handles events of specific types
-type EventHandler func(event Event)
-
-// EventBus interface for publish-subscribe messaging
-type EventBus interface {
-	Publish(event Event)
-	Subscribe(eventType string, handler EventHandler)
-	Unsubscribe(eventType string, handler EventHandler)
-}
-
-// TaskSender interface for sending tasks to agents
-// This interface breaks the circular dependency between TaskManager and TaskServer
-type TaskSender interface {
-	SendTask(request *pb.TaskRequest) error
-}
-
-// ResponseReceiver interface for handling task responses
-type ResponseReceiver interface {
-	HandleResponse(response *pb.TaskResponse)
-}
-
 // EventProcessor interface for processing different types of events
 type EventProcessor interface {
 	ProcessEvent(event *pb.TaskResponse) (*ProcessedEvent, error)
