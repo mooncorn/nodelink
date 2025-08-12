@@ -32,10 +32,10 @@ type TaskServer struct {
 	tasksMu      sync.RWMutex
 	tasks        map[string]*types.Task
 	taskContexts map[string]context.CancelFunc // Track cancel functions separately
-	listeners    []types.TaskEventListener
 
 	// Dependencies
 	metricsStore MetricsStore
+	eventRouter  *EventRouter
 }
 
 // MetricsStore interface for registering agents
@@ -44,13 +44,13 @@ type MetricsStore interface {
 	UnregisterAgent(agentID string)
 }
 
-func NewTaskServer(metricsStore MetricsStore) *TaskServer {
+func NewTaskServer(metricsStore MetricsStore, eventRouter *EventRouter) *TaskServer {
 	server := &TaskServer{
 		agents:       make(map[string]pb.AgentService_StreamTasksServer),
 		tasks:        make(map[string]*types.Task),
 		taskContexts: make(map[string]context.CancelFunc),
-		listeners:    make([]types.TaskEventListener, 0),
 		metricsStore: metricsStore,
+		eventRouter:  eventRouter,
 	}
 
 	return server
@@ -276,7 +276,10 @@ func (s *TaskServer) handleTaskResponse(taskResponse *pb.TaskResponse) {
 
 	s.tasksMu.Unlock()
 
-	s.notifyListeners(task)
+	// Process the event through the event router
+	if task.Response != nil {
+		s.eventRouter.ProcessAndRelay(task.Response)
+	}
 
 	// Cleanup if final - add appropriate delay based on task type
 	if isFinal {
@@ -337,13 +340,6 @@ func (s *TaskServer) ListTasks(agentID string) []*types.Task {
 	return taskList
 }
 
-// AddListener adds a task event listener
-func (s *TaskServer) AddListener(listener types.TaskEventListener) {
-	s.tasksMu.Lock()
-	defer s.tasksMu.Unlock()
-	s.listeners = append(s.listeners, listener)
-}
-
 // CleanupCompletedTasks removes completed tasks older than the specified duration
 func (s *TaskServer) CleanupCompletedTasks(olderThan time.Duration) int {
 	s.tasksMu.Lock()
@@ -382,15 +378,4 @@ func (s *TaskServer) completeTask(taskID string) {
 	delete(s.tasks, taskID)
 	delete(s.taskContexts, taskID)
 	s.tasksMu.Unlock()
-}
-
-// notifyListeners notifies all task event listeners
-func (s *TaskServer) notifyListeners(task *types.Task) {
-	s.tasksMu.RLock()
-	listeners := make([]types.TaskEventListener, len(s.listeners))
-	copy(listeners, s.listeners)
-	s.tasksMu.RUnlock()
-	for _, listener := range listeners {
-		go listener(task)
-	}
 }

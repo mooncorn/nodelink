@@ -22,7 +22,7 @@ type EventProcessor interface {
 // ProcessedEvent represents the result of event processing
 type ProcessedEvent struct {
 	OriginalEvent *pb.TaskResponse `json:"original_event"`
-	ProcessedData interface{}      `json:"processed_data"`
+	ProcessedData *pb.TaskResponse `json:"processed_data"`
 	ShouldRelay   bool             `json:"should_relay"`
 	TargetRoom    string           `json:"target_room"`
 	EventType     string           `json:"event_type"`

@@ -1,20 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"flag"
-	"io"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/mooncorn/nodelink/agent/pkg/grpc"
-	"github.com/mooncorn/nodelink/agent/pkg/metrics"
-	pb "github.com/mooncorn/nodelink/proto"
 )
 
 // Track running tasks to enable cancellation
@@ -29,36 +23,16 @@ func main() {
 
 	log.Println("Starting Agent...")
 
-	// Create event client
-	client, err := grpc.NewTaskClient("localhost:9090")
+	// Create grpc client
+	client, err := grpc.NewHeartbeatClient("localhost:9090")
 	if err != nil {
-		log.Fatalf("Failed to create event client: %v", err)
+		log.Fatalf("Failed to create grpc client: %v", err)
 	}
 	defer client.Close()
 
-	// Create metrics handler
-	metricsHandler := metrics.NewHandler(client)
-	defer metricsHandler.Close()
-
-	// Add a simple event listener that logs all events
-	client.AddListener(func(taskRequest *pb.TaskRequest) {
-		// Specific handling for different task types
-		switch task := taskRequest.Task.(type) {
-		case *pb.TaskRequest_TaskCancel:
-			log.Printf("Agent received task cancel for task %s: %s", taskRequest.TaskId, task.TaskCancel.Reason)
-			handleTaskCancel(taskRequest, client, metricsHandler)
-		case *pb.TaskRequest_ShellExecute:
-			log.Printf("Agent received shell execute for task %s: %s", taskRequest.TaskId, task.ShellExecute.Cmd)
-			handleShellExecute(taskRequest, task.ShellExecute, client, metricsHandler.GetCollector())
-		case *pb.TaskRequest_MetricsRequest:
-			log.Printf("Agent received metrics request for task %s", taskRequest.TaskId)
-			metricsHandler.HandleMetricsRequest(taskRequest, task.MetricsRequest)
-		}
-	})
-
 	// Connect to the server
 	if err := client.Connect(*agentID, *agentToken); err != nil {
-		log.Fatalf("Failed to connect to event stream: %v", err)
+		log.Fatalf("Failed to connect to grpc server: %v", err)
 	}
 
 	// Wait for interrupt signal
@@ -71,212 +45,212 @@ func main() {
 	log.Println("Agent shutting down...")
 }
 
-// handleTaskCancel handles task cancellation requests
-func handleTaskCancel(taskRequest *pb.TaskRequest, client *grpc.TaskClient, metricsHandler *metrics.Handler) {
-	taskID := taskRequest.TaskId
-	tasksMutex.Lock()
-	process, exists := runningTasks[taskID]
-	if exists {
-		log.Printf("Cancelling shell task %s", taskID)
+// // handleTaskCancel handles task cancellation requests
+// func handleTaskCancel(taskRequest *pb.TaskRequest, client *grpc.TaskClient, metricsHandler *metrics.Handler) {
+// 	taskID := taskRequest.TaskId
+// 	tasksMutex.Lock()
+// 	process, exists := runningTasks[taskID]
+// 	if exists {
+// 		log.Printf("Cancelling shell task %s", taskID)
 
-		// Kill the process
-		if process != nil {
-			err := process.Kill()
-			if err != nil {
-				log.Printf("Error killing process for task %s: %v", taskID, err)
-			} else {
-				log.Printf("Successfully killed process for task %s", taskID)
-			}
-		}
+// 		// Kill the process
+// 		if process != nil {
+// 			err := process.Kill()
+// 			if err != nil {
+// 				log.Printf("Error killing process for task %s: %v", taskID, err)
+// 			} else {
+// 				log.Printf("Successfully killed process for task %s", taskID)
+// 			}
+// 		}
 
-		// Mark task as cancelled
-		cancelledTasks[taskID] = true
-		delete(runningTasks, taskID)
-	} else {
-		// Check if this is a metrics streaming task
-		if metricsHandler.GetCollector().IsStreamingTask(taskID) {
-			log.Printf("Cancelling metrics streaming task %s", taskID)
-			metricsHandler.GetCollector().StopStreaming()
-		} else {
-			log.Printf("Task %s not found in running tasks or metrics streaming", taskID)
-		}
-	}
-	tasksMutex.Unlock()
+// 		// Mark task as cancelled
+// 		cancelledTasks[taskID] = true
+// 		delete(runningTasks, taskID)
+// 	} else {
+// 		// Check if this is a metrics streaming task
+// 		if metricsHandler.GetCollector().IsStreamingTask(taskID) {
+// 			log.Printf("Cancelling metrics streaming task %s", taskID)
+// 			metricsHandler.GetCollector().StopStreaming()
+// 		} else {
+// 			log.Printf("Task %s not found in running tasks or metrics streaming", taskID)
+// 		}
+// 	}
+// 	tasksMutex.Unlock()
 
-	// Send cancellation acknowledgment
-	client.Send(&pb.TaskResponse{
-		AgentId:   taskRequest.AgentId,
-		TaskId:    taskID,
-		IsFinal:   true,
-		Status:    pb.TaskResponse_COMPLETED,
-		Cancelled: true,
-		EventType: "task_cancel",
-		Timestamp: time.Now().Unix(),
-		Response: &pb.TaskResponse_TaskCancel{
-			TaskCancel: &pb.TaskCancelResponse{
-				Message: "Task cancelled succesfully",
-			},
-		},
-	})
-}
+// 	// Send cancellation acknowledgment
+// 	client.Send(&pb.TaskResponse{
+// 		AgentId:   taskRequest.AgentId,
+// 		TaskId:    taskID,
+// 		IsFinal:   true,
+// 		Status:    pb.TaskResponse_COMPLETED,
+// 		Cancelled: true,
+// 		EventType: "task_cancel",
+// 		Timestamp: time.Now().Unix(),
+// 		Response: &pb.TaskResponse_TaskCancel{
+// 			TaskCancel: &pb.TaskCancelResponse{
+// 				Message: "Task cancelled succesfully",
+// 			},
+// 		},
+// 	})
+// }
 
-func handleShellExecute(taskRequest *pb.TaskRequest, shellExecute *pb.ShellExecute, client *grpc.TaskClient, metricsCollector *metrics.MetricsCollector) {
-	cmdStr := shellExecute.Cmd
-	cmd := exec.Command("bash", "-c", cmdStr)
+// func handleShellExecute(taskRequest *pb.TaskRequest, shellExecute *pb.ShellExecute, client *grpc.TaskClient, metricsCollector *metrics.MetricsCollector) {
+// 	cmdStr := shellExecute.Cmd
+// 	cmd := exec.Command("bash", "-c", cmdStr)
 
-	// Get pipes before starting
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Printf("Failed to create stdout pipe: %v", err)
-		sendErrorResponse(taskRequest, client, err)
-		return
-	}
-	defer stdout.Close()
+// 	// Get pipes before starting
+// 	stdout, err := cmd.StdoutPipe()
+// 	if err != nil {
+// 		log.Printf("Failed to create stdout pipe: %v", err)
+// 		sendErrorResponse(taskRequest, client, err)
+// 		return
+// 	}
+// 	defer stdout.Close()
 
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		log.Printf("Failed to create stderr pipe: %v", err)
-		sendErrorResponse(taskRequest, client, err)
-		return
-	}
-	defer stderr.Close()
+// 	stderr, err := cmd.StderrPipe()
+// 	if err != nil {
+// 		log.Printf("Failed to create stderr pipe: %v", err)
+// 		sendErrorResponse(taskRequest, client, err)
+// 		return
+// 	}
+// 	defer stderr.Close()
 
-	// Start the command
-	if err := cmd.Start(); err != nil {
-		log.Printf("Failed to start command: %v", err)
-		sendErrorResponse(taskRequest, client, err)
-		return
-	}
+// 	// Start the command
+// 	if err := cmd.Start(); err != nil {
+// 		log.Printf("Failed to start command: %v", err)
+// 		sendErrorResponse(taskRequest, client, err)
+// 		return
+// 	}
 
-	// Store the running command AFTER it starts
-	tasksMutex.Lock()
-	runningTasks[taskRequest.TaskId] = cmd.Process
-	tasksMutex.Unlock()
+// 	// Store the running command AFTER it starts
+// 	tasksMutex.Lock()
+// 	runningTasks[taskRequest.TaskId] = cmd.Process
+// 	tasksMutex.Unlock()
 
-	// Track process for metrics if collector is available
-	if metricsCollector != nil {
-		metricsCollector.AddTaskProcess(taskRequest.TaskId, int32(cmd.Process.Pid))
-	}
+// 	// Track process for metrics if collector is available
+// 	if metricsCollector != nil {
+// 		metricsCollector.AddTaskProcess(taskRequest.TaskId, int32(cmd.Process.Pid))
+// 	}
 
-	// Remove from running tasks when done
-	defer func() {
-		tasksMutex.Lock()
-		delete(runningTasks, taskRequest.TaskId)
-		tasksMutex.Unlock()
+// 	// Remove from running tasks when done
+// 	defer func() {
+// 		tasksMutex.Lock()
+// 		delete(runningTasks, taskRequest.TaskId)
+// 		tasksMutex.Unlock()
 
-		// Remove process tracking
-		if metricsCollector != nil {
-			metricsCollector.RemoveTaskProcess(taskRequest.TaskId)
-		}
-	}()
+// 		// Remove process tracking
+// 		if metricsCollector != nil {
+// 			metricsCollector.RemoveTaskProcess(taskRequest.TaskId)
+// 		}
+// 	}()
 
-	// Use channels to coordinate goroutines and prevent race conditions
-	var wg sync.WaitGroup
-	wg.Add(2)
+// 	// Use channels to coordinate goroutines and prevent race conditions
+// 	var wg sync.WaitGroup
+// 	wg.Add(2)
 
-	// Stream stdout
-	go func() {
-		defer wg.Done()
-		streamOutput(taskRequest, client, stdout, true)
-	}()
+// 	// Stream stdout
+// 	go func() {
+// 		defer wg.Done()
+// 		streamOutput(taskRequest, client, stdout, true)
+// 	}()
 
-	// Stream stderr
-	go func() {
-		defer wg.Done()
-		streamOutput(taskRequest, client, stderr, false)
-	}()
+// 	// Stream stderr
+// 	go func() {
+// 		defer wg.Done()
+// 		streamOutput(taskRequest, client, stderr, false)
+// 	}()
 
-	// Wait for streaming to complete
-	wg.Wait()
+// 	// Wait for streaming to complete
+// 	wg.Wait()
 
-	// Wait for process to complete
-	err = cmd.Wait()
-	exitCode := 0
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			exitCode = exitErr.ExitCode()
-		}
-	}
+// 	// Wait for process to complete
+// 	err = cmd.Wait()
+// 	exitCode := 0
+// 	if err != nil {
+// 		if exitErr, ok := err.(*exec.ExitError); ok {
+// 			exitCode = exitErr.ExitCode()
+// 		}
+// 	}
 
-	// Check if task was cancelled
-	tasksMutex.RLock()
-	wasCancelled := cancelledTasks[taskRequest.TaskId]
-	tasksMutex.RUnlock()
+// 	// Check if task was cancelled
+// 	tasksMutex.RLock()
+// 	wasCancelled := cancelledTasks[taskRequest.TaskId]
+// 	tasksMutex.RUnlock()
 
-	// Send final response
-	client.Send(&pb.TaskResponse{
-		AgentId:   taskRequest.AgentId,
-		TaskId:    taskRequest.TaskId,
-		Status:    pb.TaskResponse_COMPLETED,
-		IsFinal:   true,
-		Cancelled: wasCancelled,
-		EventType: "shell_output",
-		Timestamp: time.Now().Unix(),
-		Response: &pb.TaskResponse_ShellExecute{
-			ShellExecute: &pb.ShellExecuteResponse{
-				Stdout:   "",
-				Stderr:   "",
-				ExitCode: int32(exitCode),
-			},
-		},
-	})
+// 	// Send final response
+// 	client.Send(&pb.TaskResponse{
+// 		AgentId:   taskRequest.AgentId,
+// 		TaskId:    taskRequest.TaskId,
+// 		Status:    pb.TaskResponse_COMPLETED,
+// 		IsFinal:   true,
+// 		Cancelled: wasCancelled,
+// 		EventType: "shell_output",
+// 		Timestamp: time.Now().Unix(),
+// 		Response: &pb.TaskResponse_ShellExecute{
+// 			ShellExecute: &pb.ShellExecuteResponse{
+// 				Stdout:   "",
+// 				Stderr:   "",
+// 				ExitCode: int32(exitCode),
+// 			},
+// 		},
+// 	})
 
-	// Clean up cancellation tracking
-	tasksMutex.Lock()
-	delete(cancelledTasks, taskRequest.TaskId)
-	tasksMutex.Unlock()
-}
+// 	// Clean up cancellation tracking
+// 	tasksMutex.Lock()
+// 	delete(cancelledTasks, taskRequest.TaskId)
+// 	tasksMutex.Unlock()
+// }
 
-// Helper function to send error responses
-func sendErrorResponse(taskRequest *pb.TaskRequest, client *grpc.TaskClient, err error) {
-	client.Send(&pb.TaskResponse{
-		AgentId:   taskRequest.AgentId,
-		TaskId:    taskRequest.TaskId,
-		Status:    pb.TaskResponse_FAILURE,
-		IsFinal:   true,
-		Cancelled: false,
-		EventType: "shell_output",
-		Timestamp: time.Now().Unix(),
-		Response: &pb.TaskResponse_ShellExecute{
-			ShellExecute: &pb.ShellExecuteResponse{
-				Stdout:   "",
-				Stderr:   err.Error(),
-				ExitCode: 1,
-			},
-		},
-	})
-}
+// // Helper function to send error responses
+// func sendErrorResponse(taskRequest *pb.TaskRequest, client *grpc.TaskClient, err error) {
+// 	client.Send(&pb.TaskResponse{
+// 		AgentId:   taskRequest.AgentId,
+// 		TaskId:    taskRequest.TaskId,
+// 		Status:    pb.TaskResponse_FAILURE,
+// 		IsFinal:   true,
+// 		Cancelled: false,
+// 		EventType: "shell_output",
+// 		Timestamp: time.Now().Unix(),
+// 		Response: &pb.TaskResponse_ShellExecute{
+// 			ShellExecute: &pb.ShellExecuteResponse{
+// 				Stdout:   "",
+// 				Stderr:   err.Error(),
+// 				ExitCode: 1,
+// 			},
+// 		},
+// 	})
+// }
 
-// Helper function to stream output without race conditions
-func streamOutput(taskRequest *pb.TaskRequest, client *grpc.TaskClient, reader io.Reader, isStdout bool) {
-	scanner := bufio.NewScanner(reader)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024) // More efficient buffering
+// // Helper function to stream output without race conditions
+// func streamOutput(taskRequest *pb.TaskRequest, client *grpc.TaskClient, reader io.Reader, isStdout bool) {
+// 	scanner := bufio.NewScanner(reader)
+// 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024) // More efficient buffering
 
-	for scanner.Scan() {
-		text := scanner.Text() + "\n"
+// 	for scanner.Scan() {
+// 		text := scanner.Text() + "\n"
 
-		var stdout, stderr string
-		if isStdout {
-			stdout = text
-		} else {
-			stderr = text
-		}
+// 		var stdout, stderr string
+// 		if isStdout {
+// 			stdout = text
+// 		} else {
+// 			stderr = text
+// 		}
 
-		client.Send(&pb.TaskResponse{
-			AgentId:   taskRequest.AgentId,
-			TaskId:    taskRequest.TaskId,
-			Status:    pb.TaskResponse_IN_PROGRESS,
-			IsFinal:   false,
-			Cancelled: false,
-			EventType: "shell_output",
-			Timestamp: time.Now().Unix(),
-			Response: &pb.TaskResponse_ShellExecute{
-				ShellExecute: &pb.ShellExecuteResponse{
-					Stdout:   stdout,
-					Stderr:   stderr,
-					ExitCode: 0,
-				},
-			},
-		})
-	}
-}
+// 		client.Send(&pb.TaskResponse{
+// 			AgentId:   taskRequest.AgentId,
+// 			TaskId:    taskRequest.TaskId,
+// 			Status:    pb.TaskResponse_IN_PROGRESS,
+// 			IsFinal:   false,
+// 			Cancelled: false,
+// 			EventType: "shell_output",
+// 			Timestamp: time.Now().Unix(),
+// 			Response: &pb.TaskResponse_ShellExecute{
+// 				ShellExecute: &pb.ShellExecuteResponse{
+// 					Stdout:   stdout,
+// 					Stderr:   stderr,
+// 					ExitCode: 0,
+// 				},
+// 			},
+// 		})
+// 	}
+// }

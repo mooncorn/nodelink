@@ -19,14 +19,30 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AgentService_StreamTasks_FullMethodName = "/pb.AgentService/StreamTasks"
+	AgentService_ExecuteCommand_FullMethodName   = "/pb.AgentService/ExecuteCommand"
+	AgentService_GetSystemInfo_FullMethodName    = "/pb.AgentService/GetSystemInfo"
+	AgentService_ManageDocker_FullMethodName     = "/pb.AgentService/ManageDocker"
+	AgentService_CancelTask_FullMethodName       = "/pb.AgentService/CancelTask"
+	AgentService_StreamCommand_FullMethodName    = "/pb.AgentService/StreamCommand"
+	AgentService_StreamDockerLogs_FullMethodName = "/pb.AgentService/StreamDockerLogs"
+	AgentService_StreamMetrics_FullMethodName    = "/pb.AgentService/StreamMetrics"
+	AgentService_HeartbeatStream_FullMethodName  = "/pb.AgentService/HeartbeatStream"
 )
 
 // AgentServiceClient is the client API for AgentService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AgentServiceClient interface {
-	StreamTasks(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[TaskResponse, TaskRequest], error)
+	// Simple request/response for immediate operations
+	ExecuteCommand(ctx context.Context, in *CommandRequest, opts ...grpc.CallOption) (*CommandResponse, error)
+	GetSystemInfo(ctx context.Context, in *SystemInfoRequest, opts ...grpc.CallOption) (*SystemInfoResponse, error)
+	ManageDocker(ctx context.Context, in *DockerRequest, opts ...grpc.CallOption) (*DockerResponse, error)
+	CancelTask(ctx context.Context, in *TaskCancelRequest, opts ...grpc.CallOption) (*TaskCancelResponse, error)
+	// Streaming for long-running operations with real-time updates
+	StreamCommand(ctx context.Context, in *CommandRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CommandStreamResponse], error)
+	StreamDockerLogs(ctx context.Context, in *DockerLogsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DockerLogsResponse], error)
+	StreamMetrics(ctx context.Context, in *MetricsStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[MetricsStreamResponse], error)
+	HeartbeatStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AgentMessage, ServerMessage], error)
 }
 
 type agentServiceClient struct {
@@ -37,24 +53,130 @@ func NewAgentServiceClient(cc grpc.ClientConnInterface) AgentServiceClient {
 	return &agentServiceClient{cc}
 }
 
-func (c *agentServiceClient) StreamTasks(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[TaskResponse, TaskRequest], error) {
+func (c *agentServiceClient) ExecuteCommand(ctx context.Context, in *CommandRequest, opts ...grpc.CallOption) (*CommandResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &AgentService_ServiceDesc.Streams[0], AgentService_StreamTasks_FullMethodName, cOpts...)
+	out := new(CommandResponse)
+	err := c.cc.Invoke(ctx, AgentService_ExecuteCommand_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[TaskResponse, TaskRequest]{ClientStream: stream}
+	return out, nil
+}
+
+func (c *agentServiceClient) GetSystemInfo(ctx context.Context, in *SystemInfoRequest, opts ...grpc.CallOption) (*SystemInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SystemInfoResponse)
+	err := c.cc.Invoke(ctx, AgentService_GetSystemInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) ManageDocker(ctx context.Context, in *DockerRequest, opts ...grpc.CallOption) (*DockerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DockerResponse)
+	err := c.cc.Invoke(ctx, AgentService_ManageDocker_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) CancelTask(ctx context.Context, in *TaskCancelRequest, opts ...grpc.CallOption) (*TaskCancelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TaskCancelResponse)
+	err := c.cc.Invoke(ctx, AgentService_CancelTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *agentServiceClient) StreamCommand(ctx context.Context, in *CommandRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CommandStreamResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &AgentService_ServiceDesc.Streams[0], AgentService_StreamCommand_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[CommandRequest, CommandStreamResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AgentService_StreamTasksClient = grpc.BidiStreamingClient[TaskResponse, TaskRequest]
+type AgentService_StreamCommandClient = grpc.ServerStreamingClient[CommandStreamResponse]
+
+func (c *agentServiceClient) StreamDockerLogs(ctx context.Context, in *DockerLogsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DockerLogsResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &AgentService_ServiceDesc.Streams[1], AgentService_StreamDockerLogs_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[DockerLogsRequest, DockerLogsResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AgentService_StreamDockerLogsClient = grpc.ServerStreamingClient[DockerLogsResponse]
+
+func (c *agentServiceClient) StreamMetrics(ctx context.Context, in *MetricsStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[MetricsStreamResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &AgentService_ServiceDesc.Streams[2], AgentService_StreamMetrics_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[MetricsStreamRequest, MetricsStreamResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AgentService_StreamMetricsClient = grpc.ServerStreamingClient[MetricsStreamResponse]
+
+func (c *agentServiceClient) HeartbeatStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AgentMessage, ServerMessage], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &AgentService_ServiceDesc.Streams[3], AgentService_HeartbeatStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[AgentMessage, ServerMessage]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AgentService_HeartbeatStreamClient = grpc.BidiStreamingClient[AgentMessage, ServerMessage]
 
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
 // for forward compatibility.
 type AgentServiceServer interface {
-	StreamTasks(grpc.BidiStreamingServer[TaskResponse, TaskRequest]) error
+	// Simple request/response for immediate operations
+	ExecuteCommand(context.Context, *CommandRequest) (*CommandResponse, error)
+	GetSystemInfo(context.Context, *SystemInfoRequest) (*SystemInfoResponse, error)
+	ManageDocker(context.Context, *DockerRequest) (*DockerResponse, error)
+	CancelTask(context.Context, *TaskCancelRequest) (*TaskCancelResponse, error)
+	// Streaming for long-running operations with real-time updates
+	StreamCommand(*CommandRequest, grpc.ServerStreamingServer[CommandStreamResponse]) error
+	StreamDockerLogs(*DockerLogsRequest, grpc.ServerStreamingServer[DockerLogsResponse]) error
+	StreamMetrics(*MetricsStreamRequest, grpc.ServerStreamingServer[MetricsStreamResponse]) error
+	HeartbeatStream(grpc.BidiStreamingServer[AgentMessage, ServerMessage]) error
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -65,8 +187,29 @@ type AgentServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedAgentServiceServer struct{}
 
-func (UnimplementedAgentServiceServer) StreamTasks(grpc.BidiStreamingServer[TaskResponse, TaskRequest]) error {
-	return status.Errorf(codes.Unimplemented, "method StreamTasks not implemented")
+func (UnimplementedAgentServiceServer) ExecuteCommand(context.Context, *CommandRequest) (*CommandResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExecuteCommand not implemented")
+}
+func (UnimplementedAgentServiceServer) GetSystemInfo(context.Context, *SystemInfoRequest) (*SystemInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSystemInfo not implemented")
+}
+func (UnimplementedAgentServiceServer) ManageDocker(context.Context, *DockerRequest) (*DockerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ManageDocker not implemented")
+}
+func (UnimplementedAgentServiceServer) CancelTask(context.Context, *TaskCancelRequest) (*TaskCancelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CancelTask not implemented")
+}
+func (UnimplementedAgentServiceServer) StreamCommand(*CommandRequest, grpc.ServerStreamingServer[CommandStreamResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method StreamCommand not implemented")
+}
+func (UnimplementedAgentServiceServer) StreamDockerLogs(*DockerLogsRequest, grpc.ServerStreamingServer[DockerLogsResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method StreamDockerLogs not implemented")
+}
+func (UnimplementedAgentServiceServer) StreamMetrics(*MetricsStreamRequest, grpc.ServerStreamingServer[MetricsStreamResponse]) error {
+	return status.Errorf(codes.Unimplemented, "method StreamMetrics not implemented")
+}
+func (UnimplementedAgentServiceServer) HeartbeatStream(grpc.BidiStreamingServer[AgentMessage, ServerMessage]) error {
+	return status.Errorf(codes.Unimplemented, "method HeartbeatStream not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -89,12 +232,117 @@ func RegisterAgentServiceServer(s grpc.ServiceRegistrar, srv AgentServiceServer)
 	s.RegisterService(&AgentService_ServiceDesc, srv)
 }
 
-func _AgentService_StreamTasks_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(AgentServiceServer).StreamTasks(&grpc.GenericServerStream[TaskResponse, TaskRequest]{ServerStream: stream})
+func _AgentService_ExecuteCommand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CommandRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).ExecuteCommand(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_ExecuteCommand_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).ExecuteCommand(ctx, req.(*CommandRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_GetSystemInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SystemInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).GetSystemInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_GetSystemInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).GetSystemInfo(ctx, req.(*SystemInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_ManageDocker_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DockerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).ManageDocker(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_ManageDocker_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).ManageDocker(ctx, req.(*DockerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_CancelTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TaskCancelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AgentServiceServer).CancelTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AgentService_CancelTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AgentServiceServer).CancelTask(ctx, req.(*TaskCancelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AgentService_StreamCommand_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(CommandRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AgentServiceServer).StreamCommand(m, &grpc.GenericServerStream[CommandRequest, CommandStreamResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AgentService_StreamTasksServer = grpc.BidiStreamingServer[TaskResponse, TaskRequest]
+type AgentService_StreamCommandServer = grpc.ServerStreamingServer[CommandStreamResponse]
+
+func _AgentService_StreamDockerLogs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DockerLogsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AgentServiceServer).StreamDockerLogs(m, &grpc.GenericServerStream[DockerLogsRequest, DockerLogsResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AgentService_StreamDockerLogsServer = grpc.ServerStreamingServer[DockerLogsResponse]
+
+func _AgentService_StreamMetrics_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(MetricsStreamRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AgentServiceServer).StreamMetrics(m, &grpc.GenericServerStream[MetricsStreamRequest, MetricsStreamResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AgentService_StreamMetricsServer = grpc.ServerStreamingServer[MetricsStreamResponse]
+
+func _AgentService_HeartbeatStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(AgentServiceServer).HeartbeatStream(&grpc.GenericServerStream[AgentMessage, ServerMessage]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AgentService_HeartbeatStreamServer = grpc.BidiStreamingServer[AgentMessage, ServerMessage]
 
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -102,11 +350,43 @@ type AgentService_StreamTasksServer = grpc.BidiStreamingServer[TaskResponse, Tas
 var AgentService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "pb.AgentService",
 	HandlerType: (*AgentServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ExecuteCommand",
+			Handler:    _AgentService_ExecuteCommand_Handler,
+		},
+		{
+			MethodName: "GetSystemInfo",
+			Handler:    _AgentService_GetSystemInfo_Handler,
+		},
+		{
+			MethodName: "ManageDocker",
+			Handler:    _AgentService_ManageDocker_Handler,
+		},
+		{
+			MethodName: "CancelTask",
+			Handler:    _AgentService_CancelTask_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "StreamTasks",
-			Handler:       _AgentService_StreamTasks_Handler,
+			StreamName:    "StreamCommand",
+			Handler:       _AgentService_StreamCommand_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamDockerLogs",
+			Handler:       _AgentService_StreamDockerLogs_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamMetrics",
+			Handler:       _AgentService_StreamMetrics_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "HeartbeatStream",
+			Handler:       _AgentService_HeartbeatStream_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

@@ -1,4 +1,4 @@
-package processors
+package metrics
 
 import (
 	"fmt"
@@ -6,16 +6,15 @@ import (
 
 	pb "github.com/mooncorn/nodelink/proto"
 	"github.com/mooncorn/nodelink/server/internal/interfaces"
-	"github.com/mooncorn/nodelink/server/internal/metrics"
 )
 
 // MetricsProcessor handles metrics events
 type MetricsProcessor struct {
-	store *metrics.MetricsStore
+	store *MetricsStore
 }
 
 // NewMetricsProcessor creates a new metrics processor
-func NewMetricsProcessor(store *metrics.MetricsStore) *MetricsProcessor {
+func NewMetricsProcessor(store *MetricsStore) *MetricsProcessor {
 	return &MetricsProcessor{
 		store: store,
 	}

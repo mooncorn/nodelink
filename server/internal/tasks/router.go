@@ -1,4 +1,4 @@
-package events
+package tasks
 
 import (
 	"log"
@@ -6,7 +6,6 @@ import (
 
 	pb "github.com/mooncorn/nodelink/proto"
 	"github.com/mooncorn/nodelink/server/internal/interfaces"
-	"github.com/mooncorn/nodelink/server/internal/metrics"
 	"github.com/mooncorn/nodelink/server/internal/sse"
 )
 
@@ -15,15 +14,13 @@ type EventRouter struct {
 	mu         sync.RWMutex
 	processors map[string]interfaces.EventProcessor
 	sseManager *sse.Manager[*pb.TaskResponse]
-	metrics    *metrics.MetricsStore
 }
 
 // NewEventRouter creates a new event router
-func NewEventRouter(sseManager *sse.Manager[*pb.TaskResponse], metricsStore *metrics.MetricsStore) *EventRouter {
+func NewEventRouter(sseManager *sse.Manager[*pb.TaskResponse]) *EventRouter {
 	router := &EventRouter{
 		processors: make(map[string]interfaces.EventProcessor),
 		sseManager: sseManager,
-		metrics:    metricsStore,
 	}
 
 	return router
@@ -63,8 +60,8 @@ func (er *EventRouter) ProcessAndRelay(response *pb.TaskResponse) {
 
 // getEventType determines the event type from a TaskResponse
 func (er *EventRouter) getEventType(response *pb.TaskResponse) string {
-	if response.GetShellExecute() != nil {
-		return "shell_output"
+	if response.GetCommandExecute() != nil {
+		return "command_output"
 	}
 	if response.GetMetricsResponse() != nil {
 		return "metrics"
@@ -78,17 +75,12 @@ func (er *EventRouter) getEventType(response *pb.TaskResponse) string {
 
 // relayRaw sends the raw response to SSE without processing
 func (er *EventRouter) relayRaw(response *pb.TaskResponse) {
-	// Send to task-specific room
 	er.sseManager.SendToRoom(response.TaskId, response, "response")
 }
 
 // relayProcessed sends a processed event to appropriate channels
 func (er *EventRouter) relayProcessed(processed *interfaces.ProcessedEvent) {
-	// Send processed data to target room
 	if processed.TargetRoom != "" {
-		er.sseManager.SendToRoom(processed.TargetRoom, processed.OriginalEvent, processed.EventType)
+		er.sseManager.SendToRoom(processed.TargetRoom, processed.ProcessedData, processed.EventType)
 	}
-
-	// Also send to the original task room for compatibility
-	er.sseManager.SendToRoom(processed.OriginalEvent.TaskId, processed.OriginalEvent, "response")
 }
