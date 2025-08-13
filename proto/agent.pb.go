@@ -70,7 +70,7 @@ func (x CommandStreamResponse_StreamType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CommandStreamResponse_StreamType.Descriptor instead.
 func (CommandStreamResponse_StreamType) EnumDescriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{9, 0}
+	return file_agent_proto_rawDescGZIP(), []int{11, 0}
 }
 
 type MetricsStreamRequest_Action int32
@@ -119,7 +119,7 @@ func (x MetricsStreamRequest_Action) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use MetricsStreamRequest_Action.Descriptor instead.
 func (MetricsStreamRequest_Action) EnumDescriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{21, 0}
+	return file_agent_proto_rawDescGZIP(), []int{23, 0}
 }
 
 type AgentStatus_Status int32
@@ -174,7 +174,7 @@ func (x AgentStatus_Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AgentStatus_Status.Descriptor instead.
 func (AgentStatus_Status) EnumDescriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{28, 0}
+	return file_agent_proto_rawDescGZIP(), []int{30, 0}
 }
 
 type TaskUpdate_TaskStatus int32
@@ -229,7 +229,103 @@ func (x TaskUpdate_TaskStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TaskUpdate_TaskStatus.Descriptor instead.
 func (TaskUpdate_TaskStatus) EnumDescriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{30, 0}
+	return file_agent_proto_rawDescGZIP(), []int{32, 0}
+}
+
+type Ping struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Timestamp     int64                  `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Ping) Reset() {
+	*x = Ping{}
+	mi := &file_agent_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Ping) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Ping) ProtoMessage() {}
+
+func (x *Ping) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Ping.ProtoReflect.Descriptor instead.
+func (*Ping) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Ping) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+type Pong struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Timestamp     int64                  `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	PingTimestamp int64                  `protobuf:"varint,2,opt,name=ping_timestamp,json=pingTimestamp,proto3" json:"ping_timestamp,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Pong) Reset() {
+	*x = Pong{}
+	mi := &file_agent_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Pong) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Pong) ProtoMessage() {}
+
+func (x *Pong) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Pong.ProtoReflect.Descriptor instead.
+func (*Pong) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Pong) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+func (x *Pong) GetPingTimestamp() int64 {
+	if x != nil {
+		return x.PingTimestamp
+	}
+	return 0
 }
 
 type Heartbeat struct {
@@ -242,7 +338,7 @@ type Heartbeat struct {
 
 func (x *Heartbeat) Reset() {
 	*x = Heartbeat{}
-	mi := &file_agent_proto_msgTypes[0]
+	mi := &file_agent_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -254,7 +350,7 @@ func (x *Heartbeat) String() string {
 func (*Heartbeat) ProtoMessage() {}
 
 func (x *Heartbeat) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[0]
+	mi := &file_agent_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -267,7 +363,7 @@ func (x *Heartbeat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Heartbeat.ProtoReflect.Descriptor instead.
 func (*Heartbeat) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{0}
+	return file_agent_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Heartbeat) GetVersion() string {
@@ -301,7 +397,7 @@ type ServerMessage struct {
 
 func (x *ServerMessage) Reset() {
 	*x = ServerMessage{}
-	mi := &file_agent_proto_msgTypes[1]
+	mi := &file_agent_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -313,7 +409,7 @@ func (x *ServerMessage) String() string {
 func (*ServerMessage) ProtoMessage() {}
 
 func (x *ServerMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[1]
+	mi := &file_agent_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -326,7 +422,7 @@ func (x *ServerMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServerMessage.ProtoReflect.Descriptor instead.
 func (*ServerMessage) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{1}
+	return file_agent_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ServerMessage) GetMessageId() string {
@@ -402,14 +498,13 @@ func (*ServerMessage_ConfigUpdate) isServerMessage_Message() {}
 type PingMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Timestamp     int64                  `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	Challenge     string                 `protobuf:"bytes,2,opt,name=challenge,proto3" json:"challenge,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PingMessage) Reset() {
 	*x = PingMessage{}
-	mi := &file_agent_proto_msgTypes[2]
+	mi := &file_agent_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -421,7 +516,7 @@ func (x *PingMessage) String() string {
 func (*PingMessage) ProtoMessage() {}
 
 func (x *PingMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[2]
+	mi := &file_agent_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -434,7 +529,7 @@ func (x *PingMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PingMessage.ProtoReflect.Descriptor instead.
 func (*PingMessage) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{2}
+	return file_agent_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *PingMessage) GetTimestamp() int64 {
@@ -442,13 +537,6 @@ func (x *PingMessage) GetTimestamp() int64 {
 		return x.Timestamp
 	}
 	return 0
-}
-
-func (x *PingMessage) GetChallenge() string {
-	if x != nil {
-		return x.Challenge
-	}
-	return ""
 }
 
 type PongMessage struct {
@@ -462,7 +550,7 @@ type PongMessage struct {
 
 func (x *PongMessage) Reset() {
 	*x = PongMessage{}
-	mi := &file_agent_proto_msgTypes[3]
+	mi := &file_agent_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -474,7 +562,7 @@ func (x *PongMessage) String() string {
 func (*PongMessage) ProtoMessage() {}
 
 func (x *PongMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[3]
+	mi := &file_agent_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -487,7 +575,7 @@ func (x *PongMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PongMessage.ProtoReflect.Descriptor instead.
 func (*PongMessage) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{3}
+	return file_agent_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *PongMessage) GetPingTimestamp() int64 {
@@ -522,7 +610,7 @@ type AckMessage struct {
 
 func (x *AckMessage) Reset() {
 	*x = AckMessage{}
-	mi := &file_agent_proto_msgTypes[4]
+	mi := &file_agent_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -534,7 +622,7 @@ func (x *AckMessage) String() string {
 func (*AckMessage) ProtoMessage() {}
 
 func (x *AckMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[4]
+	mi := &file_agent_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -547,7 +635,7 @@ func (x *AckMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AckMessage.ProtoReflect.Descriptor instead.
 func (*AckMessage) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{4}
+	return file_agent_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *AckMessage) GetAckMessageId() string {
@@ -581,7 +669,7 @@ type ConfigUpdate struct {
 
 func (x *ConfigUpdate) Reset() {
 	*x = ConfigUpdate{}
-	mi := &file_agent_proto_msgTypes[5]
+	mi := &file_agent_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -593,7 +681,7 @@ func (x *ConfigUpdate) String() string {
 func (*ConfigUpdate) ProtoMessage() {}
 
 func (x *ConfigUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[5]
+	mi := &file_agent_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -606,7 +694,7 @@ func (x *ConfigUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigUpdate.ProtoReflect.Descriptor instead.
 func (*ConfigUpdate) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{5}
+	return file_agent_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ConfigUpdate) GetSettings() map[string]string {
@@ -636,7 +724,7 @@ type RequestMetadata struct {
 
 func (x *RequestMetadata) Reset() {
 	*x = RequestMetadata{}
-	mi := &file_agent_proto_msgTypes[6]
+	mi := &file_agent_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -648,7 +736,7 @@ func (x *RequestMetadata) String() string {
 func (*RequestMetadata) ProtoMessage() {}
 
 func (x *RequestMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[6]
+	mi := &file_agent_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -661,7 +749,7 @@ func (x *RequestMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestMetadata.ProtoReflect.Descriptor instead.
 func (*RequestMetadata) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{6}
+	return file_agent_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RequestMetadata) GetAgentId() string {
@@ -706,7 +794,7 @@ type CommandRequest struct {
 
 func (x *CommandRequest) Reset() {
 	*x = CommandRequest{}
-	mi := &file_agent_proto_msgTypes[7]
+	mi := &file_agent_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -718,7 +806,7 @@ func (x *CommandRequest) String() string {
 func (*CommandRequest) ProtoMessage() {}
 
 func (x *CommandRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[7]
+	mi := &file_agent_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -731,7 +819,7 @@ func (x *CommandRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommandRequest.ProtoReflect.Descriptor instead.
 func (*CommandRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{7}
+	return file_agent_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CommandRequest) GetMetadata() *RequestMetadata {
@@ -783,7 +871,7 @@ type CommandResponse struct {
 
 func (x *CommandResponse) Reset() {
 	*x = CommandResponse{}
-	mi := &file_agent_proto_msgTypes[8]
+	mi := &file_agent_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -795,7 +883,7 @@ func (x *CommandResponse) String() string {
 func (*CommandResponse) ProtoMessage() {}
 
 func (x *CommandResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[8]
+	mi := &file_agent_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -808,7 +896,7 @@ func (x *CommandResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommandResponse.ProtoReflect.Descriptor instead.
 func (*CommandResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{8}
+	return file_agent_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CommandResponse) GetRequestId() string {
@@ -868,7 +956,7 @@ type CommandStreamResponse struct {
 
 func (x *CommandStreamResponse) Reset() {
 	*x = CommandStreamResponse{}
-	mi := &file_agent_proto_msgTypes[9]
+	mi := &file_agent_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -880,7 +968,7 @@ func (x *CommandStreamResponse) String() string {
 func (*CommandStreamResponse) ProtoMessage() {}
 
 func (x *CommandStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[9]
+	mi := &file_agent_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -893,7 +981,7 @@ func (x *CommandStreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommandStreamResponse.ProtoReflect.Descriptor instead.
 func (*CommandStreamResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{9}
+	return file_agent_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CommandStreamResponse) GetRequestId() string {
@@ -955,7 +1043,7 @@ type DockerRequest struct {
 
 func (x *DockerRequest) Reset() {
 	*x = DockerRequest{}
-	mi := &file_agent_proto_msgTypes[10]
+	mi := &file_agent_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -967,7 +1055,7 @@ func (x *DockerRequest) String() string {
 func (*DockerRequest) ProtoMessage() {}
 
 func (x *DockerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[10]
+	mi := &file_agent_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -980,7 +1068,7 @@ func (x *DockerRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerRequest.ProtoReflect.Descriptor instead.
 func (*DockerRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{10}
+	return file_agent_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DockerRequest) GetMetadata() *RequestMetadata {
@@ -1075,7 +1163,7 @@ type DockerRunRequest struct {
 
 func (x *DockerRunRequest) Reset() {
 	*x = DockerRunRequest{}
-	mi := &file_agent_proto_msgTypes[11]
+	mi := &file_agent_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1087,7 +1175,7 @@ func (x *DockerRunRequest) String() string {
 func (*DockerRunRequest) ProtoMessage() {}
 
 func (x *DockerRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[11]
+	mi := &file_agent_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1100,7 +1188,7 @@ func (x *DockerRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerRunRequest.ProtoReflect.Descriptor instead.
 func (*DockerRunRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{11}
+	return file_agent_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DockerRunRequest) GetImage() string {
@@ -1155,7 +1243,7 @@ type DockerStopRequest struct {
 
 func (x *DockerStopRequest) Reset() {
 	*x = DockerStopRequest{}
-	mi := &file_agent_proto_msgTypes[12]
+	mi := &file_agent_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1167,7 +1255,7 @@ func (x *DockerStopRequest) String() string {
 func (*DockerStopRequest) ProtoMessage() {}
 
 func (x *DockerStopRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[12]
+	mi := &file_agent_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1180,7 +1268,7 @@ func (x *DockerStopRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerStopRequest.ProtoReflect.Descriptor instead.
 func (*DockerStopRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{12}
+	return file_agent_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DockerStopRequest) GetContainerId() string {
@@ -1206,7 +1294,7 @@ type DockerStartRequest struct {
 
 func (x *DockerStartRequest) Reset() {
 	*x = DockerStartRequest{}
-	mi := &file_agent_proto_msgTypes[13]
+	mi := &file_agent_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1218,7 +1306,7 @@ func (x *DockerStartRequest) String() string {
 func (*DockerStartRequest) ProtoMessage() {}
 
 func (x *DockerStartRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[13]
+	mi := &file_agent_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1231,7 +1319,7 @@ func (x *DockerStartRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerStartRequest.ProtoReflect.Descriptor instead.
 func (*DockerStartRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{13}
+	return file_agent_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *DockerStartRequest) GetContainerId() string {
@@ -1250,7 +1338,7 @@ type DockerInspectRequest struct {
 
 func (x *DockerInspectRequest) Reset() {
 	*x = DockerInspectRequest{}
-	mi := &file_agent_proto_msgTypes[14]
+	mi := &file_agent_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1262,7 +1350,7 @@ func (x *DockerInspectRequest) String() string {
 func (*DockerInspectRequest) ProtoMessage() {}
 
 func (x *DockerInspectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[14]
+	mi := &file_agent_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1275,7 +1363,7 @@ func (x *DockerInspectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerInspectRequest.ProtoReflect.Descriptor instead.
 func (*DockerInspectRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{14}
+	return file_agent_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *DockerInspectRequest) GetContainerId() string {
@@ -1301,7 +1389,7 @@ type DockerResponse struct {
 
 func (x *DockerResponse) Reset() {
 	*x = DockerResponse{}
-	mi := &file_agent_proto_msgTypes[15]
+	mi := &file_agent_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1313,7 +1401,7 @@ func (x *DockerResponse) String() string {
 func (*DockerResponse) ProtoMessage() {}
 
 func (x *DockerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[15]
+	mi := &file_agent_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1326,7 +1414,7 @@ func (x *DockerResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerResponse.ProtoReflect.Descriptor instead.
 func (*DockerResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{15}
+	return file_agent_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DockerResponse) GetRequestId() string {
@@ -1403,7 +1491,7 @@ type DockerRunResult struct {
 
 func (x *DockerRunResult) Reset() {
 	*x = DockerRunResult{}
-	mi := &file_agent_proto_msgTypes[16]
+	mi := &file_agent_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1415,7 +1503,7 @@ func (x *DockerRunResult) String() string {
 func (*DockerRunResult) ProtoMessage() {}
 
 func (x *DockerRunResult) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[16]
+	mi := &file_agent_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1428,7 +1516,7 @@ func (x *DockerRunResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerRunResult.ProtoReflect.Descriptor instead.
 func (*DockerRunResult) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{16}
+	return file_agent_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *DockerRunResult) GetContainerId() string {
@@ -1473,7 +1561,7 @@ type DockerContainerInfo struct {
 
 func (x *DockerContainerInfo) Reset() {
 	*x = DockerContainerInfo{}
-	mi := &file_agent_proto_msgTypes[17]
+	mi := &file_agent_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1485,7 +1573,7 @@ func (x *DockerContainerInfo) String() string {
 func (*DockerContainerInfo) ProtoMessage() {}
 
 func (x *DockerContainerInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[17]
+	mi := &file_agent_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1498,7 +1586,7 @@ func (x *DockerContainerInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerContainerInfo.ProtoReflect.Descriptor instead.
 func (*DockerContainerInfo) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{17}
+	return file_agent_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *DockerContainerInfo) GetContainerId() string {
@@ -1557,7 +1645,7 @@ type DockerLogsRequest struct {
 
 func (x *DockerLogsRequest) Reset() {
 	*x = DockerLogsRequest{}
-	mi := &file_agent_proto_msgTypes[18]
+	mi := &file_agent_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1569,7 +1657,7 @@ func (x *DockerLogsRequest) String() string {
 func (*DockerLogsRequest) ProtoMessage() {}
 
 func (x *DockerLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[18]
+	mi := &file_agent_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1582,7 +1670,7 @@ func (x *DockerLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerLogsRequest.ProtoReflect.Descriptor instead.
 func (*DockerLogsRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{18}
+	return file_agent_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *DockerLogsRequest) GetMetadata() *RequestMetadata {
@@ -1634,7 +1722,7 @@ type DockerLogsResponse struct {
 
 func (x *DockerLogsResponse) Reset() {
 	*x = DockerLogsResponse{}
-	mi := &file_agent_proto_msgTypes[19]
+	mi := &file_agent_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1646,7 +1734,7 @@ func (x *DockerLogsResponse) String() string {
 func (*DockerLogsResponse) ProtoMessage() {}
 
 func (x *DockerLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[19]
+	mi := &file_agent_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1659,7 +1747,7 @@ func (x *DockerLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerLogsResponse.ProtoReflect.Descriptor instead.
 func (*DockerLogsResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{19}
+	return file_agent_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DockerLogsResponse) GetRequestId() string {
@@ -1718,7 +1806,7 @@ type SystemInfoRequest struct {
 
 func (x *SystemInfoRequest) Reset() {
 	*x = SystemInfoRequest{}
-	mi := &file_agent_proto_msgTypes[20]
+	mi := &file_agent_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1730,7 +1818,7 @@ func (x *SystemInfoRequest) String() string {
 func (*SystemInfoRequest) ProtoMessage() {}
 
 func (x *SystemInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[20]
+	mi := &file_agent_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1743,7 +1831,7 @@ func (x *SystemInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SystemInfoRequest.ProtoReflect.Descriptor instead.
 func (*SystemInfoRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{20}
+	return file_agent_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *SystemInfoRequest) GetMetadata() *RequestMetadata {
@@ -1795,7 +1883,7 @@ type MetricsStreamRequest struct {
 
 func (x *MetricsStreamRequest) Reset() {
 	*x = MetricsStreamRequest{}
-	mi := &file_agent_proto_msgTypes[21]
+	mi := &file_agent_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1807,7 +1895,7 @@ func (x *MetricsStreamRequest) String() string {
 func (*MetricsStreamRequest) ProtoMessage() {}
 
 func (x *MetricsStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[21]
+	mi := &file_agent_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1820,7 +1908,7 @@ func (x *MetricsStreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsStreamRequest.ProtoReflect.Descriptor instead.
 func (*MetricsStreamRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{21}
+	return file_agent_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *MetricsStreamRequest) GetMetadata() *RequestMetadata {
@@ -1878,7 +1966,7 @@ type MetricsStreamResponse struct {
 
 func (x *MetricsStreamResponse) Reset() {
 	*x = MetricsStreamResponse{}
-	mi := &file_agent_proto_msgTypes[22]
+	mi := &file_agent_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1890,7 +1978,7 @@ func (x *MetricsStreamResponse) String() string {
 func (*MetricsStreamResponse) ProtoMessage() {}
 
 func (x *MetricsStreamResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[22]
+	mi := &file_agent_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1903,7 +1991,7 @@ func (x *MetricsStreamResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsStreamResponse.ProtoReflect.Descriptor instead.
 func (*MetricsStreamResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{22}
+	return file_agent_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *MetricsStreamResponse) GetRequestId() string {
@@ -2040,7 +2128,7 @@ type TaskCancelRequest struct {
 
 func (x *TaskCancelRequest) Reset() {
 	*x = TaskCancelRequest{}
-	mi := &file_agent_proto_msgTypes[23]
+	mi := &file_agent_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2052,7 +2140,7 @@ func (x *TaskCancelRequest) String() string {
 func (*TaskCancelRequest) ProtoMessage() {}
 
 func (x *TaskCancelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[23]
+	mi := &file_agent_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2065,7 +2153,7 @@ func (x *TaskCancelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskCancelRequest.ProtoReflect.Descriptor instead.
 func (*TaskCancelRequest) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{23}
+	return file_agent_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *TaskCancelRequest) GetMetadata() *RequestMetadata {
@@ -2100,7 +2188,7 @@ type TaskCancelResponse struct {
 
 func (x *TaskCancelResponse) Reset() {
 	*x = TaskCancelResponse{}
-	mi := &file_agent_proto_msgTypes[24]
+	mi := &file_agent_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2112,7 +2200,7 @@ func (x *TaskCancelResponse) String() string {
 func (*TaskCancelResponse) ProtoMessage() {}
 
 func (x *TaskCancelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[24]
+	mi := &file_agent_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2125,7 +2213,7 @@ func (x *TaskCancelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskCancelResponse.ProtoReflect.Descriptor instead.
 func (*TaskCancelResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{24}
+	return file_agent_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *TaskCancelResponse) GetRequestId() string {
@@ -2170,7 +2258,7 @@ type AgentMessage struct {
 
 func (x *AgentMessage) Reset() {
 	*x = AgentMessage{}
-	mi := &file_agent_proto_msgTypes[25]
+	mi := &file_agent_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2182,7 +2270,7 @@ func (x *AgentMessage) String() string {
 func (*AgentMessage) ProtoMessage() {}
 
 func (x *AgentMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[25]
+	mi := &file_agent_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2195,7 +2283,7 @@ func (x *AgentMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentMessage.ProtoReflect.Descriptor instead.
 func (*AgentMessage) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{25}
+	return file_agent_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *AgentMessage) GetAgentId() string {
@@ -2331,7 +2419,7 @@ type AgentHeartbeat struct {
 
 func (x *AgentHeartbeat) Reset() {
 	*x = AgentHeartbeat{}
-	mi := &file_agent_proto_msgTypes[26]
+	mi := &file_agent_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2343,7 +2431,7 @@ func (x *AgentHeartbeat) String() string {
 func (*AgentHeartbeat) ProtoMessage() {}
 
 func (x *AgentHeartbeat) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[26]
+	mi := &file_agent_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2356,7 +2444,7 @@ func (x *AgentHeartbeat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentHeartbeat.ProtoReflect.Descriptor instead.
 func (*AgentHeartbeat) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{26}
+	return file_agent_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *AgentHeartbeat) GetVersion() string {
@@ -2393,7 +2481,7 @@ type AgentCapabilities struct {
 
 func (x *AgentCapabilities) Reset() {
 	*x = AgentCapabilities{}
-	mi := &file_agent_proto_msgTypes[27]
+	mi := &file_agent_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2405,7 +2493,7 @@ func (x *AgentCapabilities) String() string {
 func (*AgentCapabilities) ProtoMessage() {}
 
 func (x *AgentCapabilities) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[27]
+	mi := &file_agent_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2418,7 +2506,7 @@ func (x *AgentCapabilities) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentCapabilities.ProtoReflect.Descriptor instead.
 func (*AgentCapabilities) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{27}
+	return file_agent_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *AgentCapabilities) GetSupportedCommands() []string {
@@ -2467,7 +2555,7 @@ type AgentStatus struct {
 
 func (x *AgentStatus) Reset() {
 	*x = AgentStatus{}
-	mi := &file_agent_proto_msgTypes[28]
+	mi := &file_agent_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2479,7 +2567,7 @@ func (x *AgentStatus) String() string {
 func (*AgentStatus) ProtoMessage() {}
 
 func (x *AgentStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[28]
+	mi := &file_agent_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2492,7 +2580,7 @@ func (x *AgentStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AgentStatus.ProtoReflect.Descriptor instead.
 func (*AgentStatus) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{28}
+	return file_agent_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *AgentStatus) GetStatus() AgentStatus_Status {
@@ -2529,7 +2617,7 @@ type TaskAssignment struct {
 
 func (x *TaskAssignment) Reset() {
 	*x = TaskAssignment{}
-	mi := &file_agent_proto_msgTypes[29]
+	mi := &file_agent_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2541,7 +2629,7 @@ func (x *TaskAssignment) String() string {
 func (*TaskAssignment) ProtoMessage() {}
 
 func (x *TaskAssignment) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[29]
+	mi := &file_agent_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2554,7 +2642,7 @@ func (x *TaskAssignment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskAssignment.ProtoReflect.Descriptor instead.
 func (*TaskAssignment) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{29}
+	return file_agent_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *TaskAssignment) GetTaskId() string {
@@ -2606,7 +2694,7 @@ type TaskUpdate struct {
 
 func (x *TaskUpdate) Reset() {
 	*x = TaskUpdate{}
-	mi := &file_agent_proto_msgTypes[30]
+	mi := &file_agent_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2618,7 +2706,7 @@ func (x *TaskUpdate) String() string {
 func (*TaskUpdate) ProtoMessage() {}
 
 func (x *TaskUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[30]
+	mi := &file_agent_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2631,7 +2719,7 @@ func (x *TaskUpdate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskUpdate.ProtoReflect.Descriptor instead.
 func (*TaskUpdate) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{30}
+	return file_agent_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *TaskUpdate) GetTaskId() string {
@@ -2689,7 +2777,7 @@ type SystemInfoResponse struct {
 
 func (x *SystemInfoResponse) Reset() {
 	*x = SystemInfoResponse{}
-	mi := &file_agent_proto_msgTypes[31]
+	mi := &file_agent_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2701,7 +2789,7 @@ func (x *SystemInfoResponse) String() string {
 func (*SystemInfoResponse) ProtoMessage() {}
 
 func (x *SystemInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[31]
+	mi := &file_agent_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2714,7 +2802,7 @@ func (x *SystemInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SystemInfoResponse.ProtoReflect.Descriptor instead.
 func (*SystemInfoResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{31}
+	return file_agent_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *SystemInfoResponse) GetHardware() *SystemHardware {
@@ -2759,7 +2847,7 @@ type SystemHardware struct {
 
 func (x *SystemHardware) Reset() {
 	*x = SystemHardware{}
-	mi := &file_agent_proto_msgTypes[32]
+	mi := &file_agent_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2771,7 +2859,7 @@ func (x *SystemHardware) String() string {
 func (*SystemHardware) ProtoMessage() {}
 
 func (x *SystemHardware) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[32]
+	mi := &file_agent_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2784,7 +2872,7 @@ func (x *SystemHardware) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SystemHardware.ProtoReflect.Descriptor instead.
 func (*SystemHardware) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{32}
+	return file_agent_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *SystemHardware) GetCpu() *CpuInfo {
@@ -2843,7 +2931,7 @@ type CpuInfo struct {
 
 func (x *CpuInfo) Reset() {
 	*x = CpuInfo{}
-	mi := &file_agent_proto_msgTypes[33]
+	mi := &file_agent_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2855,7 +2943,7 @@ func (x *CpuInfo) String() string {
 func (*CpuInfo) ProtoMessage() {}
 
 func (x *CpuInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[33]
+	mi := &file_agent_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2868,7 +2956,7 @@ func (x *CpuInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CpuInfo.ProtoReflect.Descriptor instead.
 func (*CpuInfo) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{33}
+	return file_agent_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *CpuInfo) GetModel() string {
@@ -2925,7 +3013,7 @@ type MemoryInfo struct {
 
 func (x *MemoryInfo) Reset() {
 	*x = MemoryInfo{}
-	mi := &file_agent_proto_msgTypes[34]
+	mi := &file_agent_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2937,7 +3025,7 @@ func (x *MemoryInfo) String() string {
 func (*MemoryInfo) ProtoMessage() {}
 
 func (x *MemoryInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[34]
+	mi := &file_agent_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2950,7 +3038,7 @@ func (x *MemoryInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryInfo.ProtoReflect.Descriptor instead.
 func (*MemoryInfo) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{34}
+	return file_agent_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *MemoryInfo) GetTotalBytes() uint64 {
@@ -2995,7 +3083,7 @@ type DiskInfo struct {
 
 func (x *DiskInfo) Reset() {
 	*x = DiskInfo{}
-	mi := &file_agent_proto_msgTypes[35]
+	mi := &file_agent_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3007,7 +3095,7 @@ func (x *DiskInfo) String() string {
 func (*DiskInfo) ProtoMessage() {}
 
 func (x *DiskInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[35]
+	mi := &file_agent_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3020,7 +3108,7 @@ func (x *DiskInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiskInfo.ProtoReflect.Descriptor instead.
 func (*DiskInfo) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{35}
+	return file_agent_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *DiskInfo) GetDevice() string {
@@ -3078,7 +3166,7 @@ type NetworkInterface struct {
 
 func (x *NetworkInterface) Reset() {
 	*x = NetworkInterface{}
-	mi := &file_agent_proto_msgTypes[36]
+	mi := &file_agent_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3090,7 +3178,7 @@ func (x *NetworkInterface) String() string {
 func (*NetworkInterface) ProtoMessage() {}
 
 func (x *NetworkInterface) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[36]
+	mi := &file_agent_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3103,7 +3191,7 @@ func (x *NetworkInterface) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkInterface.ProtoReflect.Descriptor instead.
 func (*NetworkInterface) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{36}
+	return file_agent_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *NetworkInterface) GetName() string {
@@ -3153,7 +3241,7 @@ type SystemSoftware struct {
 
 func (x *SystemSoftware) Reset() {
 	*x = SystemSoftware{}
-	mi := &file_agent_proto_msgTypes[37]
+	mi := &file_agent_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3165,7 +3253,7 @@ func (x *SystemSoftware) String() string {
 func (*SystemSoftware) ProtoMessage() {}
 
 func (x *SystemSoftware) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[37]
+	mi := &file_agent_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3178,7 +3266,7 @@ func (x *SystemSoftware) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SystemSoftware.ProtoReflect.Descriptor instead.
 func (*SystemSoftware) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{37}
+	return file_agent_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *SystemSoftware) GetOs() *OperatingSystem {
@@ -3221,7 +3309,7 @@ type OperatingSystem struct {
 
 func (x *OperatingSystem) Reset() {
 	*x = OperatingSystem{}
-	mi := &file_agent_proto_msgTypes[38]
+	mi := &file_agent_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3233,7 +3321,7 @@ func (x *OperatingSystem) String() string {
 func (*OperatingSystem) ProtoMessage() {}
 
 func (x *OperatingSystem) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[38]
+	mi := &file_agent_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3246,7 +3334,7 @@ func (x *OperatingSystem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OperatingSystem.ProtoReflect.Descriptor instead.
 func (*OperatingSystem) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{38}
+	return file_agent_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *OperatingSystem) GetName() string {
@@ -3288,7 +3376,7 @@ type InstalledPackage struct {
 
 func (x *InstalledPackage) Reset() {
 	*x = InstalledPackage{}
-	mi := &file_agent_proto_msgTypes[39]
+	mi := &file_agent_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3300,7 +3388,7 @@ func (x *InstalledPackage) String() string {
 func (*InstalledPackage) ProtoMessage() {}
 
 func (x *InstalledPackage) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[39]
+	mi := &file_agent_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3313,7 +3401,7 @@ func (x *InstalledPackage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstalledPackage.ProtoReflect.Descriptor instead.
 func (*InstalledPackage) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{39}
+	return file_agent_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *InstalledPackage) GetName() string {
@@ -3353,7 +3441,7 @@ type MetricsDataResponse struct {
 
 func (x *MetricsDataResponse) Reset() {
 	*x = MetricsDataResponse{}
-	mi := &file_agent_proto_msgTypes[40]
+	mi := &file_agent_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3365,7 +3453,7 @@ func (x *MetricsDataResponse) String() string {
 func (*MetricsDataResponse) ProtoMessage() {}
 
 func (x *MetricsDataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[40]
+	mi := &file_agent_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3378,7 +3466,7 @@ func (x *MetricsDataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsDataResponse.ProtoReflect.Descriptor instead.
 func (*MetricsDataResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{40}
+	return file_agent_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *MetricsDataResponse) GetTimestamp() uint64 {
@@ -3445,7 +3533,7 @@ type CpuMetrics struct {
 
 func (x *CpuMetrics) Reset() {
 	*x = CpuMetrics{}
-	mi := &file_agent_proto_msgTypes[41]
+	mi := &file_agent_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3457,7 +3545,7 @@ func (x *CpuMetrics) String() string {
 func (*CpuMetrics) ProtoMessage() {}
 
 func (x *CpuMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[41]
+	mi := &file_agent_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3470,7 +3558,7 @@ func (x *CpuMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CpuMetrics.ProtoReflect.Descriptor instead.
 func (*CpuMetrics) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{41}
+	return file_agent_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *CpuMetrics) GetUsagePercent() float64 {
@@ -3541,7 +3629,7 @@ type MemoryMetrics struct {
 
 func (x *MemoryMetrics) Reset() {
 	*x = MemoryMetrics{}
-	mi := &file_agent_proto_msgTypes[42]
+	mi := &file_agent_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3553,7 +3641,7 @@ func (x *MemoryMetrics) String() string {
 func (*MemoryMetrics) ProtoMessage() {}
 
 func (x *MemoryMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[42]
+	mi := &file_agent_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3566,7 +3654,7 @@ func (x *MemoryMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryMetrics.ProtoReflect.Descriptor instead.
 func (*MemoryMetrics) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{42}
+	return file_agent_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *MemoryMetrics) GetTotalBytes() uint64 {
@@ -3665,7 +3753,7 @@ type DiskMetrics struct {
 
 func (x *DiskMetrics) Reset() {
 	*x = DiskMetrics{}
-	mi := &file_agent_proto_msgTypes[43]
+	mi := &file_agent_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3677,7 +3765,7 @@ func (x *DiskMetrics) String() string {
 func (*DiskMetrics) ProtoMessage() {}
 
 func (x *DiskMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[43]
+	mi := &file_agent_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3690,7 +3778,7 @@ func (x *DiskMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiskMetrics.ProtoReflect.Descriptor instead.
 func (*DiskMetrics) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{43}
+	return file_agent_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *DiskMetrics) GetDevice() string {
@@ -3787,7 +3875,7 @@ type NetworkMetrics struct {
 
 func (x *NetworkMetrics) Reset() {
 	*x = NetworkMetrics{}
-	mi := &file_agent_proto_msgTypes[44]
+	mi := &file_agent_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3799,7 +3887,7 @@ func (x *NetworkMetrics) String() string {
 func (*NetworkMetrics) ProtoMessage() {}
 
 func (x *NetworkMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[44]
+	mi := &file_agent_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3812,7 +3900,7 @@ func (x *NetworkMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkMetrics.ProtoReflect.Descriptor instead.
 func (*NetworkMetrics) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{44}
+	return file_agent_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *NetworkMetrics) GetInterface() string {
@@ -3891,7 +3979,7 @@ type ProcessMetrics struct {
 
 func (x *ProcessMetrics) Reset() {
 	*x = ProcessMetrics{}
-	mi := &file_agent_proto_msgTypes[45]
+	mi := &file_agent_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3903,7 +3991,7 @@ func (x *ProcessMetrics) String() string {
 func (*ProcessMetrics) ProtoMessage() {}
 
 func (x *ProcessMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[45]
+	mi := &file_agent_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3916,7 +4004,7 @@ func (x *ProcessMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProcessMetrics.ProtoReflect.Descriptor instead.
 func (*ProcessMetrics) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{45}
+	return file_agent_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *ProcessMetrics) GetTotalProcesses() uint32 {
@@ -3970,7 +4058,7 @@ type TaskProcessMetrics struct {
 
 func (x *TaskProcessMetrics) Reset() {
 	*x = TaskProcessMetrics{}
-	mi := &file_agent_proto_msgTypes[46]
+	mi := &file_agent_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3982,7 +4070,7 @@ func (x *TaskProcessMetrics) String() string {
 func (*TaskProcessMetrics) ProtoMessage() {}
 
 func (x *TaskProcessMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[46]
+	mi := &file_agent_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3995,7 +4083,7 @@ func (x *TaskProcessMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskProcessMetrics.ProtoReflect.Descriptor instead.
 func (*TaskProcessMetrics) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{46}
+	return file_agent_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *TaskProcessMetrics) GetTaskId() string {
@@ -4065,7 +4153,7 @@ type LoadMetrics struct {
 
 func (x *LoadMetrics) Reset() {
 	*x = LoadMetrics{}
-	mi := &file_agent_proto_msgTypes[47]
+	mi := &file_agent_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4077,7 +4165,7 @@ func (x *LoadMetrics) String() string {
 func (*LoadMetrics) ProtoMessage() {}
 
 func (x *LoadMetrics) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[47]
+	mi := &file_agent_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4090,7 +4178,7 @@ func (x *LoadMetrics) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoadMetrics.ProtoReflect.Descriptor instead.
 func (*LoadMetrics) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{47}
+	return file_agent_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *LoadMetrics) GetLoad1() float64 {
@@ -4128,7 +4216,7 @@ type MetricsQueryResponse struct {
 
 func (x *MetricsQueryResponse) Reset() {
 	*x = MetricsQueryResponse{}
-	mi := &file_agent_proto_msgTypes[48]
+	mi := &file_agent_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4140,7 +4228,7 @@ func (x *MetricsQueryResponse) String() string {
 func (*MetricsQueryResponse) ProtoMessage() {}
 
 func (x *MetricsQueryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[48]
+	mi := &file_agent_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4153,7 +4241,7 @@ func (x *MetricsQueryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsQueryResponse.ProtoReflect.Descriptor instead.
 func (*MetricsQueryResponse) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{48}
+	return file_agent_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *MetricsQueryResponse) GetDataPoints() []*MetricsTimePoint {
@@ -4201,7 +4289,7 @@ type MetricsTimePoint struct {
 
 func (x *MetricsTimePoint) Reset() {
 	*x = MetricsTimePoint{}
-	mi := &file_agent_proto_msgTypes[49]
+	mi := &file_agent_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4213,7 +4301,7 @@ func (x *MetricsTimePoint) String() string {
 func (*MetricsTimePoint) ProtoMessage() {}
 
 func (x *MetricsTimePoint) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_proto_msgTypes[49]
+	mi := &file_agent_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4226,7 +4314,7 @@ func (x *MetricsTimePoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetricsTimePoint.ProtoReflect.Descriptor instead.
 func (*MetricsTimePoint) Descriptor() ([]byte, []int) {
-	return file_agent_proto_rawDescGZIP(), []int{49}
+	return file_agent_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *MetricsTimePoint) GetTimestamp() uint64 {
@@ -4247,7 +4335,12 @@ var File_agent_proto protoreflect.FileDescriptor
 
 const file_agent_proto_rawDesc = "" +
 	"\n" +
-	"\vagent.proto\x12\x02pb\"L\n" +
+	"\vagent.proto\x12\x02pb\"$\n" +
+	"\x04Ping\x12\x1c\n" +
+	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\"K\n" +
+	"\x04Pong\x12\x1c\n" +
+	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\x12%\n" +
+	"\x0eping_timestamp\x18\x02 \x01(\x03R\rpingTimestamp\"L\n" +
 	"\tHeartbeat\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12%\n" +
 	"\x0euptime_seconds\x18\x02 \x01(\x03R\ruptimeSeconds\"\xdb\x01\n" +
@@ -4258,10 +4351,9 @@ const file_agent_proto_rawDesc = "" +
 	"\x04ping\x18\x03 \x01(\v2\x0f.pb.PingMessageH\x00R\x04ping\x12\"\n" +
 	"\x03ack\x18\x04 \x01(\v2\x0e.pb.AckMessageH\x00R\x03ack\x127\n" +
 	"\rconfig_update\x18\x05 \x01(\v2\x10.pb.ConfigUpdateH\x00R\fconfigUpdateB\t\n" +
-	"\amessage\"I\n" +
+	"\amessage\"+\n" +
 	"\vPingMessage\x12\x1c\n" +
-	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\x12\x1c\n" +
-	"\tchallenge\x18\x02 \x01(\tR\tchallenge\"\x8a\x01\n" +
+	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\"\x8a\x01\n" +
 	"\vPongMessage\x12%\n" +
 	"\x0eping_timestamp\x18\x01 \x01(\x03R\rpingTimestamp\x12-\n" +
 	"\x12challenge_response\x18\x02 \x01(\tR\x11challengeResponse\x12%\n" +
@@ -4630,7 +4722,7 @@ const file_agent_proto_rawDesc = "" +
 	"\x06values\x18\x02 \x03(\v2 .pb.MetricsTimePoint.ValuesEntryR\x06values\x1a9\n" +
 	"\vValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x01R\x05value:\x028\x012\x88\x04\n" +
+	"\x05value\x18\x02 \x01(\x01R\x05value:\x028\x012\xf6\x03\n" +
 	"\fAgentService\x129\n" +
 	"\x0eExecuteCommand\x12\x12.pb.CommandRequest\x1a\x13.pb.CommandResponse\x12>\n" +
 	"\rGetSystemInfo\x12\x15.pb.SystemInfoRequest\x1a\x16.pb.SystemInfoResponse\x125\n" +
@@ -4639,8 +4731,8 @@ const file_agent_proto_rawDesc = "" +
 	"CancelTask\x12\x15.pb.TaskCancelRequest\x1a\x16.pb.TaskCancelResponse\x12@\n" +
 	"\rStreamCommand\x12\x12.pb.CommandRequest\x1a\x19.pb.CommandStreamResponse0\x01\x12C\n" +
 	"\x10StreamDockerLogs\x12\x15.pb.DockerLogsRequest\x1a\x16.pb.DockerLogsResponse0\x01\x12F\n" +
-	"\rStreamMetrics\x12\x18.pb.MetricsStreamRequest\x1a\x19.pb.MetricsStreamResponse0\x01\x12:\n" +
-	"\x0fHeartbeatStream\x12\x10.pb.AgentMessage\x1a\x11.pb.ServerMessage(\x010\x01B'Z%github.com/mooncorn/nodelink/proto/pbb\x06proto3"
+	"\rStreamMetrics\x12\x18.pb.MetricsStreamRequest\x1a\x19.pb.MetricsStreamResponse0\x01\x12(\n" +
+	"\x0eStreamPingPong\x12\b.pb.Pong\x1a\b.pb.Ping(\x010\x01B'Z%github.com/mooncorn/nodelink/proto/pbb\x06proto3"
 
 var (
 	file_agent_proto_rawDescOnce sync.Once
@@ -4655,139 +4747,141 @@ func file_agent_proto_rawDescGZIP() []byte {
 }
 
 var file_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 56)
+var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 58)
 var file_agent_proto_goTypes = []any{
 	(CommandStreamResponse_StreamType)(0), // 0: pb.CommandStreamResponse.StreamType
 	(MetricsStreamRequest_Action)(0),      // 1: pb.MetricsStreamRequest.Action
 	(AgentStatus_Status)(0),               // 2: pb.AgentStatus.Status
 	(TaskUpdate_TaskStatus)(0),            // 3: pb.TaskUpdate.TaskStatus
-	(*Heartbeat)(nil),                     // 4: pb.Heartbeat
-	(*ServerMessage)(nil),                 // 5: pb.ServerMessage
-	(*PingMessage)(nil),                   // 6: pb.PingMessage
-	(*PongMessage)(nil),                   // 7: pb.PongMessage
-	(*AckMessage)(nil),                    // 8: pb.AckMessage
-	(*ConfigUpdate)(nil),                  // 9: pb.ConfigUpdate
-	(*RequestMetadata)(nil),               // 10: pb.RequestMetadata
-	(*CommandRequest)(nil),                // 11: pb.CommandRequest
-	(*CommandResponse)(nil),               // 12: pb.CommandResponse
-	(*CommandStreamResponse)(nil),         // 13: pb.CommandStreamResponse
-	(*DockerRequest)(nil),                 // 14: pb.DockerRequest
-	(*DockerRunRequest)(nil),              // 15: pb.DockerRunRequest
-	(*DockerStopRequest)(nil),             // 16: pb.DockerStopRequest
-	(*DockerStartRequest)(nil),            // 17: pb.DockerStartRequest
-	(*DockerInspectRequest)(nil),          // 18: pb.DockerInspectRequest
-	(*DockerResponse)(nil),                // 19: pb.DockerResponse
-	(*DockerRunResult)(nil),               // 20: pb.DockerRunResult
-	(*DockerContainerInfo)(nil),           // 21: pb.DockerContainerInfo
-	(*DockerLogsRequest)(nil),             // 22: pb.DockerLogsRequest
-	(*DockerLogsResponse)(nil),            // 23: pb.DockerLogsResponse
-	(*SystemInfoRequest)(nil),             // 24: pb.SystemInfoRequest
-	(*MetricsStreamRequest)(nil),          // 25: pb.MetricsStreamRequest
-	(*MetricsStreamResponse)(nil),         // 26: pb.MetricsStreamResponse
-	(*TaskCancelRequest)(nil),             // 27: pb.TaskCancelRequest
-	(*TaskCancelResponse)(nil),            // 28: pb.TaskCancelResponse
-	(*AgentMessage)(nil),                  // 29: pb.AgentMessage
-	(*AgentHeartbeat)(nil),                // 30: pb.AgentHeartbeat
-	(*AgentCapabilities)(nil),             // 31: pb.AgentCapabilities
-	(*AgentStatus)(nil),                   // 32: pb.AgentStatus
-	(*TaskAssignment)(nil),                // 33: pb.TaskAssignment
-	(*TaskUpdate)(nil),                    // 34: pb.TaskUpdate
-	(*SystemInfoResponse)(nil),            // 35: pb.SystemInfoResponse
-	(*SystemHardware)(nil),                // 36: pb.SystemHardware
-	(*CpuInfo)(nil),                       // 37: pb.CpuInfo
-	(*MemoryInfo)(nil),                    // 38: pb.MemoryInfo
-	(*DiskInfo)(nil),                      // 39: pb.DiskInfo
-	(*NetworkInterface)(nil),              // 40: pb.NetworkInterface
-	(*SystemSoftware)(nil),                // 41: pb.SystemSoftware
-	(*OperatingSystem)(nil),               // 42: pb.OperatingSystem
-	(*InstalledPackage)(nil),              // 43: pb.InstalledPackage
-	(*MetricsDataResponse)(nil),           // 44: pb.MetricsDataResponse
-	(*CpuMetrics)(nil),                    // 45: pb.CpuMetrics
-	(*MemoryMetrics)(nil),                 // 46: pb.MemoryMetrics
-	(*DiskMetrics)(nil),                   // 47: pb.DiskMetrics
-	(*NetworkMetrics)(nil),                // 48: pb.NetworkMetrics
-	(*ProcessMetrics)(nil),                // 49: pb.ProcessMetrics
-	(*TaskProcessMetrics)(nil),            // 50: pb.TaskProcessMetrics
-	(*LoadMetrics)(nil),                   // 51: pb.LoadMetrics
-	(*MetricsQueryResponse)(nil),          // 52: pb.MetricsQueryResponse
-	(*MetricsTimePoint)(nil),              // 53: pb.MetricsTimePoint
-	nil,                                   // 54: pb.ConfigUpdate.SettingsEntry
-	nil,                                   // 55: pb.RequestMetadata.LabelsEntry
-	nil,                                   // 56: pb.CommandRequest.EnvironmentEntry
-	nil,                                   // 57: pb.DockerRunRequest.EnvironmentEntry
-	nil,                                   // 58: pb.MetricsStreamRequest.FiltersEntry
-	nil,                                   // 59: pb.MetricsTimePoint.ValuesEntry
+	(*Ping)(nil),                          // 4: pb.Ping
+	(*Pong)(nil),                          // 5: pb.Pong
+	(*Heartbeat)(nil),                     // 6: pb.Heartbeat
+	(*ServerMessage)(nil),                 // 7: pb.ServerMessage
+	(*PingMessage)(nil),                   // 8: pb.PingMessage
+	(*PongMessage)(nil),                   // 9: pb.PongMessage
+	(*AckMessage)(nil),                    // 10: pb.AckMessage
+	(*ConfigUpdate)(nil),                  // 11: pb.ConfigUpdate
+	(*RequestMetadata)(nil),               // 12: pb.RequestMetadata
+	(*CommandRequest)(nil),                // 13: pb.CommandRequest
+	(*CommandResponse)(nil),               // 14: pb.CommandResponse
+	(*CommandStreamResponse)(nil),         // 15: pb.CommandStreamResponse
+	(*DockerRequest)(nil),                 // 16: pb.DockerRequest
+	(*DockerRunRequest)(nil),              // 17: pb.DockerRunRequest
+	(*DockerStopRequest)(nil),             // 18: pb.DockerStopRequest
+	(*DockerStartRequest)(nil),            // 19: pb.DockerStartRequest
+	(*DockerInspectRequest)(nil),          // 20: pb.DockerInspectRequest
+	(*DockerResponse)(nil),                // 21: pb.DockerResponse
+	(*DockerRunResult)(nil),               // 22: pb.DockerRunResult
+	(*DockerContainerInfo)(nil),           // 23: pb.DockerContainerInfo
+	(*DockerLogsRequest)(nil),             // 24: pb.DockerLogsRequest
+	(*DockerLogsResponse)(nil),            // 25: pb.DockerLogsResponse
+	(*SystemInfoRequest)(nil),             // 26: pb.SystemInfoRequest
+	(*MetricsStreamRequest)(nil),          // 27: pb.MetricsStreamRequest
+	(*MetricsStreamResponse)(nil),         // 28: pb.MetricsStreamResponse
+	(*TaskCancelRequest)(nil),             // 29: pb.TaskCancelRequest
+	(*TaskCancelResponse)(nil),            // 30: pb.TaskCancelResponse
+	(*AgentMessage)(nil),                  // 31: pb.AgentMessage
+	(*AgentHeartbeat)(nil),                // 32: pb.AgentHeartbeat
+	(*AgentCapabilities)(nil),             // 33: pb.AgentCapabilities
+	(*AgentStatus)(nil),                   // 34: pb.AgentStatus
+	(*TaskAssignment)(nil),                // 35: pb.TaskAssignment
+	(*TaskUpdate)(nil),                    // 36: pb.TaskUpdate
+	(*SystemInfoResponse)(nil),            // 37: pb.SystemInfoResponse
+	(*SystemHardware)(nil),                // 38: pb.SystemHardware
+	(*CpuInfo)(nil),                       // 39: pb.CpuInfo
+	(*MemoryInfo)(nil),                    // 40: pb.MemoryInfo
+	(*DiskInfo)(nil),                      // 41: pb.DiskInfo
+	(*NetworkInterface)(nil),              // 42: pb.NetworkInterface
+	(*SystemSoftware)(nil),                // 43: pb.SystemSoftware
+	(*OperatingSystem)(nil),               // 44: pb.OperatingSystem
+	(*InstalledPackage)(nil),              // 45: pb.InstalledPackage
+	(*MetricsDataResponse)(nil),           // 46: pb.MetricsDataResponse
+	(*CpuMetrics)(nil),                    // 47: pb.CpuMetrics
+	(*MemoryMetrics)(nil),                 // 48: pb.MemoryMetrics
+	(*DiskMetrics)(nil),                   // 49: pb.DiskMetrics
+	(*NetworkMetrics)(nil),                // 50: pb.NetworkMetrics
+	(*ProcessMetrics)(nil),                // 51: pb.ProcessMetrics
+	(*TaskProcessMetrics)(nil),            // 52: pb.TaskProcessMetrics
+	(*LoadMetrics)(nil),                   // 53: pb.LoadMetrics
+	(*MetricsQueryResponse)(nil),          // 54: pb.MetricsQueryResponse
+	(*MetricsTimePoint)(nil),              // 55: pb.MetricsTimePoint
+	nil,                                   // 56: pb.ConfigUpdate.SettingsEntry
+	nil,                                   // 57: pb.RequestMetadata.LabelsEntry
+	nil,                                   // 58: pb.CommandRequest.EnvironmentEntry
+	nil,                                   // 59: pb.DockerRunRequest.EnvironmentEntry
+	nil,                                   // 60: pb.MetricsStreamRequest.FiltersEntry
+	nil,                                   // 61: pb.MetricsTimePoint.ValuesEntry
 }
 var file_agent_proto_depIdxs = []int32{
-	6,  // 0: pb.ServerMessage.ping:type_name -> pb.PingMessage
-	8,  // 1: pb.ServerMessage.ack:type_name -> pb.AckMessage
-	9,  // 2: pb.ServerMessage.config_update:type_name -> pb.ConfigUpdate
-	54, // 3: pb.ConfigUpdate.settings:type_name -> pb.ConfigUpdate.SettingsEntry
-	55, // 4: pb.RequestMetadata.labels:type_name -> pb.RequestMetadata.LabelsEntry
-	10, // 5: pb.CommandRequest.metadata:type_name -> pb.RequestMetadata
-	56, // 6: pb.CommandRequest.environment:type_name -> pb.CommandRequest.EnvironmentEntry
+	8,  // 0: pb.ServerMessage.ping:type_name -> pb.PingMessage
+	10, // 1: pb.ServerMessage.ack:type_name -> pb.AckMessage
+	11, // 2: pb.ServerMessage.config_update:type_name -> pb.ConfigUpdate
+	56, // 3: pb.ConfigUpdate.settings:type_name -> pb.ConfigUpdate.SettingsEntry
+	57, // 4: pb.RequestMetadata.labels:type_name -> pb.RequestMetadata.LabelsEntry
+	12, // 5: pb.CommandRequest.metadata:type_name -> pb.RequestMetadata
+	58, // 6: pb.CommandRequest.environment:type_name -> pb.CommandRequest.EnvironmentEntry
 	0,  // 7: pb.CommandStreamResponse.type:type_name -> pb.CommandStreamResponse.StreamType
-	10, // 8: pb.DockerRequest.metadata:type_name -> pb.RequestMetadata
-	15, // 9: pb.DockerRequest.run:type_name -> pb.DockerRunRequest
-	16, // 10: pb.DockerRequest.stop:type_name -> pb.DockerStopRequest
-	17, // 11: pb.DockerRequest.start:type_name -> pb.DockerStartRequest
-	18, // 12: pb.DockerRequest.inspect:type_name -> pb.DockerInspectRequest
-	57, // 13: pb.DockerRunRequest.environment:type_name -> pb.DockerRunRequest.EnvironmentEntry
-	20, // 14: pb.DockerResponse.run_result:type_name -> pb.DockerRunResult
-	21, // 15: pb.DockerResponse.container_info:type_name -> pb.DockerContainerInfo
-	10, // 16: pb.DockerLogsRequest.metadata:type_name -> pb.RequestMetadata
-	10, // 17: pb.SystemInfoRequest.metadata:type_name -> pb.RequestMetadata
-	10, // 18: pb.MetricsStreamRequest.metadata:type_name -> pb.RequestMetadata
+	12, // 8: pb.DockerRequest.metadata:type_name -> pb.RequestMetadata
+	17, // 9: pb.DockerRequest.run:type_name -> pb.DockerRunRequest
+	18, // 10: pb.DockerRequest.stop:type_name -> pb.DockerStopRequest
+	19, // 11: pb.DockerRequest.start:type_name -> pb.DockerStartRequest
+	20, // 12: pb.DockerRequest.inspect:type_name -> pb.DockerInspectRequest
+	59, // 13: pb.DockerRunRequest.environment:type_name -> pb.DockerRunRequest.EnvironmentEntry
+	22, // 14: pb.DockerResponse.run_result:type_name -> pb.DockerRunResult
+	23, // 15: pb.DockerResponse.container_info:type_name -> pb.DockerContainerInfo
+	12, // 16: pb.DockerLogsRequest.metadata:type_name -> pb.RequestMetadata
+	12, // 17: pb.SystemInfoRequest.metadata:type_name -> pb.RequestMetadata
+	12, // 18: pb.MetricsStreamRequest.metadata:type_name -> pb.RequestMetadata
 	1,  // 19: pb.MetricsStreamRequest.action:type_name -> pb.MetricsStreamRequest.Action
-	58, // 20: pb.MetricsStreamRequest.filters:type_name -> pb.MetricsStreamRequest.FiltersEntry
-	45, // 21: pb.MetricsStreamResponse.cpu:type_name -> pb.CpuMetrics
-	46, // 22: pb.MetricsStreamResponse.memory:type_name -> pb.MemoryMetrics
-	47, // 23: pb.MetricsStreamResponse.disk:type_name -> pb.DiskMetrics
-	48, // 24: pb.MetricsStreamResponse.network:type_name -> pb.NetworkMetrics
-	49, // 25: pb.MetricsStreamResponse.processes:type_name -> pb.ProcessMetrics
-	51, // 26: pb.MetricsStreamResponse.load:type_name -> pb.LoadMetrics
-	10, // 27: pb.TaskCancelRequest.metadata:type_name -> pb.RequestMetadata
-	30, // 28: pb.AgentMessage.heartbeat:type_name -> pb.AgentHeartbeat
-	31, // 29: pb.AgentMessage.capabilities:type_name -> pb.AgentCapabilities
-	32, // 30: pb.AgentMessage.status:type_name -> pb.AgentStatus
-	33, // 31: pb.AgentMessage.task_assignment:type_name -> pb.TaskAssignment
-	34, // 32: pb.AgentMessage.task_update:type_name -> pb.TaskUpdate
-	7,  // 33: pb.AgentMessage.pong:type_name -> pb.PongMessage
+	60, // 20: pb.MetricsStreamRequest.filters:type_name -> pb.MetricsStreamRequest.FiltersEntry
+	47, // 21: pb.MetricsStreamResponse.cpu:type_name -> pb.CpuMetrics
+	48, // 22: pb.MetricsStreamResponse.memory:type_name -> pb.MemoryMetrics
+	49, // 23: pb.MetricsStreamResponse.disk:type_name -> pb.DiskMetrics
+	50, // 24: pb.MetricsStreamResponse.network:type_name -> pb.NetworkMetrics
+	51, // 25: pb.MetricsStreamResponse.processes:type_name -> pb.ProcessMetrics
+	53, // 26: pb.MetricsStreamResponse.load:type_name -> pb.LoadMetrics
+	12, // 27: pb.TaskCancelRequest.metadata:type_name -> pb.RequestMetadata
+	32, // 28: pb.AgentMessage.heartbeat:type_name -> pb.AgentHeartbeat
+	33, // 29: pb.AgentMessage.capabilities:type_name -> pb.AgentCapabilities
+	34, // 30: pb.AgentMessage.status:type_name -> pb.AgentStatus
+	35, // 31: pb.AgentMessage.task_assignment:type_name -> pb.TaskAssignment
+	36, // 32: pb.AgentMessage.task_update:type_name -> pb.TaskUpdate
+	9,  // 33: pb.AgentMessage.pong:type_name -> pb.PongMessage
 	2,  // 34: pb.AgentStatus.status:type_name -> pb.AgentStatus.Status
 	3,  // 35: pb.TaskUpdate.status:type_name -> pb.TaskUpdate.TaskStatus
-	36, // 36: pb.SystemInfoResponse.hardware:type_name -> pb.SystemHardware
-	41, // 37: pb.SystemInfoResponse.software:type_name -> pb.SystemSoftware
-	40, // 38: pb.SystemInfoResponse.network_interfaces:type_name -> pb.NetworkInterface
-	37, // 39: pb.SystemHardware.cpu:type_name -> pb.CpuInfo
-	38, // 40: pb.SystemHardware.memory:type_name -> pb.MemoryInfo
-	39, // 41: pb.SystemHardware.disks:type_name -> pb.DiskInfo
-	42, // 42: pb.SystemSoftware.os:type_name -> pb.OperatingSystem
-	43, // 43: pb.SystemSoftware.packages:type_name -> pb.InstalledPackage
-	45, // 44: pb.MetricsDataResponse.cpu:type_name -> pb.CpuMetrics
-	46, // 45: pb.MetricsDataResponse.memory:type_name -> pb.MemoryMetrics
-	47, // 46: pb.MetricsDataResponse.disks:type_name -> pb.DiskMetrics
-	48, // 47: pb.MetricsDataResponse.network_interfaces:type_name -> pb.NetworkMetrics
-	49, // 48: pb.MetricsDataResponse.processes:type_name -> pb.ProcessMetrics
-	51, // 49: pb.MetricsDataResponse.load:type_name -> pb.LoadMetrics
-	50, // 50: pb.ProcessMetrics.task_processes:type_name -> pb.TaskProcessMetrics
-	53, // 51: pb.MetricsQueryResponse.data_points:type_name -> pb.MetricsTimePoint
-	59, // 52: pb.MetricsTimePoint.values:type_name -> pb.MetricsTimePoint.ValuesEntry
-	11, // 53: pb.AgentService.ExecuteCommand:input_type -> pb.CommandRequest
-	24, // 54: pb.AgentService.GetSystemInfo:input_type -> pb.SystemInfoRequest
-	14, // 55: pb.AgentService.ManageDocker:input_type -> pb.DockerRequest
-	27, // 56: pb.AgentService.CancelTask:input_type -> pb.TaskCancelRequest
-	11, // 57: pb.AgentService.StreamCommand:input_type -> pb.CommandRequest
-	22, // 58: pb.AgentService.StreamDockerLogs:input_type -> pb.DockerLogsRequest
-	25, // 59: pb.AgentService.StreamMetrics:input_type -> pb.MetricsStreamRequest
-	29, // 60: pb.AgentService.HeartbeatStream:input_type -> pb.AgentMessage
-	12, // 61: pb.AgentService.ExecuteCommand:output_type -> pb.CommandResponse
-	35, // 62: pb.AgentService.GetSystemInfo:output_type -> pb.SystemInfoResponse
-	19, // 63: pb.AgentService.ManageDocker:output_type -> pb.DockerResponse
-	28, // 64: pb.AgentService.CancelTask:output_type -> pb.TaskCancelResponse
-	13, // 65: pb.AgentService.StreamCommand:output_type -> pb.CommandStreamResponse
-	23, // 66: pb.AgentService.StreamDockerLogs:output_type -> pb.DockerLogsResponse
-	26, // 67: pb.AgentService.StreamMetrics:output_type -> pb.MetricsStreamResponse
-	5,  // 68: pb.AgentService.HeartbeatStream:output_type -> pb.ServerMessage
+	38, // 36: pb.SystemInfoResponse.hardware:type_name -> pb.SystemHardware
+	43, // 37: pb.SystemInfoResponse.software:type_name -> pb.SystemSoftware
+	42, // 38: pb.SystemInfoResponse.network_interfaces:type_name -> pb.NetworkInterface
+	39, // 39: pb.SystemHardware.cpu:type_name -> pb.CpuInfo
+	40, // 40: pb.SystemHardware.memory:type_name -> pb.MemoryInfo
+	41, // 41: pb.SystemHardware.disks:type_name -> pb.DiskInfo
+	44, // 42: pb.SystemSoftware.os:type_name -> pb.OperatingSystem
+	45, // 43: pb.SystemSoftware.packages:type_name -> pb.InstalledPackage
+	47, // 44: pb.MetricsDataResponse.cpu:type_name -> pb.CpuMetrics
+	48, // 45: pb.MetricsDataResponse.memory:type_name -> pb.MemoryMetrics
+	49, // 46: pb.MetricsDataResponse.disks:type_name -> pb.DiskMetrics
+	50, // 47: pb.MetricsDataResponse.network_interfaces:type_name -> pb.NetworkMetrics
+	51, // 48: pb.MetricsDataResponse.processes:type_name -> pb.ProcessMetrics
+	53, // 49: pb.MetricsDataResponse.load:type_name -> pb.LoadMetrics
+	52, // 50: pb.ProcessMetrics.task_processes:type_name -> pb.TaskProcessMetrics
+	55, // 51: pb.MetricsQueryResponse.data_points:type_name -> pb.MetricsTimePoint
+	61, // 52: pb.MetricsTimePoint.values:type_name -> pb.MetricsTimePoint.ValuesEntry
+	13, // 53: pb.AgentService.ExecuteCommand:input_type -> pb.CommandRequest
+	26, // 54: pb.AgentService.GetSystemInfo:input_type -> pb.SystemInfoRequest
+	16, // 55: pb.AgentService.ManageDocker:input_type -> pb.DockerRequest
+	29, // 56: pb.AgentService.CancelTask:input_type -> pb.TaskCancelRequest
+	13, // 57: pb.AgentService.StreamCommand:input_type -> pb.CommandRequest
+	24, // 58: pb.AgentService.StreamDockerLogs:input_type -> pb.DockerLogsRequest
+	27, // 59: pb.AgentService.StreamMetrics:input_type -> pb.MetricsStreamRequest
+	5,  // 60: pb.AgentService.StreamPingPong:input_type -> pb.Pong
+	14, // 61: pb.AgentService.ExecuteCommand:output_type -> pb.CommandResponse
+	37, // 62: pb.AgentService.GetSystemInfo:output_type -> pb.SystemInfoResponse
+	21, // 63: pb.AgentService.ManageDocker:output_type -> pb.DockerResponse
+	30, // 64: pb.AgentService.CancelTask:output_type -> pb.TaskCancelResponse
+	15, // 65: pb.AgentService.StreamCommand:output_type -> pb.CommandStreamResponse
+	25, // 66: pb.AgentService.StreamDockerLogs:output_type -> pb.DockerLogsResponse
+	28, // 67: pb.AgentService.StreamMetrics:output_type -> pb.MetricsStreamResponse
+	4,  // 68: pb.AgentService.StreamPingPong:output_type -> pb.Ping
 	61, // [61:69] is the sub-list for method output_type
 	53, // [53:61] is the sub-list for method input_type
 	53, // [53:53] is the sub-list for extension type_name
@@ -4800,22 +4894,22 @@ func file_agent_proto_init() {
 	if File_agent_proto != nil {
 		return
 	}
-	file_agent_proto_msgTypes[1].OneofWrappers = []any{
+	file_agent_proto_msgTypes[3].OneofWrappers = []any{
 		(*ServerMessage_Ping)(nil),
 		(*ServerMessage_Ack)(nil),
 		(*ServerMessage_ConfigUpdate)(nil),
 	}
-	file_agent_proto_msgTypes[10].OneofWrappers = []any{
+	file_agent_proto_msgTypes[12].OneofWrappers = []any{
 		(*DockerRequest_Run)(nil),
 		(*DockerRequest_Stop)(nil),
 		(*DockerRequest_Start)(nil),
 		(*DockerRequest_Inspect)(nil),
 	}
-	file_agent_proto_msgTypes[15].OneofWrappers = []any{
+	file_agent_proto_msgTypes[17].OneofWrappers = []any{
 		(*DockerResponse_RunResult)(nil),
 		(*DockerResponse_ContainerInfo)(nil),
 	}
-	file_agent_proto_msgTypes[22].OneofWrappers = []any{
+	file_agent_proto_msgTypes[24].OneofWrappers = []any{
 		(*MetricsStreamResponse_Cpu)(nil),
 		(*MetricsStreamResponse_Memory)(nil),
 		(*MetricsStreamResponse_Disk)(nil),
@@ -4823,7 +4917,7 @@ func file_agent_proto_init() {
 		(*MetricsStreamResponse_Processes)(nil),
 		(*MetricsStreamResponse_Load)(nil),
 	}
-	file_agent_proto_msgTypes[25].OneofWrappers = []any{
+	file_agent_proto_msgTypes[27].OneofWrappers = []any{
 		(*AgentMessage_Heartbeat)(nil),
 		(*AgentMessage_Capabilities)(nil),
 		(*AgentMessage_Status)(nil),
@@ -4837,7 +4931,7 @@ func file_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_proto_rawDesc), len(file_agent_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   56,
+			NumMessages:   58,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -5,16 +5,10 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
 	"github.com/mooncorn/nodelink/agent/pkg/grpc"
 )
-
-// Track running tasks to enable cancellation
-var runningTasks = make(map[string]*os.Process)
-var cancelledTasks = make(map[string]bool)
-var tasksMutex sync.RWMutex
 
 func main() {
 	agentID := flag.String("agent_id", "", "Agent ID")
@@ -24,7 +18,7 @@ func main() {
 	log.Println("Starting Agent...")
 
 	// Create grpc client
-	client, err := grpc.NewHeartbeatClient("localhost:9090")
+	client, err := grpc.NewPingPongClient("localhost:9090")
 	if err != nil {
 		log.Fatalf("Failed to create grpc client: %v", err)
 	}

@@ -34,6 +34,7 @@ Nodelink is a distributed task execution system with gRPC-based agent communicat
 - [`pkg/metrics/`](agent/pkg/metrics/): Metrics collection on agent side
 
 ### Protocol Definitions
+- Use generate.sh script to generate protobuf files
 - [`proto/agent.proto`](proto/agent.proto): Protocol buffer definitions
 
 ## Security Considerations

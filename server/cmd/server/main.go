@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	pb "github.com/mooncorn/nodelink/proto"
 	"github.com/mooncorn/nodelink/server/internal/agent"
-	"github.com/mooncorn/nodelink/server/internal/heartbeat"
 	"google.golang.org/grpc"
 )
 
@@ -26,24 +25,44 @@ func (l *AgentStatusLogger) OnStatusChange(event agent.StatusChangeEvent) {
 }
 
 func main() {
+	defaultAgents := map[string]string{
+		"agent1": "secret_token1",
+		"agent2": "secret_token2",
+	}
+
+	auth := agent.NewDefaultAuthenticator(defaultAgents)
+
 	agentRepo := agent.NewRepository()
 
 	logger := &AgentStatusLogger{}
 	agentRepo.AddListener(logger)
 
-	heartbeatServer := heartbeat.NewHeartbeatServer(heartbeat.HeartbeatServerConfig{
-		OfflineTimeout: 6 * time.Second,
-		AgentRepo:      agentRepo,
+	pingPongServer := agent.NewPingPongServer(agent.PingPongServerConfig{
+		OfflineTimeout:  6 * time.Second,
+		PingInterval:    3 * time.Second,
+		CleanupInterval: 12 * time.Second,
+		StaleAgentTTL:   24 * time.Second,
+		AgentRepo:       agentRepo,
+		Authenticator:   auth,
 	})
 
-	// Start heartbeat server
-	heartbeatServer.Start(context.Background())
-	defer heartbeatServer.Stop()
+	// Start ping/pong server
+	pingPongServer.Start(context.Background())
+	defer pingPongServer.Stop()
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterAgentServiceServer(grpcServer, heartbeatServer)
+	pb.RegisterAgentServiceServer(grpcServer, pingPongServer)
+
+	// Create HTTP and SSE handlers for agent management
+	agentHTTPHandler := agent.NewHTTPHandler(agentRepo)
+	agentSSEHandler := agent.NewSSEHandler(agentRepo)
+	defer agentSSEHandler.Stop()
 
 	router := gin.Default()
+
+	// Register agent routes
+	agentHTTPHandler.RegisterRoutes(router)
+	agentSSEHandler.RegisterRoutes(router)
 
 	// Start gRPC server in background
 	lis, err := net.Listen("tcp", ":9090")

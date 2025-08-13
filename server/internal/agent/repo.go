@@ -21,7 +21,6 @@ type AgentInfo struct {
 	ConnectedAt    *time.Time        `json:"connected_at,omitempty"`
 	DisconnectedAt *time.Time        `json:"disconnected_at,omitempty"`
 	Metadata       map[string]string `json:"metadata,omitempty"`
-	LastHeartbeat  *time.Time        `json:"last_heartbeat,omitempty"`
 	ConnectionAddr string            `json:"connection_addr,omitempty"`
 	Version        string            `json:"version,omitempty"`
 	CreatedAt      time.Time         `json:"created_at"`
@@ -177,8 +176,8 @@ func (r *Repository) UpdateStatus(agentID string, status ConnectionStatus) {
 	r.mu.Lock()
 }
 
-// UpdateHeartbeat updates the last heartbeat time for an agent
-func (r *Repository) UpdateHeartbeat(agentID string, heartbeatTime time.Time) {
+// UpdateLastSeen updates the last seen time for an agent
+func (r *Repository) UpdateLastSeen(agentID string, lastSeen time.Time) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -187,20 +186,19 @@ func (r *Repository) UpdateHeartbeat(agentID string, heartbeatTime time.Time) {
 		// Auto-register if agent doesn't exist
 		now := time.Now()
 		agent = &AgentInfo{
-			AgentID:       agentID,
-			Status:        StatusUnknown,
-			LastSeen:      now,
-			CreatedAt:     now,
-			UpdatedAt:     now,
-			Metadata:      make(map[string]string),
-			LastHeartbeat: &heartbeatTime,
+			AgentID:   agentID,
+			Status:    StatusUnknown,
+			LastSeen:  lastSeen,
+			CreatedAt: now,
+			UpdatedAt: now,
+			Metadata:  make(map[string]string),
 		}
 		r.agents[agentID] = agent
 		return
 	}
 
-	agent.LastHeartbeat = &heartbeatTime
 	agent.UpdatedAt = time.Now()
+	agent.LastSeen = lastSeen
 }
 
 // UpdateMetadata updates the metadata for an agent
@@ -244,11 +242,6 @@ func (r *Repository) copyAgentInfo(agent *AgentInfo) *AgentInfo {
 	if agent.DisconnectedAt != nil {
 		disconnectedAt := *agent.DisconnectedAt
 		result.DisconnectedAt = &disconnectedAt
-	}
-
-	if agent.LastHeartbeat != nil {
-		lastHeartbeat := *agent.LastHeartbeat
-		result.LastHeartbeat = &lastHeartbeat
 	}
 
 	if agent.Metadata != nil {
@@ -424,6 +417,15 @@ func (r *Repository) GetAgentsByStatus(status ConnectionStatus) []*AgentInfo {
 	}
 
 	return result
+}
+
+// AgentExists checks if an agent with the given ID exists in the repository
+func (r *Repository) AgentExists(agentID string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	_, exists := r.agents[agentID]
+	return exists
 }
 
 // matchesMetadata checks if an agent's metadata matches the given criteria

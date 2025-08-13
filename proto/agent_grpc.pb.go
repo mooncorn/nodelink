@@ -26,7 +26,7 @@ const (
 	AgentService_StreamCommand_FullMethodName    = "/pb.AgentService/StreamCommand"
 	AgentService_StreamDockerLogs_FullMethodName = "/pb.AgentService/StreamDockerLogs"
 	AgentService_StreamMetrics_FullMethodName    = "/pb.AgentService/StreamMetrics"
-	AgentService_HeartbeatStream_FullMethodName  = "/pb.AgentService/HeartbeatStream"
+	AgentService_StreamPingPong_FullMethodName   = "/pb.AgentService/StreamPingPong"
 )
 
 // AgentServiceClient is the client API for AgentService service.
@@ -42,7 +42,7 @@ type AgentServiceClient interface {
 	StreamCommand(ctx context.Context, in *CommandRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[CommandStreamResponse], error)
 	StreamDockerLogs(ctx context.Context, in *DockerLogsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DockerLogsResponse], error)
 	StreamMetrics(ctx context.Context, in *MetricsStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[MetricsStreamResponse], error)
-	HeartbeatStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AgentMessage, ServerMessage], error)
+	StreamPingPong(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Pong, Ping], error)
 }
 
 type agentServiceClient struct {
@@ -150,18 +150,18 @@ func (c *agentServiceClient) StreamMetrics(ctx context.Context, in *MetricsStrea
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AgentService_StreamMetricsClient = grpc.ServerStreamingClient[MetricsStreamResponse]
 
-func (c *agentServiceClient) HeartbeatStream(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[AgentMessage, ServerMessage], error) {
+func (c *agentServiceClient) StreamPingPong(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[Pong, Ping], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &AgentService_ServiceDesc.Streams[3], AgentService_HeartbeatStream_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &AgentService_ServiceDesc.Streams[3], AgentService_StreamPingPong_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[AgentMessage, ServerMessage]{ClientStream: stream}
+	x := &grpc.GenericClientStream[Pong, Ping]{ClientStream: stream}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AgentService_HeartbeatStreamClient = grpc.BidiStreamingClient[AgentMessage, ServerMessage]
+type AgentService_StreamPingPongClient = grpc.BidiStreamingClient[Pong, Ping]
 
 // AgentServiceServer is the server API for AgentService service.
 // All implementations must embed UnimplementedAgentServiceServer
@@ -176,7 +176,7 @@ type AgentServiceServer interface {
 	StreamCommand(*CommandRequest, grpc.ServerStreamingServer[CommandStreamResponse]) error
 	StreamDockerLogs(*DockerLogsRequest, grpc.ServerStreamingServer[DockerLogsResponse]) error
 	StreamMetrics(*MetricsStreamRequest, grpc.ServerStreamingServer[MetricsStreamResponse]) error
-	HeartbeatStream(grpc.BidiStreamingServer[AgentMessage, ServerMessage]) error
+	StreamPingPong(grpc.BidiStreamingServer[Pong, Ping]) error
 	mustEmbedUnimplementedAgentServiceServer()
 }
 
@@ -208,8 +208,8 @@ func (UnimplementedAgentServiceServer) StreamDockerLogs(*DockerLogsRequest, grpc
 func (UnimplementedAgentServiceServer) StreamMetrics(*MetricsStreamRequest, grpc.ServerStreamingServer[MetricsStreamResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method StreamMetrics not implemented")
 }
-func (UnimplementedAgentServiceServer) HeartbeatStream(grpc.BidiStreamingServer[AgentMessage, ServerMessage]) error {
-	return status.Errorf(codes.Unimplemented, "method HeartbeatStream not implemented")
+func (UnimplementedAgentServiceServer) StreamPingPong(grpc.BidiStreamingServer[Pong, Ping]) error {
+	return status.Errorf(codes.Unimplemented, "method StreamPingPong not implemented")
 }
 func (UnimplementedAgentServiceServer) mustEmbedUnimplementedAgentServiceServer() {}
 func (UnimplementedAgentServiceServer) testEmbeddedByValue()                      {}
@@ -337,12 +337,12 @@ func _AgentService_StreamMetrics_Handler(srv interface{}, stream grpc.ServerStre
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type AgentService_StreamMetricsServer = grpc.ServerStreamingServer[MetricsStreamResponse]
 
-func _AgentService_HeartbeatStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(AgentServiceServer).HeartbeatStream(&grpc.GenericServerStream[AgentMessage, ServerMessage]{ServerStream: stream})
+func _AgentService_StreamPingPong_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(AgentServiceServer).StreamPingPong(&grpc.GenericServerStream[Pong, Ping]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AgentService_HeartbeatStreamServer = grpc.BidiStreamingServer[AgentMessage, ServerMessage]
+type AgentService_StreamPingPongServer = grpc.BidiStreamingServer[Pong, Ping]
 
 // AgentService_ServiceDesc is the grpc.ServiceDesc for AgentService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -385,8 +385,8 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "HeartbeatStream",
-			Handler:       _AgentService_HeartbeatStream_Handler,
+			StreamName:    "StreamPingPong",
+			Handler:       _AgentService_StreamPingPong_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

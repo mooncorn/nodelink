@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"sync"
 	"time"
 
 	pb "github.com/mooncorn/nodelink/proto"
@@ -13,24 +12,19 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type HeartbeatClient struct {
+type PingPongClient struct {
 	conn              *grpc.ClientConn
 	client            pb.AgentServiceClient
-	stream            pb.AgentService_HeartbeatStreamClient
+	stream            pb.AgentService_StreamPingPongClient
 	ctx               context.Context
 	cancel            context.CancelFunc
-	mu                sync.RWMutex
-	listeners         []HeartbeatListener
 	agentID           string
 	heartbeatTicker   *time.Ticker
-	startTime         time.Time
 	heartbeatInterval time.Duration
 }
 
-type HeartbeatListener func(*pb.ServerMessage)
-
-// NewHeartbeatClient creates a new heartbeat client
-func NewHeartbeatClient(serverAddr string) (*HeartbeatClient, error) {
+// NewPingPongClient creates a new ping/pong client
+func NewPingPongClient(serverAddr string) (*PingPongClient, error) {
 	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -39,37 +33,29 @@ func NewHeartbeatClient(serverAddr string) (*HeartbeatClient, error) {
 	client := pb.NewAgentServiceClient(conn)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &HeartbeatClient{
+	return &PingPongClient{
 		conn:              conn,
 		client:            client,
 		ctx:               ctx,
 		cancel:            cancel,
-		listeners:         make([]HeartbeatListener, 0),
-		startTime:         time.Now(),
 		heartbeatInterval: 3 * time.Second, // Default 3 seconds
 	}, nil
 }
 
-func (c *HeartbeatClient) AddListener(listener HeartbeatListener) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.listeners = append(c.listeners, listener)
-}
-
 // SetHeartbeatInterval configures the interval between heartbeats
-func (c *HeartbeatClient) SetHeartbeatInterval(interval time.Duration) {
+func (c *PingPongClient) SetHeartbeatInterval(interval time.Duration) {
 	c.heartbeatInterval = interval
 }
 
 // Connect establishes the streaming connection
-func (c *HeartbeatClient) Connect(agentID, agentToken string) error {
+func (c *PingPongClient) Connect(agentID, agentToken string) error {
 	md := metadata.New(map[string]string{
 		"agent_id":    agentID,
 		"agent_token": agentToken,
 	})
 	ctx := metadata.NewOutgoingContext(c.ctx, md)
 
-	stream, err := c.client.HeartbeatStream(ctx)
+	stream, err := c.client.StreamPingPong(ctx)
 	if err != nil {
 		return err
 	}
@@ -78,87 +64,43 @@ func (c *HeartbeatClient) Connect(agentID, agentToken string) error {
 	c.agentID = agentID
 
 	go c.listen()
-	go c.startPeriodicHeartbeat()
 
-	log.Println("Agent connected to heartbeat stream")
+	log.Println("Agent connected to ping/pong stream")
 	return nil
 }
 
-// listen continuously listens for incoming heartbeats
-func (c *HeartbeatClient) listen() {
+// listen continuously listens for incoming pings
+func (c *PingPongClient) listen() {
 	for {
-		heartbeat, err := c.stream.Recv()
+		ping, err := c.stream.Recv()
 		if err == io.EOF {
-			log.Println("heartbeat stream ended")
+			log.Println("ping/pong stream ended")
 			break
 		}
 		if err != nil {
-			log.Printf("Error receiving heartbeat: %v", err)
+			log.Printf("Error receiving ping: %v", err)
 			break
 		}
 
-		log.Printf("Agent received heartbeat: %+v", heartbeat)
-
-		// Call all listeners
-		c.mu.RLock()
-		for _, listener := range c.listeners {
-			go listener(heartbeat)
-		}
-		c.mu.RUnlock()
+		// Send pong
+		c.Send(&pb.Pong{
+			Timestamp:     time.Now().UTC().Unix(),
+			PingTimestamp: ping.Timestamp,
+		})
 	}
 }
 
-// Send sends a heartbeat response to the server
-func (c *HeartbeatClient) Send(heartbeat *pb.AgentMessage) error {
+// Send sends a pong response to the server
+func (c *PingPongClient) Send(pong *pb.Pong) error {
 	if c.stream == nil {
 		return fmt.Errorf("not connected")
 	}
 
-	return c.stream.Send(heartbeat)
-}
-
-// startPeriodicHeartbeat sends heartbeats to the server at regular intervals
-func (c *HeartbeatClient) startPeriodicHeartbeat() {
-	c.heartbeatTicker = time.NewTicker(c.heartbeatInterval)
-	defer c.heartbeatTicker.Stop()
-
-	for {
-		select {
-		case <-c.heartbeatTicker.C:
-			c.sendHeartbeat()
-		case <-c.ctx.Done():
-			log.Println("Stopping periodic heartbeat")
-			return
-		}
-	}
-}
-
-// sendHeartbeat creates and sends a heartbeat message
-func (c *HeartbeatClient) sendHeartbeat() {
-	uptime := int64(time.Since(c.startTime).Seconds())
-
-	heartbeat := &pb.AgentMessage{
-		AgentId:   c.agentID,
-		MessageId: fmt.Sprintf("heartbeat-%d", time.Now().UnixNano()),
-		Timestamp: time.Now().Unix(),
-		Payload: &pb.AgentMessage_Heartbeat{
-			Heartbeat: &pb.AgentHeartbeat{
-				Version:       "1.0.0",
-				UptimeSeconds: uptime,
-				ActiveTasks:   0,
-			},
-		},
-	}
-
-	if err := c.Send(heartbeat); err != nil {
-		log.Printf("Failed to send heartbeat: %v", err)
-	} else {
-		log.Printf("Sent heartbeat - uptime: %d seconds", uptime)
-	}
+	return c.stream.Send(pong)
 }
 
 // Close closes the connection
-func (c *HeartbeatClient) Close() error {
+func (c *PingPongClient) Close() error {
 	if c.cancel != nil {
 		c.cancel()
 	}

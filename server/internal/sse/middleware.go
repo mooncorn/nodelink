@@ -6,8 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	pb "github.com/mooncorn/nodelink/proto"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // SSEHeaders sets the required headers for SSE
@@ -74,21 +72,7 @@ func HandleSSEStream[T any](c *gin.Context) {
 			}
 
 			// Serialize the message data
-			var data []byte
-			var err error
-
-			// Check if the data is a protobuf message and use protojson for better serialization
-			// We need to use interface{} to check the actual type
-			if taskResponse, ok := interface{}(message.Data).(*pb.TaskResponse); ok {
-				marshaler := protojson.MarshalOptions{
-					EmitDefaultValues: true,  // Include false boolean values and other defaults
-					UseProtoNames:     false, // Use camelCase field names for better JS compatibility
-				}
-				data, err = marshaler.Marshal(taskResponse)
-			} else {
-				data, err = json.Marshal(message.Data)
-			}
-
+			data, err := json.Marshal(message.Data)
 			if err != nil {
 				return false
 			}
