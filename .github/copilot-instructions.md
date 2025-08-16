@@ -37,6 +37,24 @@ Each internal package is self-contained and manages its own domain:
   - `http_handler.go`: HTTP API for executing commands
 - **Dependencies**: `status` (validates agent availability)
 
+#### Terminal Management (`internal/terminal/`)
+- **Purpose**: Interactive terminal session management and real-time terminal streaming
+- **Components**:
+  - `handler.go`: Terminal session lifecycle and command processing
+  - `http_handler.go`: HTTP API for terminal operations
+  - `sse_handler.go`: Real-time terminal output streaming
+  - `session.go`: Terminal session state management
+- **Dependencies**: `status`, `common`, `sse` (validates agent availability, uses shared interfaces, leverages SSE utilities)
+
+#### Metrics Collection (`internal/metrics/`)
+- **Purpose**: System metrics collection and real-time metrics streaming
+- **Components**:
+  - `handler.go`: Metrics request/response management
+  - `http_handler.go`: HTTP API for metrics endpoints
+  - `sse_handler.go`: Real-time metrics streaming
+  - `manager.go`: Centralized metrics polling and distribution
+- **Dependencies**: `status`, `common`, `sse` (validates agent availability, uses shared interfaces, leverages SSE utilities)
+
 #### Common Types and Interfaces (`internal/common/`)
 - **Purpose**: Shared types, interfaces, and constants used across packages
 - **Components**:
@@ -44,6 +62,14 @@ Each internal package is self-contained and manages its own domain:
   - `interfaces.go`: Shared interfaces (StreamSender, StatusManager, Authenticator, etc.)
   - `constants.go`: Common constants and error definitions
 - **Dependencies**: None (foundation layer)
+
+#### Server-Sent Events Infrastructure (`internal/sse/`)
+- **Purpose**: Real-time streaming infrastructure and SSE utilities
+- **Components**:
+  - `manager.go`: SSE client management and message distribution
+  - `utils.go`: Reusable SSE connection handling and utilities
+  - `formatters.go`: Message formatting utilities for SSE
+- **Dependencies**: `common` (implements common interfaces)
 
 #### Authentication (`internal/auth/`)
 - **Purpose**: Agent authentication and security
@@ -55,9 +81,20 @@ Each internal package is self-contained and manages its own domain:
 - **Purpose**: gRPC stream management and message routing
 - **Components**:
   - `communication.go`: Bidirectional stream handling and message dispatch
-- **Dependencies**: `status`, `ping`, `command`, `auth` (coordinates all communication)
+- **Dependencies**: `status`, `ping`, `command`, `terminal`, `metrics`, `auth` (coordinates all communication)
 
 ## Development Guidelines
+
+### Code Quality Guidelines
+
+#### Interface Usage
+- **Always use interfaces when injecting dependencies**: Prefer `common.StatusManager` over `*status.Manager`
+- **Use interfaces, types, and constants from common package when possible**: Leverage shared definitions to maintain consistency
+- **Move interfaces, types, and constants to common unless domain-specific**: Only keep in local packages when they are truly package-specific
+
+#### SSE Development
+- **SSE handlers should use reusable SSE logic**: Leverage `sse.ConnectionHandler` and utilities from the SSE package
+- **Use common SSE patterns**: Follow the established connection lifecycle patterns for consistency
 
 ### Package Design Principles
 1. **Single Responsibility**: Each package manages one core concern
@@ -67,11 +104,14 @@ Each internal package is self-contained and manages its own domain:
 
 ### Dependency Flow
 ```
-comm → status, ping, command, auth, common (orchestrates all)
+comm → status, ping, command, terminal, metrics, auth, common, sse (orchestrates all)
+terminal → status, common, sse (manages sessions, uses shared interfaces, leverages SSE utilities)
+metrics → status, common, sse (collects metrics, uses shared interfaces, leverages SSE utilities)
 ping → status, common (updates agent health, uses shared constants)
 command → status, common (checks agent availability, uses shared interfaces)
 auth → common (uses shared error definitions)
 status → common (uses shared types and interfaces)
+sse → common (implements common interfaces)
 common → (no dependencies - foundation layer)
 ```
 
@@ -91,6 +131,8 @@ common → (no dependencies - foundation layer)
 - `internal/status/`: Centralized agent status tracking
 - `internal/ping/`: Heartbeat and connection monitoring
 - `internal/command/`: Command execution feature
+- `internal/terminal/`: Interactive terminal session management
+- `internal/metrics/`: System metrics collection and streaming
 - `internal/comm/`: gRPC communication and message routing
 - `internal/auth/`: Agent authentication and security
 - `internal/common/`: Shared types, interfaces, and constants
@@ -99,6 +141,7 @@ common → (no dependencies - foundation layer)
 - `cmd/agent/main.go`: Main agent entry point
 - `pkg/grpc/client.go`: gRPC client implementation
 - `pkg/command/`: Command execution handling on agent side
+- `pkg/terminal/`: Terminal session management on agent side
 - `pkg/metrics/`: Metrics collection on agent side
 
 ### Protocol Definitions

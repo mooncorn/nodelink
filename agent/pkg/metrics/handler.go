@@ -2,215 +2,101 @@ package metrics
 
 import (
 	"log"
-	"time"
 
-	"github.com/mooncorn/nodelink/agent/pkg/grpc"
 	pb "github.com/mooncorn/nodelink/proto"
 )
 
-// Handler handles metrics-related task requests
+// MessageSender interface for sending messages to the server
+type MessageSender interface {
+	Send(msg *pb.AgentMessage) error
+}
+
+// Handler handles metrics requests from the server
 type Handler struct {
-	collector *MetricsCollector
-	client    *grpc.TaskClient
+	collector     *Collector
+	messageSender MessageSender
 }
 
 // NewHandler creates a new metrics handler
-func NewHandler(client *grpc.TaskClient) *Handler {
-	collector := NewMetricsCollector(func(response *pb.TaskResponse) {
-		if err := client.Send(response); err != nil {
-			// Only log non-EOF errors as errors, EOF is normal connection closure
-			if err.Error() == "EOF" {
-				log.Printf("Connection closed while sending metrics response")
-			} else {
-				log.Printf("Failed to send metrics response: %v", err)
-			}
-		}
-	})
-
+func NewHandler() *Handler {
 	return &Handler{
-		collector: collector,
-		client:    client,
+		collector: NewCollector(),
 	}
 }
 
-// HandleMetricsRequest handles incoming metrics requests
-func (h *Handler) HandleMetricsRequest(taskRequest *pb.TaskRequest, metricsRequest *pb.MetricsRequest) {
-	switch req := metricsRequest.RequestType.(type) {
-	case *pb.MetricsRequest_SystemInfo:
-		h.handleSystemInfoRequest(taskRequest, req.SystemInfo)
-	case *pb.MetricsRequest_StreamRequest:
-		h.handleStreamRequest(taskRequest, req.StreamRequest)
-	case *pb.MetricsRequest_QueryRequest:
-		h.handleQueryRequest(taskRequest, req.QueryRequest)
-	default:
-		h.sendErrorResponse(taskRequest, "Unknown metrics request type")
-	}
+// SetMessageSender sets the message sender for the handler
+func (h *Handler) SetMessageSender(sender MessageSender) {
+	h.messageSender = sender
 }
 
-// handleSystemInfoRequest handles system information requests
-func (h *Handler) handleSystemInfoRequest(taskRequest *pb.TaskRequest, sysInfoReq *pb.SystemInfoRequest) {
-	log.Printf("Collecting system information for task %s", taskRequest.TaskId)
+// HandleSystemInfoRequest handles system information requests
+func (h *Handler) HandleSystemInfoRequest(request *pb.SystemInfoRequest) {
+	log.Printf("Handling system info request: %s", request.RequestId)
 
-	systemInfo := h.collector.GetSystemInfo()
+	systemInfo, err := h.collector.GetSystemInfo()
 
-	response := &pb.TaskResponse{
-		AgentId:   taskRequest.AgentId,
-		TaskId:    taskRequest.TaskId,
-		Status:    pb.TaskResponse_COMPLETED,
-		IsFinal:   true,
-		Cancelled: false,
-		EventType: "metrics",
-		Timestamp: time.Now().Unix(),
-		Response: &pb.TaskResponse_MetricsResponse{
-			MetricsResponse: &pb.MetricsResponse{
-				ResponseType: &pb.MetricsResponse_SystemInfo{
-					SystemInfo: systemInfo,
-				},
-			},
-		},
-	}
-
-	if err := h.client.Send(response); err != nil {
-		log.Printf("Failed to send system info response: %v", err)
-	}
-}
-
-// handleStreamRequest handles metrics streaming requests
-func (h *Handler) handleStreamRequest(taskRequest *pb.TaskRequest, streamReq *pb.MetricsStreamRequest) {
-	switch streamReq.Action {
-	case pb.MetricsStreamRequest_START:
-		log.Printf("Starting metrics streaming for task %s with interval %ds",
-			taskRequest.TaskId, streamReq.IntervalSeconds)
-
-		interval := 5 // default 5 seconds
-		if streamReq.IntervalSeconds > 0 {
-			interval = int(streamReq.IntervalSeconds)
+	var response *pb.SystemInfoResponse
+	if err != nil {
+		log.Printf("Error collecting system info: %v", err)
+		response = &pb.SystemInfoResponse{
+			RequestId: request.RequestId,
+			Error:     err.Error(),
 		}
-
-		h.collector.StartStreaming(taskRequest.AgentId, taskRequest.TaskId, time.Duration(interval)*time.Second)
-
-		// Send acknowledgment
-		h.sendStreamResponse(taskRequest, "Metrics streaming started")
-
-	case pb.MetricsStreamRequest_STOP:
-		log.Printf("Stopping metrics streaming for task %s", taskRequest.TaskId)
-
-		h.collector.StopStreaming()
-
-		// Send acknowledgment
-		h.sendStreamResponse(taskRequest, "Metrics streaming stopped")
-
-	case pb.MetricsStreamRequest_UPDATE_INTERVAL:
-		log.Printf("Updating metrics interval for task %s to %ds",
-			taskRequest.TaskId, streamReq.IntervalSeconds)
-
-		if streamReq.IntervalSeconds > 0 {
-			interval := time.Duration(streamReq.IntervalSeconds) * time.Second
-			h.collector.UpdateInterval(interval)
+	} else {
+		response = &pb.SystemInfoResponse{
+			RequestId:  request.RequestId,
+			SystemInfo: systemInfo,
 		}
-
-		// Send acknowledgment
-		h.sendStreamResponse(taskRequest, "Metrics interval updated")
-
-	default:
-		h.sendErrorResponse(taskRequest, "Unknown stream action")
 	}
-}
 
-// handleQueryRequest handles historical metrics query requests
-func (h *Handler) handleQueryRequest(taskRequest *pb.TaskRequest, queryReq *pb.MetricsQueryRequest) {
-	log.Printf("Historical metrics query not yet implemented for task %s", taskRequest.TaskId)
-
-	// For now, return empty query response
-	// In a full implementation, this would query stored historical data
-	response := &pb.TaskResponse{
-		AgentId:   taskRequest.AgentId,
-		TaskId:    taskRequest.TaskId,
-		Status:    pb.TaskResponse_COMPLETED,
-		IsFinal:   true,
-		Cancelled: false,
-		EventType: "metrics",
-		Timestamp: time.Now().Unix(),
-		Response: &pb.TaskResponse_MetricsResponse{
-			MetricsResponse: &pb.MetricsResponse{
-				ResponseType: &pb.MetricsResponse_QueryResponse{
-					QueryResponse: &pb.MetricsQueryResponse{
-						DataPoints:          []*pb.MetricsTimePoint{},
-						QueryStartTimestamp: queryReq.StartTimestamp,
-						QueryEndTimestamp:   queryReq.EndTimestamp,
-						TotalPoints:         0,
-						Truncated:           false,
-					},
-				},
-			},
+	// Send response back to server
+	agentMsg := &pb.AgentMessage{
+		Message: &pb.AgentMessage_SystemInfoResponse{
+			SystemInfoResponse: response,
 		},
 	}
 
-	if err := h.client.Send(response); err != nil {
-		log.Printf("Failed to send query response: %v", err)
+	if h.messageSender != nil {
+		if err := h.messageSender.Send(agentMsg); err != nil {
+			log.Printf("Error sending system info response: %v", err)
+		}
+	} else {
+		log.Printf("Warning: no message sender set for metrics handler")
 	}
 }
 
-// sendStreamResponse sends a stream control response
-func (h *Handler) sendStreamResponse(taskRequest *pb.TaskRequest, message string) {
-	// For "started" and "updated" messages, keep task alive; for "stopped", mark as complete
-	isStopMessage := message == "Metrics streaming stopped"
+// HandleMetricsRequest handles metrics requests
+func (h *Handler) HandleMetricsRequest(request *pb.MetricsRequest) {
+	log.Printf("Handling metrics request: %s", request.RequestId)
 
-	status := pb.TaskResponse_IN_PROGRESS
-	if isStopMessage {
-		status = pb.TaskResponse_COMPLETED
+	metrics, err := h.collector.GetSystemMetrics()
+
+	var response *pb.MetricsResponse
+	if err != nil {
+		log.Printf("Error collecting system metrics: %v", err)
+		response = &pb.MetricsResponse{
+			RequestId: request.RequestId,
+			Error:     err.Error(),
+		}
+	} else {
+		response = &pb.MetricsResponse{
+			RequestId: request.RequestId,
+			Metrics:   metrics,
+		}
 	}
 
-	// Send a simple task response without any metrics payload to avoid interfering with system info
-	response := &pb.TaskResponse{
-		AgentId:   taskRequest.AgentId,
-		TaskId:    taskRequest.TaskId,
-		Status:    status,
-		IsFinal:   isStopMessage,
-		Cancelled: false,
-		EventType: "metrics",
-		Timestamp: time.Now().Unix(),
-		// No response payload - this is just a control message
-	}
-
-	if err := h.client.Send(response); err != nil {
-		log.Printf("Failed to send stream response: %v", err)
-	}
-} // sendErrorResponse sends an error response
-func (h *Handler) sendErrorResponse(taskRequest *pb.TaskRequest, errorMsg string) {
-	response := &pb.TaskResponse{
-		AgentId:   taskRequest.AgentId,
-		TaskId:    taskRequest.TaskId,
-		Status:    pb.TaskResponse_FAILURE,
-		IsFinal:   true,
-		Cancelled: false,
-		EventType: "metrics",
-		Timestamp: time.Now().Unix(),
-		Response: &pb.TaskResponse_MetricsResponse{
-			MetricsResponse: &pb.MetricsResponse{
-				ResponseType: &pb.MetricsResponse_SystemInfo{
-					SystemInfo: &pb.SystemInfoResponse{
-						Timestamp: uint64(time.Now().Unix()),
-						Software: &pb.SystemSoftware{
-							Hostname: errorMsg,
-						},
-					},
-				},
-			},
+	// Send response back to server
+	agentMsg := &pb.AgentMessage{
+		Message: &pb.AgentMessage_MetricsResponse{
+			MetricsResponse: response,
 		},
 	}
 
-	if err := h.client.Send(response); err != nil {
-		log.Printf("Failed to send error response: %v", err)
+	if h.messageSender != nil {
+		if err := h.messageSender.Send(agentMsg); err != nil {
+			log.Printf("Error sending metrics response: %v", err)
+		}
+	} else {
+		log.Printf("Warning: no message sender set for metrics handler")
 	}
-}
-
-// GetCollector returns the metrics collector (for tracking processes)
-func (h *Handler) GetCollector() *MetricsCollector {
-	return h.collector
-}
-
-// Close stops any ongoing metrics collection
-func (h *Handler) Close() {
-	h.collector.StopStreaming()
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/mooncorn/nodelink/server/internal/auth"
 	"github.com/mooncorn/nodelink/server/internal/command"
 	"github.com/mooncorn/nodelink/server/internal/common"
+	"github.com/mooncorn/nodelink/server/internal/metrics"
 	"github.com/mooncorn/nodelink/server/internal/ping"
 	"github.com/mooncorn/nodelink/server/internal/status"
 	"google.golang.org/grpc/codes"
@@ -29,6 +30,7 @@ type CommunicationServer struct {
 	pingHandler     *ping.Handler
 	commandHandler  *command.Handler
 	terminalHandler common.TerminalResponseHandler
+	metricsHandler  *metrics.Handler
 	auth            auth.Authenticator
 
 	// Background context and cleanup
@@ -43,28 +45,35 @@ type CommunicationConfig struct {
 	PingHandler     *ping.Handler
 	CommandHandler  *command.Handler
 	TerminalHandler common.TerminalResponseHandler
+	MetricsHandler  *metrics.Handler
 	Authenticator   auth.Authenticator
 }
 
 // NewCommunicationServer creates a new communication server
 func NewCommunicationServer(config CommunicationConfig) *CommunicationServer {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	server := &CommunicationServer{
 		activeStreams:   make(map[string]pb.AgentService_StreamCommunicationServer),
 		statusManager:   config.StatusManager,
 		pingHandler:     config.PingHandler,
 		commandHandler:  config.CommandHandler,
 		terminalHandler: config.TerminalHandler,
+		metricsHandler:  config.MetricsHandler,
 		auth:            config.Authenticator,
+		ctx:             ctx,
+		cancel:          cancel,
 	}
 
-	// Set this server as the stream sender for the command handler
+	// Set stream sender for handlers that need it
 	if config.CommandHandler != nil {
 		config.CommandHandler.SetStreamSender(server)
 	}
-
-	// Set this server as the stream sender for the terminal handler
 	if config.TerminalHandler != nil {
 		config.TerminalHandler.SetStreamSender(server)
+	}
+	if config.MetricsHandler != nil {
+		config.MetricsHandler.SetStreamSender(server)
 	}
 
 	return server
@@ -188,6 +197,16 @@ func (s *CommunicationServer) StreamCommunication(stream pb.AgentService_StreamC
 				if err := s.terminalHandler.HandleTerminalCloseResponse(msg.TerminalCloseResponse); err != nil {
 					log.Printf("Error processing terminal close response from agent %s: %v", agentID, err)
 				}
+			}
+		case *pb.AgentMessage_MetricsResponse:
+			// Process metrics response through metrics handler
+			if s.metricsHandler != nil {
+				s.metricsHandler.HandleMetricsResponse(msg.MetricsResponse)
+			}
+		case *pb.AgentMessage_SystemInfoResponse:
+			// Process system info response through metrics handler
+			if s.metricsHandler != nil {
+				s.metricsHandler.HandleSystemInfoResponse(msg.SystemInfoResponse)
 			}
 		default:
 			log.Printf("Unknown message type received from agent %s: %T", agentID, msg)

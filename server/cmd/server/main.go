@@ -12,6 +12,7 @@ import (
 	"github.com/mooncorn/nodelink/server/internal/comm"
 	"github.com/mooncorn/nodelink/server/internal/command"
 	"github.com/mooncorn/nodelink/server/internal/common"
+	"github.com/mooncorn/nodelink/server/internal/metrics"
 	"github.com/mooncorn/nodelink/server/internal/ping"
 	"github.com/mooncorn/nodelink/server/internal/sse"
 	"github.com/mooncorn/nodelink/server/internal/status"
@@ -63,18 +64,32 @@ func main() {
 
 	terminalHandler := terminal.NewHandler(terminalSessionManager, statusManager, sseManager)
 
+	// Create metrics handler
+	metricsHandler := metrics.NewHandler(statusManager)
+
+	// Create metrics streaming manager
+	metricsStreamingManager := metrics.NewStreamingManager(metricsHandler, statusManager, sseManager)
+
 	// Create communication server with all dependencies
 	commServer := comm.NewCommunicationServer(comm.CommunicationConfig{
 		StatusManager:   statusManager,
 		PingHandler:     pingHandler,
 		CommandHandler:  commandHandler,
 		TerminalHandler: terminalHandler,
+		MetricsHandler:  metricsHandler,
 		Authenticator:   auth,
 	})
 
 	// Start all services
 	pingHandler.Start(context.Background())
 	defer pingHandler.Stop()
+
+	// Start metrics handler cleanup routine
+	go metricsHandler.Start(context.Background())
+
+	// Start metrics streaming manager
+	metricsStreamingManager.Start()
+	defer metricsStreamingManager.Stop()
 
 	commServer.Start(context.Background())
 	defer commServer.Stop()
@@ -95,6 +110,12 @@ func main() {
 	terminalHTTPHandler := terminal.NewHTTPHandler(terminalHandler)
 	terminalSSEHandler := terminal.NewSSEHandler(terminalHandler, sseManager)
 
+	// Create metrics HTTP handler
+	metricsHTTPHandler := metrics.NewHTTPHandler(metricsHandler, sseManager, metricsStreamingManager)
+
+	// Create metrics SSE handler
+	metricsSSEHandler := metrics.NewSSEHandler(metricsHandler, metricsStreamingManager, sseManager)
+
 	router := gin.Default()
 
 	// Register status routes (replaces agent routes)
@@ -107,6 +128,10 @@ func main() {
 	// Register terminal routes
 	terminalHTTPHandler.RegisterRoutes(router)
 	terminalSSEHandler.RegisterRoutes(router)
+
+	// Register metrics routes
+	metricsHTTPHandler.RegisterRoutes(router)
+	metricsSSEHandler.RegisterRoutes(router)
 
 	// Start gRPC server in background
 	lis, err := net.Listen("tcp", ":9090")

@@ -16,6 +16,8 @@ message ServerMessage {
     TerminalCreateRequest terminal_create_request = 3;
     TerminalCommandRequest terminal_command_request = 4;
     TerminalCloseRequest terminal_close_request = 5;
+    MetricsRequest metrics_request = 6;
+    SystemInfoRequest system_info_request = 7;
   }
 }
 
@@ -27,6 +29,8 @@ message AgentMessage {
     TerminalCreateResponse terminal_create_response = 3;
     TerminalCommandResponse terminal_command_response = 4;
     TerminalCloseResponse terminal_close_response = 5;
+    MetricsResponse metrics_response = 6;
+    SystemInfoResponse system_info_response = 7;
   }
 }
 
@@ -98,4 +102,93 @@ message TerminalCloseResponse {
   string session_id = 1;
   bool success = 2;
   string error = 3;
+}
+
+// Metrics messages
+message MetricsRequest {
+  string request_id = 1;
+}
+
+message MetricsResponse {
+  string request_id = 1;
+  SystemMetrics metrics = 2;
+  string error = 3;
+}
+
+message SystemInfoRequest {
+  string request_id = 1;
+}
+
+message SystemInfoResponse {
+  string request_id = 1;
+  SystemInfo system_info = 2;
+  string error = 3;
+}
+
+// System information structures
+message SystemInfo {
+  string hostname = 1;
+  string platform = 2;
+  string arch = 3;
+  string os_version = 4;
+  int32 cpu_count = 5;
+  int64 total_memory = 6;
+  repeated string network_interfaces = 7;
+  string kernel_version = 8;
+  int64 uptime_seconds = 9;
+}
+
+message SystemMetrics {
+  double cpu_usage_percent = 1;
+  MemoryMetrics memory = 2;
+  repeated DiskMetrics disks = 3;
+  repeated NetworkMetrics network_interfaces = 4;
+  repeated ProcessMetrics processes = 5;
+  int64 timestamp = 6;
+  double load_average_1m = 7;
+  double load_average_5m = 8;
+  double load_average_15m = 9;
+}
+
+message MemoryMetrics {
+  int64 total = 1;
+  int64 available = 2;
+  int64 used = 3;
+  double used_percent = 4;
+  int64 free = 5;
+  int64 cached = 6;
+  int64 buffers = 7;
+}
+
+message DiskMetrics {
+  string device = 1;
+  string mountpoint = 2;
+  string filesystem = 3;
+  int64 total = 4;
+  int64 used = 5;
+  int64 free = 6;
+  double used_percent = 7;
+}
+
+message NetworkMetrics {
+  string interface = 1;
+  int64 bytes_sent = 2;
+  int64 bytes_recv = 3;
+  int64 packets_sent = 4;
+  int64 packets_recv = 5;
+  int64 errors_in = 6;
+  int64 errors_out = 7;
+  int64 drops_in = 8;
+  int64 drops_out = 9;
+}
+
+message ProcessMetrics {
+  int32 pid = 1;
+  string name = 2;
+  double cpu_percent = 3;
+  int64 memory_rss = 4;
+  int64 memory_vms = 5;
+  string status = 6;
+  int64 create_time = 7;
+  int32 num_threads = 8;
 }

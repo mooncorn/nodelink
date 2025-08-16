@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mooncorn/nodelink/agent/pkg/command"
+	"github.com/mooncorn/nodelink/agent/pkg/metrics"
 	"github.com/mooncorn/nodelink/agent/pkg/terminal"
 	pb "github.com/mooncorn/nodelink/proto"
 	"google.golang.org/grpc"
@@ -25,6 +26,7 @@ type StreamClient struct {
 	heartbeatInterval time.Duration
 	commandExecutor   *command.Executor
 	terminalManager   *terminal.Manager
+	metricsHandler    *metrics.Handler
 }
 
 // NewStreamClient creates a new stream client
@@ -44,10 +46,14 @@ func NewStreamClient(serverAddr string) (*StreamClient, error) {
 		cancel:            cancel,
 		heartbeatInterval: 3 * time.Second, // Default 3 seconds
 		commandExecutor:   command.NewExecutor(5 * time.Minute),
+		metricsHandler:    metrics.NewHandler(),
 	}
 
 	// Initialize terminal manager with message sender
 	streamClient.terminalManager = terminal.NewManager(streamClient.Send)
+
+	// Set message sender for metrics handler
+	streamClient.metricsHandler.SetMessageSender(streamClient)
 
 	return streamClient, nil
 }
@@ -112,6 +118,12 @@ func (c *StreamClient) listen() {
 		case *pb.ServerMessage_TerminalCloseRequest:
 			// Handle terminal close request
 			c.terminalManager.CloseSession(msg.TerminalCloseRequest)
+		case *pb.ServerMessage_MetricsRequest:
+			// Handle metrics request
+			c.metricsHandler.HandleMetricsRequest(msg.MetricsRequest)
+		case *pb.ServerMessage_SystemInfoRequest:
+			// Handle system info request
+			c.metricsHandler.HandleSystemInfoRequest(msg.SystemInfoRequest)
 		default:
 			log.Printf("Unknown message type received: %T", msg)
 		}
