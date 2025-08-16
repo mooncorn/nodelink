@@ -6,6 +6,19 @@ import (
 	pb "github.com/mooncorn/nodelink/proto"
 )
 
+// SSEMessage represents a message to be sent via SSE
+type SSEMessage struct {
+	EventType string `json:"event_type"`
+	Data      any    `json:"data"`
+	Room      string `json:"room,omitempty"`
+}
+
+// SSEClient represents a connected SSE client
+type SSEClient interface {
+	GetChannel() <-chan SSEMessage
+	GetContext() context.Context
+}
+
 // StreamSender interface for sending messages to agents
 // This is the unified interface used by all components
 type StreamSender interface {
@@ -31,4 +44,14 @@ type StatusManager interface {
 	IsAgentOnline(agentID string) bool
 	AddListener(listener StatusChangeListener)
 	RemoveListener(listener StatusChangeListener)
+}
+
+// SSEManager interface for managing Server-Sent Events
+type SSEManager interface {
+	Start()
+	Stop()
+	AddClient(clientID string) SSEClient
+	RemoveClient(clientID string)
+	JoinRoom(clientID, room string) error
+	SendToRoom(room string, data any, eventType string) error
 }

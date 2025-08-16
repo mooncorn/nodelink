@@ -8,23 +8,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mooncorn/nodelink/server/internal/common"
-	"github.com/mooncorn/nodelink/server/internal/sse"
 )
 
 // SSEHandler handles SSE streaming for agent status updates
 type SSEHandler struct {
 	manager    *Manager
-	sseManager *sse.Manager
+	sseManager common.SSEManager
 }
 
 // NewSSEHandler creates a new SSE handler for agent status updates
-func NewSSEHandler(manager *Manager) *SSEHandler {
+func NewSSEHandler(manager *Manager, sseManager common.SSEManager) *SSEHandler {
 	handler := &SSEHandler{
 		manager:    manager,
-		sseManager: sse.NewManager(),
+		sseManager: sseManager,
 	}
-
-	handler.sseManager.Start()
 
 	// Register as a status change listener with the manager
 	manager.AddListener(handler)
@@ -78,7 +75,7 @@ func (h *SSEHandler) handleAllAgentStatusEvents(c *gin.Context) {
 	// Keep connection alive and send messages
 	for {
 		select {
-		case msg := <-client.Channel:
+		case msg := <-client.GetChannel():
 			// Format and send SSE message
 			if _, err := fmt.Fprintf(c.Writer, "data: %s\n\n", formatMessage(msg)); err != nil {
 				log.Printf("Error writing SSE message: %v", err)
@@ -87,7 +84,7 @@ func (h *SSEHandler) handleAllAgentStatusEvents(c *gin.Context) {
 			c.Writer.Flush()
 		case <-c.Request.Context().Done():
 			return
-		case <-client.Context.Done():
+		case <-client.GetContext().Done():
 			return
 		}
 	}
@@ -151,7 +148,7 @@ func (h *SSEHandler) handleSpecificAgentStatusEvents(c *gin.Context) {
 	// Keep connection alive and send messages
 	for {
 		select {
-		case msg := <-client.Channel:
+		case msg := <-client.GetChannel():
 			// Format and send SSE message
 			if _, err := fmt.Fprintf(c.Writer, "data: %s\n\n", formatMessage(msg)); err != nil {
 				log.Printf("Error writing SSE message: %v", err)
@@ -160,14 +157,14 @@ func (h *SSEHandler) handleSpecificAgentStatusEvents(c *gin.Context) {
 			c.Writer.Flush()
 		case <-c.Request.Context().Done():
 			return
-		case <-client.Context.Done():
+		case <-client.GetContext().Done():
 			return
 		}
 	}
 }
 
 // formatMessage formats a message for SSE transmission
-func formatMessage(msg sse.Message) string {
+func formatMessage(msg common.SSEMessage) string {
 	data, err := json.Marshal(map[string]interface{}{
 		"event": msg.EventType,
 		"data":  msg.Data,

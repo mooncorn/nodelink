@@ -13,6 +13,7 @@ import (
 	"github.com/mooncorn/nodelink/server/internal/command"
 	"github.com/mooncorn/nodelink/server/internal/common"
 	"github.com/mooncorn/nodelink/server/internal/ping"
+	"github.com/mooncorn/nodelink/server/internal/sse"
 	"github.com/mooncorn/nodelink/server/internal/status"
 	"google.golang.org/grpc"
 )
@@ -70,7 +71,13 @@ func main() {
 
 	// Create HTTP and SSE handlers for status management
 	statusHTTPHandler := status.NewHTTPHandler(statusManager)
-	statusSSEHandler := status.NewSSEHandler(statusManager)
+
+	// Create and start SSE manager
+	sseManager := sse.NewManager()
+	sseManager.Start()
+	defer sseManager.Stop()
+
+	statusSSEHandler := status.NewSSEHandler(statusManager, sseManager)
 	defer statusSSEHandler.Stop()
 
 	// Create command HTTP handler

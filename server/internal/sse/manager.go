@@ -6,23 +6,28 @@ import (
 	"log"
 	"sync"
 	"time"
-)
 
-// Message represents a message to be sent via SSE
-type Message struct {
-	EventType string `json:"event_type"`
-	Data      any    `json:"data"`
-	Room      string `json:"room,omitempty"`
-}
+	"github.com/mooncorn/nodelink/server/internal/common"
+)
 
 // Client represents a connected SSE client
 type Client struct {
 	ID      string
-	Channel chan Message
+	Channel chan common.SSEMessage
 	Context context.Context
 	Cancel  context.CancelFunc
 	Rooms   []string
 	mu      sync.RWMutex
+}
+
+// GetChannel implements common.SSEClient interface
+func (c *Client) GetChannel() <-chan common.SSEMessage {
+	return c.Channel
+}
+
+// GetContext implements common.SSEClient interface
+func (c *Client) GetContext() context.Context {
+	return c.Context
 }
 
 // Manager manages SSE connections and message broadcasting
@@ -71,7 +76,7 @@ func (m *Manager) Stop() {
 }
 
 // AddClient adds a new SSE client
-func (m *Manager) AddClient(clientID string) *Client {
+func (m *Manager) AddClient(clientID string) common.SSEClient {
 	if clientID == "" {
 		clientID = fmt.Sprintf("client_%d", time.Now().UnixNano())
 	}
@@ -79,7 +84,7 @@ func (m *Manager) AddClient(clientID string) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
 	client := &Client{
 		ID:      clientID,
-		Channel: make(chan Message, 100),
+		Channel: make(chan common.SSEMessage, 100),
 		Context: ctx,
 		Cancel:  cancel,
 		Rooms:   make([]string, 0),
@@ -156,7 +161,7 @@ func (m *Manager) JoinRoom(clientID, room string) error {
 
 // Broadcast sends a message to all clients
 func (m *Manager) Broadcast(data any, eventType string) error {
-	message := Message{
+	message := common.SSEMessage{
 		EventType: eventType,
 		Data:      data,
 	}
@@ -185,7 +190,7 @@ func (m *Manager) Broadcast(data any, eventType string) error {
 
 // SendToRoom sends a message to all clients in a room
 func (m *Manager) SendToRoom(room string, data any, eventType string) error {
-	message := Message{
+	message := common.SSEMessage{
 		EventType: eventType,
 		Data:      data,
 		Room:      room,

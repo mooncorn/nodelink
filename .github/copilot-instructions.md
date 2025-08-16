@@ -76,11 +76,12 @@ common → (no dependencies - foundation layer)
 ```
 
 ### Adding New Features
-1. Create new package in `internal/` for the feature domain
-2. Implement core logic, HTTP handlers, and SSE handlers within the package
-3. Add dependencies only to lower-level packages
-4. Register routes in main.go
-5. Update protocol buffers if new message types are needed
+1. Update protocol buffers if new message types are needed
+2. Create new package in `internal/` for the feature domain 
+3. Implement core logic, HTTP handlers, and SSE handlers within the package
+4. Add dependencies only to lower-level packages
+5. Register routes in main.go
+6. Implement core logic in the agent
 
 ## File Organization
 
