@@ -13,6 +13,9 @@ message ServerMessage {
   oneof message {
     Ping ping = 1;
     CommandRequest command_request = 2;
+    TerminalCreateRequest terminal_create_request = 3;
+    TerminalCommandRequest terminal_command_request = 4;
+    TerminalCloseRequest terminal_close_request = 5;
   }
 }
 
@@ -21,6 +24,9 @@ message AgentMessage {
   oneof message {
     Pong pong = 1;
     CommandResponse command_response = 2;
+    TerminalCreateResponse terminal_create_response = 3;
+    TerminalCommandResponse terminal_command_response = 4;
+    TerminalCloseResponse terminal_close_response = 5;
   }
 }
 
@@ -51,4 +57,45 @@ message CommandResponse {
   string stderr = 4;
   string error = 5;
   bool timeout = 6;
+}
+
+// Terminal session messages
+message TerminalCreateRequest {
+  string session_id = 1;
+  string shell = 2; // bash, zsh, sh, etc. Default: bash
+  string working_dir = 3;
+  map<string, string> env = 4;
+}
+
+message TerminalCreateResponse {
+  string session_id = 1;
+  bool success = 2;
+  string error = 3;
+  string shell = 4;
+  string working_dir = 5;
+}
+
+message TerminalCommandRequest {
+  string session_id = 1;
+  string command_id = 2;
+  string command = 3;
+}
+
+message TerminalCommandResponse {
+  string session_id = 1;
+  string command_id = 2;
+  string output = 3;
+  string error = 4;
+  bool is_final = 5; // true if command completed
+  int32 exit_code = 6; // only set when is_final is true
+}
+
+message TerminalCloseRequest {
+  string session_id = 1;
+}
+
+message TerminalCloseResponse {
+  string session_id = 1;
+  bool success = 2;
+  string error = 3;
 }

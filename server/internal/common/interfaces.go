@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"time"
 
 	pb "github.com/mooncorn/nodelink/proto"
 )
@@ -38,12 +39,10 @@ type Authenticator interface {
 
 // StatusManager interface for managing agent status
 type StatusManager interface {
-	UpdateAgentStatus(agentID string, status AgentStatus) error
-	GetAgent(agentID string) (*AgentInfo, error)
-	GetAllAgents() map[string]*AgentInfo
+	GetAgent(agentID string) (*AgentInfo, bool)
+	GetAllAgents() []*AgentInfo
 	IsAgentOnline(agentID string) bool
 	AddListener(listener StatusChangeListener)
-	RemoveListener(listener StatusChangeListener)
 }
 
 // SSEManager interface for managing Server-Sent Events
@@ -54,4 +53,23 @@ type SSEManager interface {
 	RemoveClient(clientID string)
 	JoinRoom(clientID, room string) error
 	SendToRoom(room string, data any, eventType string) error
+}
+
+// TerminalSessionManager interface for managing terminal sessions
+type TerminalSessionManager interface {
+	CreateSession(userID, agentID, shell, workingDir string, env map[string]string) (*TerminalSession, error)
+	GetSession(sessionID string) (*TerminalSession, error)
+	GetUserSessions(userID string) []*TerminalSession
+	CloseSession(sessionID string) error
+	UpdateLastActivity(sessionID string) error
+	CleanupInactiveSessions(maxInactivity time.Duration) int
+	ValidateSessionAccess(sessionID, userID string) error
+}
+
+// TerminalResponseHandler interface for handling terminal command responses
+type TerminalResponseHandler interface {
+	HandleTerminalCreateResponse(response *pb.TerminalCreateResponse) error
+	HandleTerminalCommandResponse(response *pb.TerminalCommandResponse) error
+	HandleTerminalCloseResponse(response *pb.TerminalCloseResponse) error
+	SetStreamSender(sender StreamSender)
 }

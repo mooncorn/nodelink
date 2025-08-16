@@ -10,6 +10,7 @@ import (
 	pb "github.com/mooncorn/nodelink/proto"
 	"github.com/mooncorn/nodelink/server/internal/auth"
 	"github.com/mooncorn/nodelink/server/internal/command"
+	"github.com/mooncorn/nodelink/server/internal/common"
 	"github.com/mooncorn/nodelink/server/internal/ping"
 	"github.com/mooncorn/nodelink/server/internal/status"
 	"google.golang.org/grpc/codes"
@@ -24,10 +25,11 @@ type CommunicationServer struct {
 	activeStreams map[string]pb.AgentService_StreamCommunicationServer
 
 	// Dependencies
-	statusManager  *status.Manager
-	pingHandler    *ping.Handler
-	commandHandler *command.Handler
-	auth           auth.Authenticator
+	statusManager   *status.Manager
+	pingHandler     *ping.Handler
+	commandHandler  *command.Handler
+	terminalHandler common.TerminalResponseHandler
+	auth            auth.Authenticator
 
 	// Background context and cleanup
 	ctx    context.Context
@@ -37,25 +39,32 @@ type CommunicationServer struct {
 
 // CommunicationConfig contains configuration for the communication server
 type CommunicationConfig struct {
-	StatusManager  *status.Manager
-	PingHandler    *ping.Handler
-	CommandHandler *command.Handler
-	Authenticator  auth.Authenticator
+	StatusManager   *status.Manager
+	PingHandler     *ping.Handler
+	CommandHandler  *command.Handler
+	TerminalHandler common.TerminalResponseHandler
+	Authenticator   auth.Authenticator
 }
 
 // NewCommunicationServer creates a new communication server
 func NewCommunicationServer(config CommunicationConfig) *CommunicationServer {
 	server := &CommunicationServer{
-		activeStreams:  make(map[string]pb.AgentService_StreamCommunicationServer),
-		statusManager:  config.StatusManager,
-		pingHandler:    config.PingHandler,
-		commandHandler: config.CommandHandler,
-		auth:           config.Authenticator,
+		activeStreams:   make(map[string]pb.AgentService_StreamCommunicationServer),
+		statusManager:   config.StatusManager,
+		pingHandler:     config.PingHandler,
+		commandHandler:  config.CommandHandler,
+		terminalHandler: config.TerminalHandler,
+		auth:            config.Authenticator,
 	}
 
 	// Set this server as the stream sender for the command handler
 	if config.CommandHandler != nil {
 		config.CommandHandler.SetStreamSender(server)
+	}
+
+	// Set this server as the stream sender for the terminal handler
+	if config.TerminalHandler != nil {
+		config.TerminalHandler.SetStreamSender(server)
 	}
 
 	return server
@@ -157,6 +166,27 @@ func (s *CommunicationServer) StreamCommunication(stream pb.AgentService_StreamC
 			if s.commandHandler != nil {
 				if err := s.commandHandler.HandleCommandResponse(msg.CommandResponse); err != nil {
 					log.Printf("Error processing command response from agent %s: %v", agentID, err)
+				}
+			}
+		case *pb.AgentMessage_TerminalCreateResponse:
+			// Process terminal create response through terminal handler
+			if s.terminalHandler != nil {
+				if err := s.terminalHandler.HandleTerminalCreateResponse(msg.TerminalCreateResponse); err != nil {
+					log.Printf("Error processing terminal create response from agent %s: %v", agentID, err)
+				}
+			}
+		case *pb.AgentMessage_TerminalCommandResponse:
+			// Process terminal command response through terminal handler
+			if s.terminalHandler != nil {
+				if err := s.terminalHandler.HandleTerminalCommandResponse(msg.TerminalCommandResponse); err != nil {
+					log.Printf("Error processing terminal command response from agent %s: %v", agentID, err)
+				}
+			}
+		case *pb.AgentMessage_TerminalCloseResponse:
+			// Process terminal close response through terminal handler
+			if s.terminalHandler != nil {
+				if err := s.terminalHandler.HandleTerminalCloseResponse(msg.TerminalCloseResponse); err != nil {
+					log.Printf("Error processing terminal close response from agent %s: %v", agentID, err)
 				}
 			}
 		default:

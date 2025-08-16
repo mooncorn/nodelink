@@ -15,6 +15,7 @@ import (
 	"github.com/mooncorn/nodelink/server/internal/ping"
 	"github.com/mooncorn/nodelink/server/internal/sse"
 	"github.com/mooncorn/nodelink/server/internal/status"
+	"github.com/mooncorn/nodelink/server/internal/terminal"
 	"google.golang.org/grpc"
 )
 
@@ -51,12 +52,24 @@ func main() {
 	// Create command handler with status manager
 	commandHandler := command.NewHandler(statusManager)
 
+	// Create terminal session manager and handlers
+	terminalSessionManager := terminal.NewSessionManager()
+	defer terminalSessionManager.Stop()
+
+	// Create and start SSE manager (before terminal handlers need it)
+	sseManager := sse.NewManager()
+	sseManager.Start()
+	defer sseManager.Stop()
+
+	terminalHandler := terminal.NewHandler(terminalSessionManager, statusManager, sseManager)
+
 	// Create communication server with all dependencies
 	commServer := comm.NewCommunicationServer(comm.CommunicationConfig{
-		StatusManager:  statusManager,
-		PingHandler:    pingHandler,
-		CommandHandler: commandHandler,
-		Authenticator:  auth,
+		StatusManager:   statusManager,
+		PingHandler:     pingHandler,
+		CommandHandler:  commandHandler,
+		TerminalHandler: terminalHandler,
+		Authenticator:   auth,
 	})
 
 	// Start all services
@@ -72,16 +85,15 @@ func main() {
 	// Create HTTP and SSE handlers for status management
 	statusHTTPHandler := status.NewHTTPHandler(statusManager)
 
-	// Create and start SSE manager
-	sseManager := sse.NewManager()
-	sseManager.Start()
-	defer sseManager.Stop()
-
 	statusSSEHandler := status.NewSSEHandler(statusManager, sseManager)
 	defer statusSSEHandler.Stop()
 
 	// Create command HTTP handler
 	commandHTTPHandler := command.NewHTTPHandler(commandHandler)
+
+	// Create terminal HTTP and SSE handlers
+	terminalHTTPHandler := terminal.NewHTTPHandler(terminalHandler)
+	terminalSSEHandler := terminal.NewSSEHandler(terminalHandler, sseManager)
 
 	router := gin.Default()
 
@@ -91,6 +103,10 @@ func main() {
 
 	// Register command routes
 	commandHTTPHandler.RegisterRoutes(router)
+
+	// Register terminal routes
+	terminalHTTPHandler.RegisterRoutes(router)
+	terminalSSEHandler.RegisterRoutes(router)
 
 	// Start gRPC server in background
 	lis, err := net.Listen("tcp", ":9090")

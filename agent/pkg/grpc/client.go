@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mooncorn/nodelink/agent/pkg/command"
+	"github.com/mooncorn/nodelink/agent/pkg/terminal"
 	pb "github.com/mooncorn/nodelink/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -23,6 +24,7 @@ type StreamClient struct {
 	heartbeatTicker   *time.Ticker
 	heartbeatInterval time.Duration
 	commandExecutor   *command.Executor
+	terminalManager   *terminal.Manager
 }
 
 // NewStreamClient creates a new stream client
@@ -35,14 +37,19 @@ func NewStreamClient(serverAddr string) (*StreamClient, error) {
 	client := pb.NewAgentServiceClient(conn)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &StreamClient{
+	streamClient := &StreamClient{
 		conn:              conn,
 		client:            client,
 		ctx:               ctx,
 		cancel:            cancel,
 		heartbeatInterval: 3 * time.Second, // Default 3 seconds
 		commandExecutor:   command.NewExecutor(5 * time.Minute),
-	}, nil
+	}
+
+	// Initialize terminal manager with message sender
+	streamClient.terminalManager = terminal.NewManager(streamClient.Send)
+
+	return streamClient, nil
 }
 
 // SetHeartbeatInterval configures the interval between heartbeats
@@ -96,6 +103,15 @@ func (c *StreamClient) listen() {
 		case *pb.ServerMessage_CommandRequest:
 			// Handle command request
 			c.handleCommandRequest(msg.CommandRequest)
+		case *pb.ServerMessage_TerminalCreateRequest:
+			// Handle terminal create request
+			c.terminalManager.CreateSession(msg.TerminalCreateRequest)
+		case *pb.ServerMessage_TerminalCommandRequest:
+			// Handle terminal command request
+			c.terminalManager.ExecuteCommand(msg.TerminalCommandRequest)
+		case *pb.ServerMessage_TerminalCloseRequest:
+			// Handle terminal close request
+			c.terminalManager.CloseSession(msg.TerminalCloseRequest)
 		default:
 			log.Printf("Unknown message type received: %T", msg)
 		}
@@ -145,6 +161,11 @@ func (c *StreamClient) Send(msg *pb.AgentMessage) error {
 
 // Close closes the connection
 func (c *StreamClient) Close() error {
+	// Clean up terminal sessions
+	if c.terminalManager != nil {
+		c.terminalManager.Cleanup()
+	}
+
 	if c.cancel != nil {
 		c.cancel()
 	}

@@ -28,6 +28,9 @@ type ServerMessage struct {
 	//
 	//	*ServerMessage_Ping
 	//	*ServerMessage_CommandRequest
+	//	*ServerMessage_TerminalCreateRequest
+	//	*ServerMessage_TerminalCommandRequest
+	//	*ServerMessage_TerminalCloseRequest
 	Message       isServerMessage_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -88,6 +91,33 @@ func (x *ServerMessage) GetCommandRequest() *CommandRequest {
 	return nil
 }
 
+func (x *ServerMessage) GetTerminalCreateRequest() *TerminalCreateRequest {
+	if x != nil {
+		if x, ok := x.Message.(*ServerMessage_TerminalCreateRequest); ok {
+			return x.TerminalCreateRequest
+		}
+	}
+	return nil
+}
+
+func (x *ServerMessage) GetTerminalCommandRequest() *TerminalCommandRequest {
+	if x != nil {
+		if x, ok := x.Message.(*ServerMessage_TerminalCommandRequest); ok {
+			return x.TerminalCommandRequest
+		}
+	}
+	return nil
+}
+
+func (x *ServerMessage) GetTerminalCloseRequest() *TerminalCloseRequest {
+	if x != nil {
+		if x, ok := x.Message.(*ServerMessage_TerminalCloseRequest); ok {
+			return x.TerminalCloseRequest
+		}
+	}
+	return nil
+}
+
 type isServerMessage_Message interface {
 	isServerMessage_Message()
 }
@@ -100,9 +130,27 @@ type ServerMessage_CommandRequest struct {
 	CommandRequest *CommandRequest `protobuf:"bytes,2,opt,name=command_request,json=commandRequest,proto3,oneof"`
 }
 
+type ServerMessage_TerminalCreateRequest struct {
+	TerminalCreateRequest *TerminalCreateRequest `protobuf:"bytes,3,opt,name=terminal_create_request,json=terminalCreateRequest,proto3,oneof"`
+}
+
+type ServerMessage_TerminalCommandRequest struct {
+	TerminalCommandRequest *TerminalCommandRequest `protobuf:"bytes,4,opt,name=terminal_command_request,json=terminalCommandRequest,proto3,oneof"`
+}
+
+type ServerMessage_TerminalCloseRequest struct {
+	TerminalCloseRequest *TerminalCloseRequest `protobuf:"bytes,5,opt,name=terminal_close_request,json=terminalCloseRequest,proto3,oneof"`
+}
+
 func (*ServerMessage_Ping) isServerMessage_Message() {}
 
 func (*ServerMessage_CommandRequest) isServerMessage_Message() {}
+
+func (*ServerMessage_TerminalCreateRequest) isServerMessage_Message() {}
+
+func (*ServerMessage_TerminalCommandRequest) isServerMessage_Message() {}
+
+func (*ServerMessage_TerminalCloseRequest) isServerMessage_Message() {}
 
 // Agent to Server messages
 type AgentMessage struct {
@@ -111,6 +159,9 @@ type AgentMessage struct {
 	//
 	//	*AgentMessage_Pong
 	//	*AgentMessage_CommandResponse
+	//	*AgentMessage_TerminalCreateResponse
+	//	*AgentMessage_TerminalCommandResponse
+	//	*AgentMessage_TerminalCloseResponse
 	Message       isAgentMessage_Message `protobuf_oneof:"message"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -171,6 +222,33 @@ func (x *AgentMessage) GetCommandResponse() *CommandResponse {
 	return nil
 }
 
+func (x *AgentMessage) GetTerminalCreateResponse() *TerminalCreateResponse {
+	if x != nil {
+		if x, ok := x.Message.(*AgentMessage_TerminalCreateResponse); ok {
+			return x.TerminalCreateResponse
+		}
+	}
+	return nil
+}
+
+func (x *AgentMessage) GetTerminalCommandResponse() *TerminalCommandResponse {
+	if x != nil {
+		if x, ok := x.Message.(*AgentMessage_TerminalCommandResponse); ok {
+			return x.TerminalCommandResponse
+		}
+	}
+	return nil
+}
+
+func (x *AgentMessage) GetTerminalCloseResponse() *TerminalCloseResponse {
+	if x != nil {
+		if x, ok := x.Message.(*AgentMessage_TerminalCloseResponse); ok {
+			return x.TerminalCloseResponse
+		}
+	}
+	return nil
+}
+
 type isAgentMessage_Message interface {
 	isAgentMessage_Message()
 }
@@ -183,9 +261,27 @@ type AgentMessage_CommandResponse struct {
 	CommandResponse *CommandResponse `protobuf:"bytes,2,opt,name=command_response,json=commandResponse,proto3,oneof"`
 }
 
+type AgentMessage_TerminalCreateResponse struct {
+	TerminalCreateResponse *TerminalCreateResponse `protobuf:"bytes,3,opt,name=terminal_create_response,json=terminalCreateResponse,proto3,oneof"`
+}
+
+type AgentMessage_TerminalCommandResponse struct {
+	TerminalCommandResponse *TerminalCommandResponse `protobuf:"bytes,4,opt,name=terminal_command_response,json=terminalCommandResponse,proto3,oneof"`
+}
+
+type AgentMessage_TerminalCloseResponse struct {
+	TerminalCloseResponse *TerminalCloseResponse `protobuf:"bytes,5,opt,name=terminal_close_response,json=terminalCloseResponse,proto3,oneof"`
+}
+
 func (*AgentMessage_Pong) isAgentMessage_Message() {}
 
 func (*AgentMessage_CommandResponse) isAgentMessage_Message() {}
+
+func (*AgentMessage_TerminalCreateResponse) isAgentMessage_Message() {}
+
+func (*AgentMessage_TerminalCommandResponse) isAgentMessage_Message() {}
+
+func (*AgentMessage_TerminalCloseResponse) isAgentMessage_Message() {}
 
 // Ping/Pong messages for heartbeat
 type Ping struct {
@@ -453,18 +549,417 @@ func (x *CommandResponse) GetTimeout() bool {
 	return false
 }
 
+// Terminal session messages
+type TerminalCreateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Shell         string                 `protobuf:"bytes,2,opt,name=shell,proto3" json:"shell,omitempty"` // bash, zsh, sh, etc. Default: bash
+	WorkingDir    string                 `protobuf:"bytes,3,opt,name=working_dir,json=workingDir,proto3" json:"working_dir,omitempty"`
+	Env           map[string]string      `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TerminalCreateRequest) Reset() {
+	*x = TerminalCreateRequest{}
+	mi := &file_agent_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TerminalCreateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TerminalCreateRequest) ProtoMessage() {}
+
+func (x *TerminalCreateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TerminalCreateRequest.ProtoReflect.Descriptor instead.
+func (*TerminalCreateRequest) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *TerminalCreateRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *TerminalCreateRequest) GetShell() string {
+	if x != nil {
+		return x.Shell
+	}
+	return ""
+}
+
+func (x *TerminalCreateRequest) GetWorkingDir() string {
+	if x != nil {
+		return x.WorkingDir
+	}
+	return ""
+}
+
+func (x *TerminalCreateRequest) GetEnv() map[string]string {
+	if x != nil {
+		return x.Env
+	}
+	return nil
+}
+
+type TerminalCreateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Success       bool                   `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
+	Error         string                 `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	Shell         string                 `protobuf:"bytes,4,opt,name=shell,proto3" json:"shell,omitempty"`
+	WorkingDir    string                 `protobuf:"bytes,5,opt,name=working_dir,json=workingDir,proto3" json:"working_dir,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TerminalCreateResponse) Reset() {
+	*x = TerminalCreateResponse{}
+	mi := &file_agent_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TerminalCreateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TerminalCreateResponse) ProtoMessage() {}
+
+func (x *TerminalCreateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TerminalCreateResponse.ProtoReflect.Descriptor instead.
+func (*TerminalCreateResponse) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *TerminalCreateResponse) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *TerminalCreateResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *TerminalCreateResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *TerminalCreateResponse) GetShell() string {
+	if x != nil {
+		return x.Shell
+	}
+	return ""
+}
+
+func (x *TerminalCreateResponse) GetWorkingDir() string {
+	if x != nil {
+		return x.WorkingDir
+	}
+	return ""
+}
+
+type TerminalCommandRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	CommandId     string                 `protobuf:"bytes,2,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	Command       string                 `protobuf:"bytes,3,opt,name=command,proto3" json:"command,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TerminalCommandRequest) Reset() {
+	*x = TerminalCommandRequest{}
+	mi := &file_agent_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TerminalCommandRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TerminalCommandRequest) ProtoMessage() {}
+
+func (x *TerminalCommandRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TerminalCommandRequest.ProtoReflect.Descriptor instead.
+func (*TerminalCommandRequest) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *TerminalCommandRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *TerminalCommandRequest) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *TerminalCommandRequest) GetCommand() string {
+	if x != nil {
+		return x.Command
+	}
+	return ""
+}
+
+type TerminalCommandResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	CommandId     string                 `protobuf:"bytes,2,opt,name=command_id,json=commandId,proto3" json:"command_id,omitempty"`
+	Output        string                 `protobuf:"bytes,3,opt,name=output,proto3" json:"output,omitempty"`
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	IsFinal       bool                   `protobuf:"varint,5,opt,name=is_final,json=isFinal,proto3" json:"is_final,omitempty"`    // true if command completed
+	ExitCode      int32                  `protobuf:"varint,6,opt,name=exit_code,json=exitCode,proto3" json:"exit_code,omitempty"` // only set when is_final is true
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TerminalCommandResponse) Reset() {
+	*x = TerminalCommandResponse{}
+	mi := &file_agent_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TerminalCommandResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TerminalCommandResponse) ProtoMessage() {}
+
+func (x *TerminalCommandResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TerminalCommandResponse.ProtoReflect.Descriptor instead.
+func (*TerminalCommandResponse) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *TerminalCommandResponse) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *TerminalCommandResponse) GetCommandId() string {
+	if x != nil {
+		return x.CommandId
+	}
+	return ""
+}
+
+func (x *TerminalCommandResponse) GetOutput() string {
+	if x != nil {
+		return x.Output
+	}
+	return ""
+}
+
+func (x *TerminalCommandResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *TerminalCommandResponse) GetIsFinal() bool {
+	if x != nil {
+		return x.IsFinal
+	}
+	return false
+}
+
+func (x *TerminalCommandResponse) GetExitCode() int32 {
+	if x != nil {
+		return x.ExitCode
+	}
+	return 0
+}
+
+type TerminalCloseRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TerminalCloseRequest) Reset() {
+	*x = TerminalCloseRequest{}
+	mi := &file_agent_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TerminalCloseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TerminalCloseRequest) ProtoMessage() {}
+
+func (x *TerminalCloseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TerminalCloseRequest.ProtoReflect.Descriptor instead.
+func (*TerminalCloseRequest) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *TerminalCloseRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type TerminalCloseResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Success       bool                   `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
+	Error         string                 `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TerminalCloseResponse) Reset() {
+	*x = TerminalCloseResponse{}
+	mi := &file_agent_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TerminalCloseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TerminalCloseResponse) ProtoMessage() {}
+
+func (x *TerminalCloseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TerminalCloseResponse.ProtoReflect.Descriptor instead.
+func (*TerminalCloseResponse) Descriptor() ([]byte, []int) {
+	return file_agent_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *TerminalCloseResponse) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *TerminalCloseResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *TerminalCloseResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 var File_agent_proto protoreflect.FileDescriptor
 
 const file_agent_proto_rawDesc = "" +
 	"\n" +
-	"\vagent.proto\x12\x02pb\"y\n" +
+	"\vagent.proto\x12\x02pb\"\xf8\x02\n" +
 	"\rServerMessage\x12\x1e\n" +
 	"\x04ping\x18\x01 \x01(\v2\b.pb.PingH\x00R\x04ping\x12=\n" +
-	"\x0fcommand_request\x18\x02 \x01(\v2\x12.pb.CommandRequestH\x00R\x0ecommandRequestB\t\n" +
-	"\amessage\"{\n" +
+	"\x0fcommand_request\x18\x02 \x01(\v2\x12.pb.CommandRequestH\x00R\x0ecommandRequest\x12S\n" +
+	"\x17terminal_create_request\x18\x03 \x01(\v2\x19.pb.TerminalCreateRequestH\x00R\x15terminalCreateRequest\x12V\n" +
+	"\x18terminal_command_request\x18\x04 \x01(\v2\x1a.pb.TerminalCommandRequestH\x00R\x16terminalCommandRequest\x12P\n" +
+	"\x16terminal_close_request\x18\x05 \x01(\v2\x18.pb.TerminalCloseRequestH\x00R\x14terminalCloseRequestB\t\n" +
+	"\amessage\"\x83\x03\n" +
 	"\fAgentMessage\x12\x1e\n" +
 	"\x04pong\x18\x01 \x01(\v2\b.pb.PongH\x00R\x04pong\x12@\n" +
-	"\x10command_response\x18\x02 \x01(\v2\x13.pb.CommandResponseH\x00R\x0fcommandResponseB\t\n" +
+	"\x10command_response\x18\x02 \x01(\v2\x13.pb.CommandResponseH\x00R\x0fcommandResponse\x12V\n" +
+	"\x18terminal_create_response\x18\x03 \x01(\v2\x1a.pb.TerminalCreateResponseH\x00R\x16terminalCreateResponse\x12Y\n" +
+	"\x19terminal_command_response\x18\x04 \x01(\v2\x1b.pb.TerminalCommandResponseH\x00R\x17terminalCommandResponse\x12S\n" +
+	"\x17terminal_close_response\x18\x05 \x01(\v2\x19.pb.TerminalCloseResponseH\x00R\x15terminalCloseResponseB\t\n" +
 	"\amessage\"$\n" +
 	"\x04Ping\x12\x1c\n" +
 	"\ttimestamp\x18\x01 \x01(\x03R\ttimestamp\"K\n" +
@@ -490,7 +985,48 @@ const file_agent_proto_rawDesc = "" +
 	"\x06stdout\x18\x03 \x01(\tR\x06stdout\x12\x16\n" +
 	"\x06stderr\x18\x04 \x01(\tR\x06stderr\x12\x14\n" +
 	"\x05error\x18\x05 \x01(\tR\x05error\x12\x18\n" +
-	"\atimeout\x18\x06 \x01(\bR\atimeout2N\n" +
+	"\atimeout\x18\x06 \x01(\bR\atimeout\"\xdb\x01\n" +
+	"\x15TerminalCreateRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x14\n" +
+	"\x05shell\x18\x02 \x01(\tR\x05shell\x12\x1f\n" +
+	"\vworking_dir\x18\x03 \x01(\tR\n" +
+	"workingDir\x124\n" +
+	"\x03env\x18\x04 \x03(\v2\".pb.TerminalCreateRequest.EnvEntryR\x03env\x1a6\n" +
+	"\bEnvEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x9e\x01\n" +
+	"\x16TerminalCreateResponse\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x18\n" +
+	"\asuccess\x18\x02 \x01(\bR\asuccess\x12\x14\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\x12\x14\n" +
+	"\x05shell\x18\x04 \x01(\tR\x05shell\x12\x1f\n" +
+	"\vworking_dir\x18\x05 \x01(\tR\n" +
+	"workingDir\"p\n" +
+	"\x16TerminalCommandRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x02 \x01(\tR\tcommandId\x12\x18\n" +
+	"\acommand\x18\x03 \x01(\tR\acommand\"\xbd\x01\n" +
+	"\x17TerminalCommandResponse\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1d\n" +
+	"\n" +
+	"command_id\x18\x02 \x01(\tR\tcommandId\x12\x16\n" +
+	"\x06output\x18\x03 \x01(\tR\x06output\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x12\x19\n" +
+	"\bis_final\x18\x05 \x01(\bR\aisFinal\x12\x1b\n" +
+	"\texit_code\x18\x06 \x01(\x05R\bexitCode\"5\n" +
+	"\x14TerminalCloseRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"f\n" +
+	"\x15TerminalCloseResponse\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x18\n" +
+	"\asuccess\x18\x02 \x01(\bR\asuccess\x12\x14\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error2N\n" +
 	"\fAgentService\x12>\n" +
 	"\x13StreamCommunication\x12\x10.pb.AgentMessage\x1a\x11.pb.ServerMessage(\x010\x01B'Z%github.com/mooncorn/nodelink/proto/pbb\x06proto3"
 
@@ -506,29 +1042,43 @@ func file_agent_proto_rawDescGZIP() []byte {
 	return file_agent_proto_rawDescData
 }
 
-var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_agent_proto_goTypes = []any{
-	(*ServerMessage)(nil),   // 0: pb.ServerMessage
-	(*AgentMessage)(nil),    // 1: pb.AgentMessage
-	(*Ping)(nil),            // 2: pb.Ping
-	(*Pong)(nil),            // 3: pb.Pong
-	(*CommandRequest)(nil),  // 4: pb.CommandRequest
-	(*CommandResponse)(nil), // 5: pb.CommandResponse
-	nil,                     // 6: pb.CommandRequest.EnvEntry
+	(*ServerMessage)(nil),           // 0: pb.ServerMessage
+	(*AgentMessage)(nil),            // 1: pb.AgentMessage
+	(*Ping)(nil),                    // 2: pb.Ping
+	(*Pong)(nil),                    // 3: pb.Pong
+	(*CommandRequest)(nil),          // 4: pb.CommandRequest
+	(*CommandResponse)(nil),         // 5: pb.CommandResponse
+	(*TerminalCreateRequest)(nil),   // 6: pb.TerminalCreateRequest
+	(*TerminalCreateResponse)(nil),  // 7: pb.TerminalCreateResponse
+	(*TerminalCommandRequest)(nil),  // 8: pb.TerminalCommandRequest
+	(*TerminalCommandResponse)(nil), // 9: pb.TerminalCommandResponse
+	(*TerminalCloseRequest)(nil),    // 10: pb.TerminalCloseRequest
+	(*TerminalCloseResponse)(nil),   // 11: pb.TerminalCloseResponse
+	nil,                             // 12: pb.CommandRequest.EnvEntry
+	nil,                             // 13: pb.TerminalCreateRequest.EnvEntry
 }
 var file_agent_proto_depIdxs = []int32{
-	2, // 0: pb.ServerMessage.ping:type_name -> pb.Ping
-	4, // 1: pb.ServerMessage.command_request:type_name -> pb.CommandRequest
-	3, // 2: pb.AgentMessage.pong:type_name -> pb.Pong
-	5, // 3: pb.AgentMessage.command_response:type_name -> pb.CommandResponse
-	6, // 4: pb.CommandRequest.env:type_name -> pb.CommandRequest.EnvEntry
-	1, // 5: pb.AgentService.StreamCommunication:input_type -> pb.AgentMessage
-	0, // 6: pb.AgentService.StreamCommunication:output_type -> pb.ServerMessage
-	6, // [6:7] is the sub-list for method output_type
-	5, // [5:6] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	2,  // 0: pb.ServerMessage.ping:type_name -> pb.Ping
+	4,  // 1: pb.ServerMessage.command_request:type_name -> pb.CommandRequest
+	6,  // 2: pb.ServerMessage.terminal_create_request:type_name -> pb.TerminalCreateRequest
+	8,  // 3: pb.ServerMessage.terminal_command_request:type_name -> pb.TerminalCommandRequest
+	10, // 4: pb.ServerMessage.terminal_close_request:type_name -> pb.TerminalCloseRequest
+	3,  // 5: pb.AgentMessage.pong:type_name -> pb.Pong
+	5,  // 6: pb.AgentMessage.command_response:type_name -> pb.CommandResponse
+	7,  // 7: pb.AgentMessage.terminal_create_response:type_name -> pb.TerminalCreateResponse
+	9,  // 8: pb.AgentMessage.terminal_command_response:type_name -> pb.TerminalCommandResponse
+	11, // 9: pb.AgentMessage.terminal_close_response:type_name -> pb.TerminalCloseResponse
+	12, // 10: pb.CommandRequest.env:type_name -> pb.CommandRequest.EnvEntry
+	13, // 11: pb.TerminalCreateRequest.env:type_name -> pb.TerminalCreateRequest.EnvEntry
+	1,  // 12: pb.AgentService.StreamCommunication:input_type -> pb.AgentMessage
+	0,  // 13: pb.AgentService.StreamCommunication:output_type -> pb.ServerMessage
+	13, // [13:14] is the sub-list for method output_type
+	12, // [12:13] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_agent_proto_init() }
@@ -539,10 +1089,16 @@ func file_agent_proto_init() {
 	file_agent_proto_msgTypes[0].OneofWrappers = []any{
 		(*ServerMessage_Ping)(nil),
 		(*ServerMessage_CommandRequest)(nil),
+		(*ServerMessage_TerminalCreateRequest)(nil),
+		(*ServerMessage_TerminalCommandRequest)(nil),
+		(*ServerMessage_TerminalCloseRequest)(nil),
 	}
 	file_agent_proto_msgTypes[1].OneofWrappers = []any{
 		(*AgentMessage_Pong)(nil),
 		(*AgentMessage_CommandResponse)(nil),
+		(*AgentMessage_TerminalCreateResponse)(nil),
+		(*AgentMessage_TerminalCommandResponse)(nil),
+		(*AgentMessage_TerminalCloseResponse)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -550,7 +1106,7 @@ func file_agent_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_proto_rawDesc), len(file_agent_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
