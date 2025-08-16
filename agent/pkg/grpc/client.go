@@ -7,24 +7,26 @@ import (
 	"log"
 	"time"
 
+	"github.com/mooncorn/nodelink/agent/pkg/command"
 	pb "github.com/mooncorn/nodelink/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
-type PingPongClient struct {
+type StreamClient struct {
 	conn              *grpc.ClientConn
 	client            pb.AgentServiceClient
-	stream            pb.AgentService_StreamPingPongClient
+	stream            pb.AgentService_StreamCommunicationClient
 	ctx               context.Context
 	cancel            context.CancelFunc
 	agentID           string
 	heartbeatTicker   *time.Ticker
 	heartbeatInterval time.Duration
+	commandExecutor   *command.Executor
 }
 
-// NewPingPongClient creates a new ping/pong client
-func NewPingPongClient(serverAddr string) (*PingPongClient, error) {
+// NewStreamClient creates a new stream client
+func NewStreamClient(serverAddr string) (*StreamClient, error) {
 	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -33,29 +35,30 @@ func NewPingPongClient(serverAddr string) (*PingPongClient, error) {
 	client := pb.NewAgentServiceClient(conn)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &PingPongClient{
+	return &StreamClient{
 		conn:              conn,
 		client:            client,
 		ctx:               ctx,
 		cancel:            cancel,
 		heartbeatInterval: 3 * time.Second, // Default 3 seconds
+		commandExecutor:   command.NewExecutor(5 * time.Minute),
 	}, nil
 }
 
 // SetHeartbeatInterval configures the interval between heartbeats
-func (c *PingPongClient) SetHeartbeatInterval(interval time.Duration) {
+func (c *StreamClient) SetHeartbeatInterval(interval time.Duration) {
 	c.heartbeatInterval = interval
 }
 
 // Connect establishes the streaming connection
-func (c *PingPongClient) Connect(agentID, agentToken string) error {
+func (c *StreamClient) Connect(agentID, agentToken string) error {
 	md := metadata.New(map[string]string{
 		"agent_id":    agentID,
 		"agent_token": agentToken,
 	})
 	ctx := metadata.NewOutgoingContext(c.ctx, md)
 
-	stream, err := c.client.StreamPingPong(ctx)
+	stream, err := c.client.StreamCommunication(ctx)
 	if err != nil {
 		return err
 	}
@@ -65,42 +68,83 @@ func (c *PingPongClient) Connect(agentID, agentToken string) error {
 
 	go c.listen()
 
-	log.Println("Agent connected to ping/pong stream")
+	log.Println("Agent connected to communication stream")
 	return nil
 }
 
-// listen continuously listens for incoming pings
-func (c *PingPongClient) listen() {
+// listen continuously listens for incoming messages from server
+func (c *StreamClient) listen() {
 	for {
-		ping, err := c.stream.Recv()
+		serverMsg, err := c.stream.Recv()
 		if err == io.EOF {
-			log.Println("ping/pong stream ended")
+			log.Println("communication stream ended")
 			break
 		}
 		if err != nil {
-			log.Printf("Error receiving ping: %v", err)
+			log.Printf("Error receiving message: %v", err)
 			break
 		}
 
-		// Send pong
-		c.Send(&pb.Pong{
-			Timestamp:     time.Now().UTC().Unix(),
-			PingTimestamp: ping.Timestamp,
-		})
+		// Handle different message types
+		switch msg := serverMsg.Message.(type) {
+		case *pb.ServerMessage_Ping:
+			// Handle ping message
+			c.sendPong(&pb.Pong{
+				Timestamp:     time.Now().UTC().Unix(),
+				PingTimestamp: msg.Ping.Timestamp,
+			})
+		case *pb.ServerMessage_CommandRequest:
+			// Handle command request
+			c.handleCommandRequest(msg.CommandRequest)
+		default:
+			log.Printf("Unknown message type received: %T", msg)
+		}
 	}
 }
 
-// Send sends a pong response to the server
-func (c *PingPongClient) Send(pong *pb.Pong) error {
+// handleCommandRequest processes a command request and sends the response
+func (c *StreamClient) handleCommandRequest(req *pb.CommandRequest) {
+	log.Printf("Executing command: %s", req.Command)
+
+	// Execute command
+	response := c.commandExecutor.Execute(req)
+
+	// Send response back to server
+	agentMsg := &pb.AgentMessage{
+		Message: &pb.AgentMessage_CommandResponse{
+			CommandResponse: response,
+		},
+	}
+
+	if err := c.stream.Send(agentMsg); err != nil {
+		log.Printf("Error sending command response: %v", err)
+	}
+}
+
+// sendPong sends a pong response to the server
+func (c *StreamClient) sendPong(pong *pb.Pong) {
+	agentMsg := &pb.AgentMessage{
+		Message: &pb.AgentMessage_Pong{
+			Pong: pong,
+		},
+	}
+
+	if err := c.stream.Send(agentMsg); err != nil {
+		log.Printf("Error sending pong: %v", err)
+	}
+}
+
+// Send sends an agent message to the server
+func (c *StreamClient) Send(msg *pb.AgentMessage) error {
 	if c.stream == nil {
 		return fmt.Errorf("not connected")
 	}
 
-	return c.stream.Send(pong)
+	return c.stream.Send(msg)
 }
 
 // Close closes the connection
-func (c *PingPongClient) Close() error {
+func (c *StreamClient) Close() error {
 	if c.cancel != nil {
 		c.cancel()
 	}

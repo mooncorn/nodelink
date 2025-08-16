@@ -1,147 +1,129 @@
 package command
 
 import (
-	"context"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	pb "github.com/mooncorn/nodelink/proto"
-	"github.com/mooncorn/nodelink/server/internal/agent"
 )
+
+// ExecuteRequest represents the HTTP request for command execution
+type ExecuteRequest struct {
+	AgentID    string            `json:"agent_id" binding:"required"`
+	Command    string            `json:"command" binding:"required"`
+	Args       []string          `json:"args,omitempty"`
+	Env        map[string]string `json:"env,omitempty"`
+	WorkingDir string            `json:"working_dir,omitempty"`
+	Timeout    int               `json:"timeout_seconds,omitempty"`
+}
+
+// ExecuteResponse represents the HTTP response for command execution
+type ExecuteResponse struct {
+	RequestID string `json:"request_id"`
+	ExitCode  int32  `json:"exit_code"`
+	Stdout    string `json:"stdout"`
+	Stderr    string `json:"stderr"`
+	Error     string `json:"error,omitempty"`
+	Timeout   bool   `json:"timeout"`
+}
 
 // HTTPHandler handles HTTP requests for command execution
 type HTTPHandler struct {
-	agentManager *agent.Manager
+	commandHandler *Handler
 }
 
 // NewHTTPHandler creates a new HTTP handler for commands
-func NewHTTPHandler(agentManager *agent.Manager) *HTTPHandler {
+func NewHTTPHandler(commandHandler *Handler) *HTTPHandler {
 	return &HTTPHandler{
-		agentManager: agentManager,
+		commandHandler: commandHandler,
 	}
 }
 
-// ExecuteCommandRequest represents an HTTP request for command execution
-type ExecuteCommandRequest struct {
-	AgentID          string            `json:"agent_id" binding:"required"`
-	Command          string            `json:"command" binding:"required"`
-	Environment      map[string]string `json:"environment,omitempty"`
-	WorkingDirectory string            `json:"working_directory,omitempty"`
-	TimeoutSeconds   uint32            `json:"timeout_seconds,omitempty"`
+// RegisterRoutes registers command-related routes
+func (h *HTTPHandler) RegisterRoutes(router *gin.Engine) {
+	router.POST("/commands", h.executeCommand)
+	router.GET("/commands/pending", h.getPendingRequests)
 }
 
-// ExecuteCommandResponse represents an HTTP response for command execution
-type ExecuteCommandResponse struct {
-	RequestID       string `json:"request_id"`
-	ExitCode        int32  `json:"exit_code"`
-	Stdout          string `json:"stdout"`
-	Stderr          string `json:"stderr"`
-	TimedOut        bool   `json:"timed_out"`
-	ExecutionTimeMs int64  `json:"execution_time_ms"`
-}
-
-// ExecuteCommand handles HTTP POST requests for command execution
-func (h *HTTPHandler) ExecuteCommand(c *gin.Context) {
-	var req ExecuteCommandRequest
+// executeCommand handles POST /commands
+func (h *HTTPHandler) executeCommand(c *gin.Context) {
+	var req ExecuteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON body"})
 		return
 	}
 
-	// Check if agent is connected
-	if !h.agentManager.IsAgentConnected(req.AgentID) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "agent not connected"})
+	// Convert timeout to duration
+	timeout := time.Duration(req.Timeout) * time.Second
+
+	// Execute command
+	response, err := h.commandHandler.ExecuteCommand(
+		c.Request.Context(),
+		req.AgentID,
+		req.Command,
+		req.Args,
+		req.Env,
+		req.WorkingDir,
+		timeout,
+	)
+
+	if err != nil {
+		switch err {
+		case ErrAgentNotConnected:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Agent is not connected"})
+		case ErrRequestTimeout:
+			c.JSON(http.StatusRequestTimeout, gin.H{"error": "Command execution timed out"})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
 		return
 	}
 
-	// Create gRPC request (for future implementation)
-	requestID := generateRequestID()
-	_ = &pb.CommandRequest{
-		Metadata: &pb.RequestMetadata{
-			AgentId:   req.AgentID,
-			RequestId: requestID,
-			Timestamp: time.Now().Unix(),
-		},
-		Command:          req.Command,
-		Environment:      req.Environment,
-		WorkingDirectory: req.WorkingDirectory,
-		TimeoutSeconds:   req.TimeoutSeconds,
+	// Convert protobuf response to HTTP response
+	httpResponse := ExecuteResponse{
+		RequestID: response.RequestId,
+		ExitCode:  response.ExitCode,
+		Stdout:    response.Stdout,
+		Stderr:    response.Stderr,
+		Error:     response.Error,
+		Timeout:   response.Timeout,
 	}
 
-	// Set timeout
-	ctx := c.Request.Context()
-	if req.TimeoutSeconds > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, time.Duration(req.TimeoutSeconds)*time.Second)
-		defer cancel()
+	c.JSON(http.StatusOK, httpResponse)
+}
+
+// getPendingRequests handles GET /commands/pending
+func (h *HTTPHandler) getPendingRequests(c *gin.Context) {
+	pending := h.commandHandler.GetPendingRequests()
+
+	// Convert to response format
+	type PendingRequest struct {
+		ID         string            `json:"id"`
+		AgentID    string            `json:"agent_id"`
+		Command    string            `json:"command"`
+		Args       []string          `json:"args"`
+		Env        map[string]string `json:"env"`
+		WorkingDir string            `json:"working_dir"`
+		Timeout    string            `json:"timeout"`
+		CreatedAt  time.Time         `json:"created_at"`
 	}
-	_ = ctx // Suppress unused variable warning	// Execute command
-	// For now, return an error as command execution needs to be implemented
-	// The HTTP handler should integrate with the command server or handle commands directly
-	c.JSON(http.StatusNotImplemented, gin.H{
-		"error": "Command execution via HTTP not yet implemented",
-		"note":  "Commands should be executed through the gRPC CommandServer or implement direct agent communication",
+
+	var requests []PendingRequest
+	for _, req := range pending {
+		requests = append(requests, PendingRequest{
+			ID:         req.ID,
+			AgentID:    req.AgentID,
+			Command:    req.Command,
+			Args:       req.Args,
+			Env:        req.Env,
+			WorkingDir: req.WorkingDir,
+			Timeout:    req.Timeout.String(),
+			CreatedAt:  req.CreatedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"pending_requests": requests,
+		"count":            len(requests),
 	})
-}
-
-// ListAgents handles HTTP GET requests for listing connected agents
-func (h *HTTPHandler) ListAgents(c *gin.Context) {
-	agents := h.agentManager.GetConnectedAgents()
-	c.JSON(http.StatusOK, gin.H{"agents": agents})
-}
-
-// GetAgentStatus handles HTTP GET requests for agent status
-func (h *HTTPHandler) GetAgentStatus(c *gin.Context) {
-	agentID := c.Param("agent_id")
-	if agentID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "agent_id is required"})
-		return
-	}
-
-	conn, exists := h.agentManager.GetAgentConnection(agentID)
-	if !exists {
-		c.JSON(http.StatusNotFound, gin.H{"error": "agent not found"})
-		return
-	}
-
-	status := gin.H{
-		"agent_id":     conn.AgentID,
-		"status":       conn.Status.String(),
-		"last_seen":    conn.LastSeen,
-		"capabilities": conn.Capabilities,
-		"metadata":     conn.Metadata,
-	}
-
-	c.JSON(http.StatusOK, status)
-}
-
-// RegisterRoutes registers HTTP routes for command operations
-func (h *HTTPHandler) RegisterRoutes(router *gin.RouterGroup) {
-	commands := router.Group("/commands")
-	{
-		commands.POST("/execute", h.ExecuteCommand)
-	}
-
-	agents := router.Group("/agents")
-	{
-		agents.GET("", h.ListAgents)
-		agents.GET("/:agent_id/status", h.GetAgentStatus)
-	}
-}
-
-// generateRequestID generates a unique request ID
-func generateRequestID() string {
-	// Simple implementation - in production you might want to use UUID
-	return time.Now().Format("20060102150405") + "_" + randomString(8)
-}
-
-// randomString generates a random string of given length
-func randomString(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[time.Now().UnixNano()%int64(len(charset))]
-	}
-	return string(b)
 }

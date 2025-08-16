@@ -18,7 +18,7 @@ func main() {
 	log.Println("Starting Agent...")
 
 	// Create grpc client
-	client, err := grpc.NewPingPongClient("localhost:9090")
+	client, err := grpc.NewStreamClient("localhost:9090")
 	if err != nil {
 		log.Fatalf("Failed to create grpc client: %v", err)
 	}

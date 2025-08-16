@@ -8,7 +8,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	pb "github.com/mooncorn/nodelink/proto"
-	"github.com/mooncorn/nodelink/server/internal/agent"
+	"github.com/mooncorn/nodelink/server/internal/auth"
+	"github.com/mooncorn/nodelink/server/internal/comm"
+	"github.com/mooncorn/nodelink/server/internal/command"
+	"github.com/mooncorn/nodelink/server/internal/common"
+	"github.com/mooncorn/nodelink/server/internal/ping"
+	"github.com/mooncorn/nodelink/server/internal/status"
 	"google.golang.org/grpc"
 )
 
@@ -16,7 +21,7 @@ import (
 type AgentStatusLogger struct{}
 
 // OnStatusChange logs agent status changes
-func (l *AgentStatusLogger) OnStatusChange(event agent.StatusChangeEvent) {
+func (l *AgentStatusLogger) OnStatusChange(event common.StatusChangeEvent) {
 	log.Printf("Agent %s status changed: %s -> %s at %s",
 		event.AgentID,
 		event.OldStatus,
@@ -30,39 +35,55 @@ func main() {
 		"agent2": "secret_token2",
 	}
 
-	auth := agent.NewDefaultAuthenticator(defaultAgents)
+	auth := auth.NewDefaultAuthenticator(defaultAgents)
 
-	agentRepo := agent.NewRepository()
+	// Create status manager (replaces agentRepo)
+	statusManager := status.NewManager()
 
+	// Create status change logger
 	logger := &AgentStatusLogger{}
-	agentRepo.AddListener(logger)
+	statusManager.AddListener(logger)
 
-	pingPongServer := agent.NewPingPongServer(agent.PingPongServerConfig{
-		OfflineTimeout:  6 * time.Second,
-		PingInterval:    3 * time.Second,
-		CleanupInterval: 12 * time.Second,
-		StaleAgentTTL:   24 * time.Second,
-		AgentRepo:       agentRepo,
-		Authenticator:   auth,
+	// Create ping handler
+	pingHandler := ping.NewHandler(statusManager, ping.DefaultConfig())
+
+	// Create command handler with status manager
+	commandHandler := command.NewHandler(statusManager)
+
+	// Create communication server with all dependencies
+	commServer := comm.NewCommunicationServer(comm.CommunicationConfig{
+		StatusManager:  statusManager,
+		PingHandler:    pingHandler,
+		CommandHandler: commandHandler,
+		Authenticator:  auth,
 	})
 
-	// Start ping/pong server
-	pingPongServer.Start(context.Background())
-	defer pingPongServer.Stop()
+	// Start all services
+	pingHandler.Start(context.Background())
+	defer pingHandler.Stop()
+
+	commServer.Start(context.Background())
+	defer commServer.Stop()
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterAgentServiceServer(grpcServer, pingPongServer)
+	pb.RegisterAgentServiceServer(grpcServer, commServer)
 
-	// Create HTTP and SSE handlers for agent management
-	agentHTTPHandler := agent.NewHTTPHandler(agentRepo)
-	agentSSEHandler := agent.NewSSEHandler(agentRepo)
-	defer agentSSEHandler.Stop()
+	// Create HTTP and SSE handlers for status management
+	statusHTTPHandler := status.NewHTTPHandler(statusManager)
+	statusSSEHandler := status.NewSSEHandler(statusManager)
+	defer statusSSEHandler.Stop()
+
+	// Create command HTTP handler
+	commandHTTPHandler := command.NewHTTPHandler(commandHandler)
 
 	router := gin.Default()
 
-	// Register agent routes
-	agentHTTPHandler.RegisterRoutes(router)
-	agentSSEHandler.RegisterRoutes(router)
+	// Register status routes (replaces agent routes)
+	statusHTTPHandler.RegisterRoutes(router)
+	statusSSEHandler.RegisterRoutes(router)
+
+	// Register command routes
+	commandHTTPHandler.RegisterRoutes(router)
 
 	// Start gRPC server in background
 	lis, err := net.Listen("tcp", ":9090")

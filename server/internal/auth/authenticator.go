@@ -1,19 +1,13 @@
-package agent
+package auth
 
 import (
 	"context"
-	"errors"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-)
 
-var (
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrMissingMetadata    = errors.New("missing metadata")
-	ErrMissingAgentID     = errors.New("missing agent_id")
-	ErrMissingAgentToken  = errors.New("missing agent_token")
+	"github.com/mooncorn/nodelink/server/internal/common"
 )
 
 // Authenticator interface for agent authentication
@@ -37,17 +31,17 @@ func NewDefaultAuthenticator(allowedAgents map[string]string) *DefaultAuthentica
 func (a *DefaultAuthenticator) Authenticate(ctx context.Context) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return "", status.Error(codes.Unauthenticated, ErrMissingMetadata.Error())
+		return "", status.Error(codes.Unauthenticated, common.ErrMissingMetadata.Error())
 	}
 
 	agentIDs := md.Get("agent_id")
 	if len(agentIDs) == 0 {
-		return "", status.Error(codes.Unauthenticated, ErrMissingAgentID.Error())
+		return "", status.Error(codes.Unauthenticated, common.ErrMissingAgentID.Error())
 	}
 
 	agentTokens := md.Get("agent_token")
 	if len(agentTokens) == 0 {
-		return "", status.Error(codes.Unauthenticated, ErrMissingAgentToken.Error())
+		return "", status.Error(codes.Unauthenticated, common.ErrMissingAgentToken.Error())
 	}
 
 	agentID := agentIDs[0]
@@ -55,7 +49,7 @@ func (a *DefaultAuthenticator) Authenticate(ctx context.Context) (string, error)
 
 	expectedToken, exists := a.allowedAgents[agentID]
 	if !exists || expectedToken != agentToken {
-		return "", ErrInvalidCredentials
+		return "", common.ErrInvalidCredentials
 	}
 	return agentID, nil
 }
