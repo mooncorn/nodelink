@@ -1,26 +1,32 @@
 package terminal
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mooncorn/nodelink/server/internal/common"
+	"github.com/mooncorn/nodelink/server/internal/sse"
 )
 
 // SSEHandler handles SSE streaming for terminal output
 type SSEHandler struct {
-	terminalHandler *Handler
-	sessionManager  common.TerminalSessionManager
-	sseManager      common.SSEManager
+	terminalHandler   *Handler
+	sessionManager    common.TerminalSessionManager
+	sseManager        common.SSEManager
+	connectionHandler *sse.ConnectionHandler
+	formatter         *TerminalMessageFormatter
+	rooms             *TerminalRooms
 }
 
 // NewSSEHandler creates a new SSE handler for terminal streaming
 func NewSSEHandler(terminalHandler *Handler, sseManager common.SSEManager) *SSEHandler {
 	return &SSEHandler{
-		terminalHandler: terminalHandler,
-		sessionManager:  terminalHandler.sessionManager,
-		sseManager:      sseManager,
+		terminalHandler:   terminalHandler,
+		sessionManager:    terminalHandler.sessionManager,
+		sseManager:        sseManager,
+		connectionHandler: sse.NewConnectionHandler(sseManager),
+		formatter:         NewTerminalMessageFormatter(),
+		rooms:             NewTerminalRooms(),
 	}
 }
 
@@ -59,54 +65,27 @@ func (h *SSEHandler) handleTerminalStream(c *gin.Context) {
 		return
 	}
 
-	// Set up SSE headers
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-	c.Header("Access-Control-Allow-Origin", "*")
-
-	// Generate a unique client ID for this connection
-	clientID := fmt.Sprintf("terminal_%s_%s", userID, sessionID)
-
-	// Add client to SSE manager
-	client := h.sseManager.AddClient(clientID)
-	defer h.sseManager.RemoveClient(clientID)
-
-	// Join the terminal session room
-	roomID := GetTerminalSessionRoom(sessionID)
-	if err := h.sseManager.JoinRoom(clientID, roomID); err != nil {
-		log.Printf("Failed to join terminal room %s: %v", roomID, err)
-		c.JSON(500, gin.H{"error": "Failed to join terminal stream"})
-		return
+	// Setup SSE connection configuration
+	config := sse.ConnectionConfig{
+		ClientIDPrefix:     "terminal",
+		ClientIDComponents: []string{userID, sessionID},
+		Rooms:              []string{h.rooms.GetTerminalSessionRoom(sessionID)},
+		InitialMessages:    []string{h.formatter.FormatTerminalConnectionMessage(sessionID)},
+		MessageFormatter:   h.customTerminalFormatter,
 	}
 
-	// Send initial connection message
-	h.sseManager.SendToRoom(roomID, map[string]interface{}{
-		"session_id": sessionID,
-		"message":    "Connected to terminal stream",
-	}, "terminal_connected")
-
-	// Update last activity
+	// Update last activity before starting the connection
 	h.sessionManager.UpdateLastActivity(sessionID)
 
-	// Keep connection alive and stream messages
-	for {
-		select {
-		case msg := <-client.GetChannel():
-			// Format SSE message
-			if msg.EventType != "" {
-				c.SSEvent(msg.EventType, msg.Data)
-			} else {
-				c.SSEvent("message", msg.Data)
-			}
-			c.Writer.Flush()
-
-		case <-client.GetContext().Done():
-			// Client disconnected
-			log.Printf("Client %s disconnected from terminal stream %s", clientID, sessionID)
-			return
-		}
+	if err := h.connectionHandler.HandleConnection(c, config); err != nil {
+		log.Printf("Error handling terminal SSE connection: %v", err)
 	}
+}
+
+// customTerminalFormatter provides terminal-specific message formatting
+func (h *SSEHandler) customTerminalFormatter(msg common.SSEMessage) string {
+	// For terminal messages, we use a simpler format compatible with c.SSEvent
+	return h.formatter.FormatMessage(msg)
 }
 
 // getUserIDFromContext extracts user ID from the request context
