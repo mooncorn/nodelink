@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	pb "github.com/mooncorn/nodelink/proto"
 	"github.com/mooncorn/nodelink/server/internal/auth"
@@ -117,6 +118,15 @@ func main() {
 	metricsSSEHandler := metrics.NewSSEHandler(metricsHandler, metricsStreamingManager, sseManager)
 
 	router := gin.Default()
+
+	// Configure CORS middleware
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "Cache-Control"}
+	config.ExposeHeaders = []string{"Content-Length"}
+	config.AllowCredentials = true
+	router.Use(cors.New(config))
 
 	// Register status routes (replaces agent routes)
 	statusHTTPHandler.RegisterRoutes(router)

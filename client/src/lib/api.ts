@@ -1,53 +1,117 @@
 const API_BASE_URL = 'http://localhost:8080'
 
+// Agent/Node interfaces based on server types
 export interface Node {
-  id: string
-  name: string
-  host: string
+  agent_id: string
   status: 'online' | 'offline'
-  lastSeen: string
-  os?: string
-  arch?: string
-  uptime?: string
+  last_seen: string
+  connected_at?: string
+  metadata?: Record<string, string>
+  created_at: string
+  updated_at: string
 }
 
+export interface AgentsResponse {
+  agents: Node[]
+  stats: {
+    total: number
+    online: number
+    offline: number
+  }
+  total: number
+}
+
+// System Info interface based on protobuf SystemInfo
 export interface SystemInfo {
-  os: string
-  kernel: string
-  arch: string
   hostname: string
-  uptime: string
+  platform: string
+  arch: string
+  os_version: string
+  cpu_count: number
+  total_memory: number
+  network_interfaces: string[]
+  kernel_version: string
+  uptime_seconds: number
+}
+
+// System Metrics interfaces based on protobuf SystemMetrics
+export interface MemoryMetrics {
+  total: number
+  available: number
+  used: number
+  used_percent: number
+  free: number
+  cached: number
+  buffers: number
+}
+
+export interface DiskMetrics {
+  device: string
+  mountpoint: string
+  filesystem: string
+  total: number
+  used: number
+  free: number
+  used_percent: number
+}
+
+export interface NetworkMetrics {
+  interface: string
+  bytes_sent: number
+  bytes_recv: number
+  packets_sent: number
+  packets_recv: number
+  errors_in: number
+  errors_out: number
+  drops_in: number
+  drops_out: number
+}
+
+export interface ProcessMetrics {
+  pid: number
+  name: string
+  cpu_percent: number
+  memory_rss: number
+  memory_vms: number
+  status: string
+  create_time: number
+  num_threads: number
 }
 
 export interface SystemMetrics {
-  cpu: {
-    usage: number
-    cores: number
-    model: string
-    frequency: string
-  }
-  memory: {
-    total: number
-    used: number
-    free: number
-    usage: number
-  }
-  disk: {
-    total: number
-    used: number
-    free: number
-    usage: number
-  }
-  network: {
-    interfaces: Array<{
-      name: string
-      ip: string
-      rx: string
-      tx: string
-    }>
-  }
+  cpu_usage_percent: number
+  memory: MemoryMetrics
+  disks: DiskMetrics[]
+  network_interfaces: NetworkMetrics[]
+  processes: ProcessMetrics[]
+  timestamp: number
+  load_average_1m: number
+  load_average_5m: number
+  load_average_15m: number
 }
 
+// Terminal interfaces
+export interface TerminalSession {
+  session_id: string
+  agent_id: string
+  shell: string
+  working_dir: string
+  status: 'active' | 'inactive' | 'closed'
+  created_at: string
+}
+
+export interface CreateTerminalSessionRequest {
+  agent_id: string
+  shell?: string
+  working_dir?: string
+  env?: Record<string, string>
+}
+
+export interface ExecuteTerminalCommandRequest {
+  command: string
+}
+
+// Command execution interfaces
 export interface CommandExecution {
   id: string
   command: string
@@ -55,6 +119,49 @@ export interface CommandExecution {
   exitCode: number
   timestamp: Date
   duration: number
+}
+
+export interface ExecuteCommandRequest {
+  agent_id: string
+  command: string
+  args?: string[]
+  env?: Record<string, string>
+  working_dir?: string
+  timeout_seconds?: number
+}
+
+export interface ExecuteCommandResponse {
+  request_id: string
+  exit_code: number
+  stdout: string
+  stderr: string
+  error?: string
+  timeout: boolean
+}
+
+// SSE Event interfaces
+export interface StatusChangeEvent {
+  agent_id: string
+  old_status: 'online' | 'offline'
+  new_status: 'online' | 'offline'
+  timestamp: string
+  agent: Node
+}
+
+export interface TerminalOutputEvent {
+  session_id: string
+  command_id: string
+  output: string
+  error?: string
+  is_final: boolean
+  exit_code?: number
+}
+
+export interface MetricsStreamEvent {
+  agent_id: string
+  system_info?: SystemInfo
+  metrics?: SystemMetrics
+  timestamp: number
 }
 
 class ApiService {
@@ -81,198 +188,149 @@ class ApiService {
   }
 
   async getNodes(): Promise<Node[]> {
-    try {
-      const response = await this.fetchWithTimeout(`${API_BASE_URL}/api/nodes`)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      return await response.json()
-    } catch (error) {
-      console.error('Failed to fetch nodes:', error)
-      // Return mock data as fallback
-      return [
-        {
-          id: "node-1",
-          name: "Production Server",
-          host: "192.168.1.100",
-          status: "online",
-          lastSeen: "2 minutes ago",
-          os: "Ubuntu 22.04"
-        },
-        {
-          id: "node-2", 
-          name: "Development Server",
-          host: "192.168.1.101",
-          status: "online",
-          lastSeen: "5 minutes ago",
-          os: "CentOS 8"
-        },
-        {
-          id: "node-3",
-          name: "Backup Server",
-          host: "192.168.1.102",
-          status: "offline",
-          lastSeen: "2 hours ago",
-          os: "Debian 11"
-        }
-      ]
+    const response = await this.fetchWithTimeout(`${API_BASE_URL}/agents`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data: AgentsResponse = await response.json()
+    return data.agents
+  }
+
+  async getNode(agentId: string): Promise<Node> {
+    const response = await this.fetchWithTimeout(`${API_BASE_URL}/agents/${agentId}`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    return data.agent
+  }
+
+  async getSystemInfo(agentId: string): Promise<SystemInfo> {
+    const response = await this.fetchWithTimeout(`${API_BASE_URL}/metrics/${agentId}`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    return data.system_info
+  }
+
+  async executeCommand(agentId: string, command: string, args?: string[]): Promise<ExecuteCommandResponse> {
+    const requestBody: ExecuteCommandRequest = {
+      agent_id: agentId,
+      command,
+      args: args || [],
+      timeout_seconds: 30
+    }
+
+    const response = await this.fetchWithTimeout(`${API_BASE_URL}/commands`, {
+      method: 'POST',
+      body: JSON.stringify(requestBody),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    return await response.json()
+  }
+
+  // Terminal session management
+  async createTerminalSession(request: CreateTerminalSessionRequest): Promise<TerminalSession> {
+    const response = await this.fetchWithTimeout(`${API_BASE_URL}/terminals`, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    return await response.json()
+  }
+
+  async getTerminalSessions(): Promise<TerminalSession[]> {
+    const response = await this.fetchWithTimeout(`${API_BASE_URL}/terminals`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    return data.sessions
+  }
+
+  async executeTerminalCommand(sessionId: string, command: string): Promise<{ command_id: string; status: string }> {
+    const response = await this.fetchWithTimeout(`${API_BASE_URL}/terminals/${sessionId}/command`, {
+      method: 'POST',
+      body: JSON.stringify({ command }),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    return await response.json()
+  }
+
+  async closeTerminalSession(sessionId: string): Promise<void> {
+    const response = await this.fetchWithTimeout(`${API_BASE_URL}/terminals/${sessionId}`, {
+      method: 'DELETE',
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
   }
 
-  async getNodeStatus(nodeId: string): Promise<SystemInfo & SystemMetrics> {
+  // SSE Connections
+  connectToAgentStatusEvents(): EventSource | null {
     try {
-      const response = await this.fetchWithTimeout(`${API_BASE_URL}/api/nodes/${nodeId}/status`)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      return await response.json()
+      const eventSource = new EventSource(`${API_BASE_URL}/agents/events`)
+      return eventSource
     } catch (error) {
-      console.error(`Failed to fetch status for node ${nodeId}:`, error)
-      // Return mock data as fallback
-      return {
-        os: "Ubuntu 22.04.3 LTS",
-        kernel: "5.15.0-78-generic",
-        arch: "x86_64",
-        hostname: "prod-server-01",
-        uptime: "15 days, 4 hours, 32 minutes",
-        cpu: {
-          usage: 45,
-          cores: 8,
-          model: "Intel(R) Xeon(R) CPU E5-2686 v4 @ 2.30GHz",
-          frequency: "2.30 GHz"
-        },
-        memory: {
-          total: 16384,
-          used: 10975,
-          free: 5409,
-          usage: 67
-        },
-        disk: {
-          total: 1000,
-          used: 230,
-          free: 770,
-          usage: 23
-        },
-        network: {
-          interfaces: [
-            {
-              name: "eth0",
-              ip: "192.168.1.100",
-              rx: "1.2 GB",
-              tx: "850 MB"
-            }
-          ]
-        }
-      }
-    }
-  }
-
-  async executeCommand(nodeId: string, command: string): Promise<CommandExecution> {
-    try {
-      const response = await this.fetchWithTimeout(`${API_BASE_URL}/api/nodes/${nodeId}/command`, {
-        method: 'POST',
-        body: JSON.stringify({ command }),
-      })
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      
-      const result = await response.json()
-      return {
-        id: Date.now().toString(),
-        command,
-        output: result.output || '',
-        exitCode: result.exit_code || 0,
-        timestamp: new Date(),
-        duration: result.duration || 0
-      }
-    } catch (error) {
-      console.error(`Failed to execute command on node ${nodeId}:`, error)
-      // Return mock data as fallback
-      return {
-        id: Date.now().toString(),
-        command,
-        output: `Simulated output for: ${command}\n\nError: Could not connect to node ${nodeId}. Using mock data.`,
-        exitCode: 1,
-        timestamp: new Date(),
-        duration: 100
-      }
-    }
-  }
-
-  // WebSocket connection for terminal
-  connectTerminal(nodeId: string): WebSocket | null {
-    try {
-      const ws = new WebSocket(`ws://localhost:8080/api/nodes/${nodeId}/terminal`)
-      return ws
-    } catch (error) {
-      console.error(`Failed to connect to terminal for node ${nodeId}:`, error)
+      console.error('Failed to connect to agent status events:', error)
       return null
     }
   }
 
-  async getSystemInfo(nodeId: string): Promise<SystemInfo> {
+  connectToSpecificAgentEvents(agentId: string): EventSource | null {
     try {
-      const response = await this.fetchWithTimeout(`${API_BASE_URL}/api/nodes/${nodeId}/system/info`)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      return await response.json()
+      const eventSource = new EventSource(`${API_BASE_URL}/agents/${agentId}/events`)
+      return eventSource
     } catch (error) {
-      console.error(`Failed to fetch system info for node ${nodeId}:`, error)
-      // Return mock data as fallback
-      return {
-        hostname: nodeId,
-        os: "Ubuntu 22.04 LTS",
-        kernel: "5.15.0-78-generic",
-        arch: "x86_64",
-        uptime: "15 days, 3 hours, 42 minutes"
-      }
+      console.error(`Failed to connect to agent ${agentId} events:`, error)
+      return null
     }
   }
 
-  async getSystemMetrics(nodeId: string): Promise<SystemMetrics> {
+  connectToTerminalStream(sessionId: string): EventSource | null {
     try {
-      const response = await this.fetchWithTimeout(`${API_BASE_URL}/api/nodes/${nodeId}/system/metrics`)
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-      return await response.json()
+      const eventSource = new EventSource(`${API_BASE_URL}/terminals/${sessionId}/stream?user_id=default-user`)
+      return eventSource
     } catch (error) {
-      console.error(`Failed to fetch system metrics for node ${nodeId}:`, error)
-      // Return mock data as fallback
-      return {
-        cpu: {
-          model: "Intel(R) Core(TM) i7-8700K CPU @ 3.70GHz",
-          cores: 8,
-          usage: 45,
-          frequency: "3.70GHz"
-        },
-        memory: {
-          total: 32768,
-          used: 18432,
-          free: 14336,
-          usage: 56
-        },
-        disk: {
-          total: 500,
-          used: 320,
-          free: 180,
-          usage: 64
-        },
-        network: {
-          interfaces: [
-            {
-              name: "eth0",
-              ip: "192.168.1.100",
-              rx: "15.4 MB/s",
-              tx: "8.2 MB/s"
-            }
-          ]
-        }
-      }
+      console.error(`Failed to connect to terminal stream for session ${sessionId}:`, error)
+      return null
     }
+  }
+
+  connectToMetricsStream(agentId: string): EventSource | null {
+    try {
+      const eventSource = new EventSource(`${API_BASE_URL}/metrics/${agentId}/stream`)
+      return eventSource
+    } catch (error) {
+      console.error(`Failed to connect to metrics stream for agent ${agentId}:`, error)
+      return null
+    }
+  }
+
+  // Legacy methods for backward compatibility (updated to use new API)
+  async getNodeStatus(nodeId: string): Promise<SystemInfo & { metrics?: SystemMetrics }> {
+    const systemInfo = await this.getSystemInfo(nodeId)
+    return systemInfo
+  }
+
+  async getSystemMetrics(_nodeId: string): Promise<SystemMetrics | null> {
+    // Note: HTTP endpoint only provides system_info, metrics are only available via SSE
+    // This method returns null to indicate metrics should be fetched via SSE
+    return null
   }
 }
 

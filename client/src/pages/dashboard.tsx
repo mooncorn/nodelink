@@ -2,12 +2,13 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Activity, Server, Wifi, AlertTriangle } from "lucide-react"
-import { apiService, type Node } from "@/lib/api"
+import { apiService, type Node, type StatusChangeEvent } from "@/lib/api"
 import { Link } from "react-router-dom"
 
 export default function DashboardPage() {
   const [nodes, setNodes] = useState<Node[]>([])
   const [loading, setLoading] = useState(true)
+  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting')
 
   useEffect(() => {
     const fetchNodes = async () => {
@@ -22,7 +23,62 @@ export default function DashboardPage() {
     }
 
     fetchNodes()
-    // Refresh data every 30 seconds
+
+    // Set up SSE connection for real-time updates
+    const eventSource = apiService.connectToAgentStatusEvents()
+    
+    if (eventSource) {
+      eventSource.onopen = () => {
+        console.log('SSE connection opened to /agents/events')
+        setConnectionStatus('connected')
+      }
+
+      eventSource.onerror = () => {
+        console.error('SSE connection error')
+        setConnectionStatus('disconnected')
+      }
+
+      // Listen for all messages to debug
+      eventSource.onmessage = (event: MessageEvent) => {
+        console.log('Received SSE message:', event.data)
+        try {
+          const parsedData = JSON.parse(event.data)
+          console.log('Parsed SSE data:', parsedData)
+          
+          // Handle agent status change events
+          if (parsedData.event === 'agent_status_change') {
+            console.log('Processing agent_status_change event')
+            const statusChange: StatusChangeEvent = parsedData.data
+            console.log('Status change data:', statusChange)
+            if (statusChange.agent) {
+              console.log('Updating node:', statusChange.agent)
+              setNodes(prevNodes => {
+                const nodeIndex = prevNodes.findIndex(node => node.agent_id === statusChange.agent.agent_id)
+                if (nodeIndex >= 0) {
+                  const updatedNodes = [...prevNodes]
+                  updatedNodes[nodeIndex] = statusChange.agent
+                  console.log('Updated existing node at index:', nodeIndex)
+                  return updatedNodes
+                } else {
+                  // New node connected
+                  console.log('Adding new node:', statusChange.agent.agent_id)
+                  return [...prevNodes, statusChange.agent]
+                }
+              })
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing SSE message:', error)
+        }
+      }
+
+      // Cleanup on unmount
+      return () => {
+        eventSource.close()
+      }
+    }
+
+    // Fallback: refresh data every 30 seconds
     const interval = setInterval(fetchNodes, 30000)
     return () => clearInterval(interval)
   }, [])
@@ -118,35 +174,47 @@ export default function DashboardPage() {
       {/* Node List */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {nodes.map((node) => (
-          <Link key={node.id} to={`/nodes/${node.id}`}>
+          <Link key={node.agent_id} to={`/nodes/${node.agent_id}`}>
             <Card className="cursor-pointer hover:shadow-md transition-shadow">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-base font-medium">{node.name}</CardTitle>
-                <Badge variant={node.status === "online" ? "default" : "destructive"}>
-                  {node.status}
-                </Badge>
+                <CardTitle className="text-base font-medium">
+                  {node.metadata?.name || node.agent_id}
+                </CardTitle>
+                <div className="flex items-center space-x-2">
+                  <Badge variant={node.status === "online" ? "default" : "destructive"}>
+                    {node.status}
+                  </Badge>
+                  {connectionStatus === 'connected' && (
+                    <Wifi className="h-4 w-4 text-green-500" />
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Host:</span>
-                    <span>{node.host}</span>
+                    <span>Agent ID:</span>
+                    <span className="text-xs font-mono">{node.agent_id}</span>
                   </div>
-                  {node.os && (
+                  {node.metadata?.host && (
                     <div className="flex justify-between text-sm">
-                      <span>OS:</span>
-                      <span>{node.os}</span>
+                      <span>Host:</span>
+                      <span>{node.metadata.host}</span>
                     </div>
                   )}
-                  {node.uptime && (
+                  {node.metadata?.os && (
                     <div className="flex justify-between text-sm">
-                      <span>Uptime:</span>
-                      <span>{node.uptime}</span>
+                      <span>OS:</span>
+                      <span>{node.metadata.os}</span>
                     </div>
                   )}
                   <div className="text-xs text-muted-foreground mt-2">
-                    Last seen: {node.lastSeen}
+                    Last seen: {new Date(node.last_seen).toLocaleString()}
                   </div>
+                  {node.connected_at && (
+                    <div className="text-xs text-muted-foreground">
+                      Connected: {new Date(node.connected_at).toLocaleString()}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
