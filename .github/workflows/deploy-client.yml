@@ -9,10 +9,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+      - name: Install dependencies and build
+        run: |
+          cd client
+          npm install
+          npm run build
       - name: Deploy to Heroku
         run: |
           cd client
-          heroku git:remote -a my-react-app
-          git push heroku main 
+          git init
+          git add .
+          git add dist -f # Force-add dist folder
+          git commit -m "Deploy frontend"
+          heroku git:remote -a gshub-react
+          git push heroku main
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
