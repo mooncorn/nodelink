@@ -1,0 +1,22 @@
+[variables]
+GO_VERSION = "1.23"
+
+[phases.setup]
+nixPkgs = ["go_1_23"]
+
+[phases.install]
+cmds = [
+    # Download dependencies for all modules
+    "go mod download || echo 'Root mod download failed'",
+    "cd proto && go mod download", 
+    "cd server && go mod download"
+]
+
+[phases.build]
+cmds = [
+    # Build the server binary from the server directory
+    "cd server && go build -ldflags='-w -s' -o ../out cmd/server/main.go"
+]
+
+[start]
+cmd = "./out"
