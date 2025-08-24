@@ -1,6 +1,8 @@
 module github.com/mooncorn/nodelink/test
 
-go 1.21
+go 1.23.5
+
+toolchain go1.24.6
 
 require github.com/mooncorn/nodelink/server v0.0.0
 

@@ -1,5 +1,5 @@
 [build]
-builder = "DOCKERFILE"
+builder = "NIXPACKS"
 
 [deploy]
 healthcheckPath = "/health"
@@ -8,5 +8,5 @@ restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
 [variables]
-# Railway will automatically set PORT for the HTTP server
-# GRPC_PORT can be customized if needed
+GO_VERSION = "1.23"
+GIN_MODE = "release"
