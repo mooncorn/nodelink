@@ -29,8 +29,6 @@ jobs:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: ${{vars.HEROKU_CLIENT_APP_NAME}}
           heroku_email: ${{vars.HEROKU_EMAIL}}
-          appdir: clientThis updated workflow includes steps to build your Vite React app locally before deployment, ensuring the dist folder is included in the push to Heroku (mirroring your original approach). The action uses appdir: client to deploy only the client subdirectory, via a git subtree push. If you prefer Heroku to handle the build (e.g., via buildpacks and your package.json scripts), you can remove the build and git add/commit steps—Heroku's Node.js buildpack will run npm run build automatically if configured.For nginx, ensure your Heroku app has the appropriate buildpacks set (e.g., heroku/nodejs followed by https://github.com/heroku/heroku-buildpack-nginx). You can set them manually in the Heroku dashboard or add CLI steps to the workflow if needed. If your Procfile specifies nginx, it should work as long as the build produces the necessary files.
-
-47 web pages
+          appdir: client
 
 
