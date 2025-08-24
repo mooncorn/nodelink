@@ -7,7 +7,7 @@ RUN apk update && apk add --no-cache git ca-certificates && update-ca-certificat
 WORKDIR /app
 
 # Copy go mod files from root and subdirectories
-# When Railway builds with dockerfilePath, context is still the repo root
+# Railway builds from repo root even when using server/Dockerfile
 COPY go.mod* go.sum* ./
 COPY proto/go.mod ./proto/
 COPY proto/go.sum* ./proto/
