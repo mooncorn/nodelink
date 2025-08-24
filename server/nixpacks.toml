@@ -1,0 +1,20 @@
+[phases.setup]
+nixPkgs = ['protobuf', 'git']
+
+[phases.build]
+cmds = [
+    'echo "Building nodelink server..."',
+    'cd ..',
+    'chmod +x generate.sh',
+    './generate.sh',
+    'cd server',
+    'go build -o main cmd/server/main.go'
+]
+
+[start]
+cmd = './main'
+
+[variables]
+CGO_ENABLED = "0"
+GOOS = "linux"
+GOARCH = "amd64"

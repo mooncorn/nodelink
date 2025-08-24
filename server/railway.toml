@@ -1,12 +1,12 @@
 [build]
-builder = "NIXPACKS"
+builder = "nixpacks"
 
 [deploy]
-healthcheckPath = "/health"
-healthcheckTimeout = 300
+startCommand = "./main"
+healthcheckPath = "/"
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
 
-[variables]
-GO_VERSION = "1.23"
-GIN_MODE = "release"
+[env]
+# Railway will automatically provide PORT
+# Add any other environment variables you need
+GRPC_PORT = "9090"
