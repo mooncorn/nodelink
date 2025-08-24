@@ -1,50 +1,53 @@
-name: Deploy Frontend to Heroku
+# Simple workflow for deploying static content to GitHub Pages
+name: Deploy static content to Pages
+
 on:
+  # Runs on pushes targeting the default branch
   push:
-    branches: [main]
+    branches: ['main']
     paths:
       - 'client/**'
+
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+
+# Sets the GITHUB_TOKEN permissions to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
 jobs:
+  # Single deploy job since we're just deploying
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch full history for git subtree
-      
-      - name: Set up Node.js
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-      
-      - name: Install dependencies and build
-        run: |
-          cd client
-          npm i
-          npm run build
-      
-      - name: Configure git
-        run: |
-          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-          git config --global user.name "${{ github.actor }}"
-      
-      - name: Add built files to git
-        run: |
-          git add client/dist -f
-          git commit -m "Add built frontend for deployment" --allow-empty
-      
-      - name: Install Heroku CLI
-        run: curl https://cli-assets.heroku.com/install.sh | sh
-      
-      - name: Login to Heroku
-        run: |
-          echo "${{ secrets.HEROKU_API_KEY }}" | heroku auth:token
-      
-      - name: Add Heroku remote
-        run: |
-          heroku git:remote -a ${{ vars.HEROKU_CLIENT_APP_NAME }}
-      
-      - name: Deploy to Heroku
-        run: |
-          git push heroku `git subtree split --prefix=client HEAD`:main --force
+          node-version: lts/*
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload dist folder
+          path: './dist'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
