@@ -5,31 +5,15 @@ on:
     paths:
       - 'client/**'
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v2
+      - name: Install Heroku CLI # <- IMPORTANT!!! Make sure the cli is installed before using the action
+        run: |
+          curl https://cli-assets.heroku.com/install.sh | sh 
+      - uses: akhileshns/heroku-deploy@v3.14.15 # This is the action
         with:
-          node-version: '22'
-      - name: Install dependencies and build
-        run: |
-          cd client
-          npm install
-          npm run build
-      - name: Configure Git identity
-        run: |
-          git config --global user.email "github-actions@users.noreply.github.com"
-          git config --global user.name "GitHub Actions"
-      - name: Deploy to Heroku
-        run: |
-          cd client
-          git init
-          git add .
-          git add dist -f # Force-add dist folder
-          git commit -m "Deploy frontend"
-          heroku git:remote -a gshub-react
-          git push heroku main
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: ${{vars.HEROKU_CLIENT_APP_NAME}}
+          heroku_email: ${{vars.HEROKU_EMAIL}}
