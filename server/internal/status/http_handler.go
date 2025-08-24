@@ -22,6 +22,10 @@ func NewHTTPHandler(manager *Manager) *HTTPHandler {
 
 // RegisterRoutes registers status routes with the given router
 func (h *HTTPHandler) RegisterRoutes(router gin.IRouter) {
+	// Health check endpoints for Railway
+	router.GET("/health", h.HealthCheck)
+	router.GET("/ping", h.HealthCheck)
+
 	// Get all agents with optional status filter
 	router.GET("/agents", h.GetAgents)
 
@@ -105,4 +109,31 @@ func (h *HTTPHandler) GetAgents(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+// HealthCheck handles GET /health and GET /ping for Railway health checks
+func (h *HTTPHandler) HealthCheck(c *gin.Context) {
+	allAgents := h.manager.GetAllAgents()
+
+	stats := map[string]interface{}{
+		"status":    "healthy",
+		"timestamp": c.Request.Header.Get("Date"),
+		"agents": map[string]int{
+			"total":   len(allAgents),
+			"online":  0,
+			"offline": 0,
+		},
+	}
+
+	// Count agent statuses
+	for _, agent := range allAgents {
+		switch agent.Status {
+		case common.AgentStatusOnline:
+			stats["agents"].(map[string]int)["online"]++
+		case common.AgentStatusOffline:
+			stats["agents"].(map[string]int)["offline"]++
+		}
+	}
+
+	c.JSON(http.StatusOK, stats)
 }

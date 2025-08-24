@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -34,6 +35,18 @@ func (l *AgentStatusLogger) OnStatusChange(event common.StatusChangeEvent) {
 }
 
 func main() {
+	// Get ports from environment variables
+	// Railway provides PORT automatically, defaulting to 8080 for local development
+	httpPort := os.Getenv("PORT")
+	if httpPort == "" {
+		httpPort = "8080"
+	}
+
+	grpcPort := os.Getenv("GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "9090"
+	}
+
 	defaultAgents := map[string]string{
 		"agent1": "secret_token1",
 		"agent2": "secret_token2",
@@ -121,7 +134,13 @@ func main() {
 
 	// Configure CORS middleware
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173"}
+	config.AllowOrigins = []string{
+		"http://localhost:3000",
+		"http://localhost:5173",
+		"http://127.0.0.1:5173",
+		"https://*.railway.app",    // Railway preview deployments
+		"https://*.up.railway.app", // Railway custom domains
+	}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "Cache-Control"}
 	config.ExposeHeaders = []string{"Content-Length"}
@@ -144,18 +163,18 @@ func main() {
 	metricsSSEHandler.RegisterRoutes(router)
 
 	// Start gRPC server in background
-	lis, err := net.Listen("tcp", ":9090")
+	lis, err := net.Listen("tcp", ":"+grpcPort)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
 	go func() {
-		log.Println("gRPC Event Server starting on :9090")
+		log.Printf("gRPC Event Server starting on :%s", grpcPort)
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatalf("Failed to serve gRPC: %v", err)
 		}
 	}()
 
-	log.Println("HTTP Server starting on :8080")
-	router.Run()
+	log.Printf("HTTP Server starting on :%s", httpPort)
+	router.Run(":" + httpPort)
 }
