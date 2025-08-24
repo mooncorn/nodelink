@@ -1,0 +1,36 @@
+daemon off;
+worker_processes <%= ENV['NGINX_WORKERS'] || 4 %>;
+events {
+  use epoll;
+  accept_mutex on;
+  worker_connections <%= ENV['NGINX_WORKER_CONNECTIONS'] || 1024 %>;
+}
+http {
+  gzip on;
+  gzip_comp_level 2;
+  gzip_min_length 512;
+  server_tokens off;
+  log_format main '$time_iso8601 - $status $request - client IP: $http_x_forwarded_for';
+  access_log /dev/stdout main;
+  error_log /dev/stdout notice;
+  include mime.types;
+  default_type application/octet-stream;
+  sendfile on;
+  server {
+    listen <%= ENV["PORT"] %>;
+    server_name _;
+    root /app/dist;
+    index index.html;
+    if ($http_x_forwarded_proto != "https") {
+      return 301 https://$host$request_uri; # Redirect HTTP to HTTPS
+    }
+    location / {
+      try_files $uri $uri/ /index.html;
+    }
+    # # Add Basic Auth if needed
+    # location /protected {
+    #   auth_basic "Restricted";
+    #   auth_basic_user_file /app/.htpasswd;
+    # }
+  }
+}
