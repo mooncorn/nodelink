@@ -10,30 +10,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for git subtree
+      
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      
       - name: Install dependencies and build
         run: |
           cd client
           npm i
           npm run build
+      
       - name: Configure git
         run: |
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
           git config --global user.name "${{ github.actor }}"
+      
       - name: Add built files to git
         run: |
           git add client/dist -f
           git commit -m "Add built frontend for deployment" --allow-empty
+      
       - name: Install Heroku CLI
         run: curl https://cli-assets.heroku.com/install.sh | sh
-      - uses: akhileshns/heroku-deploy@v3.14.15
-        with:
-          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: ${{vars.HEROKU_CLIENT_APP_NAME}}
-          heroku_email: ${{vars.HEROKU_EMAIL}}
-          appdir: client
-
-
+      
+      - name: Login to Heroku
+        run: |
+          echo "${{ secrets.HEROKU_API_KEY }}" | heroku auth:token
+      
+      - name: Add Heroku remote
+        run: |
+          heroku git:remote -a ${{ vars.HEROKU_CLIENT_APP_NAME }}
+      
+      - name: Deploy to Heroku
+        run: |
+          git push heroku `git subtree split --prefix=client HEAD`:main --force
