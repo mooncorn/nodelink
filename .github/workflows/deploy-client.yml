@@ -5,15 +5,32 @@ on:
     paths:
       - 'client/**'
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Install Heroku CLI # <- IMPORTANT!!! Make sure the cli is installed before using the action
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies and build
         run: |
-          curl https://cli-assets.heroku.com/install.sh | sh 
-      - uses: akhileshns/heroku-deploy@v3.14.15 # This is the action
+          cd client
+          npm ci
+          npm run build
+      - name: Add built files to git
+        run: |
+          git add client/dist -f
+          git commit -m "Add built frontend for deployment" --allow-empty
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+      - uses: akhileshns/heroku-deploy@v3.14.15
         with:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: ${{vars.HEROKU_CLIENT_APP_NAME}}
           heroku_email: ${{vars.HEROKU_EMAIL}}
+          appdir: clientThis updated workflow includes steps to build your Vite React app locally before deployment, ensuring the dist folder is included in the push to Heroku (mirroring your original approach). The action uses appdir: client to deploy only the client subdirectory, via a git subtree push. If you prefer Heroku to handle the build (e.g., via buildpacks and your package.json scripts), you can remove the build and git add/commit steps—Heroku's Node.js buildpack will run npm run build automatically if configured.For nginx, ensure your Heroku app has the appropriate buildpacks set (e.g., heroku/nodejs followed by https://github.com/heroku/heroku-buildpack-nginx). You can set them manually in the Heroku dashboard or add CLI steps to the workflow if needed. If your Procfile specifies nginx, it should work as long as the build produces the necessary files.
+
+47 web pages
+
+
