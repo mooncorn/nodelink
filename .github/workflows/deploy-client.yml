@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies and build
         run: |
           cd client
-          npm ci
+          npm i
           npm run build
       - name: Add built files to git
         run: |
