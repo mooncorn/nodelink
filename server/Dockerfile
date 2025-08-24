@@ -1,15 +1,20 @@
 # Railway Dockerfile for nodelink server
 FROM golang:1.23-alpine AS builder
 
+# Install git and ca-certificates (needed for fetching dependencies)
+RUN apk update && apk add --no-cache git ca-certificates && update-ca-certificates
+
 WORKDIR /app
 
 # Copy go mod files from root and subdirectories
+# When Railway builds with dockerfilePath, context is still the repo root
 COPY go.mod* go.sum* ./
-COPY proto/go.mod proto/go.sum ./proto/
+COPY proto/go.mod ./proto/
+COPY proto/go.sum* ./proto/
 COPY server/go.mod server/go.sum ./server/
 
-# Download dependencies
-RUN go mod download || true
+# Download dependencies with better error handling
+RUN go mod download || echo "Root mod download failed, continuing..."
 RUN cd proto && go mod download
 RUN cd server && go mod download
 
