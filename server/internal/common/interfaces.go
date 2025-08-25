@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	pb "github.com/mooncorn/nodelink/proto"
+	pb "github.com/mooncorn/nodelink/server/internal/proto"
 )
 
 // SSEMessage represents a message to be sent via SSE

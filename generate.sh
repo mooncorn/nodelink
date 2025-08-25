@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# generate.sh - Script to setup and regenerate protobuf code for the nodelink project
+#!/bin/bash
+
+# generate.sh - Script to regenerate protobuf code for the nodelink project
 
 set -e
 
@@ -34,23 +36,14 @@ if ! command -v go &> /dev/null; then
     exit 1
 fi
 
-# Navigate to the proto directory
-cd proto
-
 echo -e "${YELLOW}📦 Installing Go protobuf dependencies...${NC}"
 
-# Ensure go.mod exists and has the right dependencies
-if [ ! -f "go.mod" ]; then
-    echo "Initializing go.mod in proto directory..."
-    go mod init github.com/mooncorn/nodelink/proto
-fi
-
-# Install required protobuf tools
+# Install required protobuf tools (globally)
 echo "Installing protoc-gen-go..."
-go get google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 
 echo "Installing protoc-gen-go-grpc..."
-go get google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 # Ensure tools are in PATH
 export PATH="$PATH:$(go env GOPATH)/bin"
@@ -68,26 +61,42 @@ fi
 
 echo -e "${YELLOW}🔨 Generating Go code from protobuf files...${NC}"
 
+# Create proto directories if they don't exist
+mkdir -p server/internal/proto
+mkdir -p agent/internal/proto
+
 # Remove old generated files
 echo "Cleaning up old generated files..."
-rm -f *.pb.go
+rm -f server/internal/proto/*.pb.go
+rm -f agent/internal/proto/*.pb.go
+rm -f proto/*.pb.go  # Clean up old central location
 
-# Generate Go code from protobuf
-echo "Running protoc..."
-protoc --go_out=. --go_opt=paths=source_relative \
-       --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+# Generate Go code for server
+echo "Generating protobuf files for server..."
+cd proto
+protoc --go_out=../server/internal/proto --go_opt=paths=source_relative \
+       --go-grpc_out=../server/internal/proto --go-grpc_opt=paths=source_relative \
        *.proto
+cd ..
+
+# Generate Go code for agent  
+echo "Generating protobuf files for agent..."
+cd proto
+protoc --go_out=../agent/internal/proto --go_opt=paths=source_relative \
+       --go-grpc_out=../agent/internal/proto --go-grpc_opt=paths=source_relative \
+       *.proto
+cd ..
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Generated protobuf Go files:${NC}"
-    ls -la *.pb.go
+    echo "Server files:"
+    ls -la server/internal/proto/*.pb.go
+    echo "Agent files:"
+    ls -la agent/internal/proto/*.pb.go
 else
     echo -e "${RED}❌ Failed to generate protobuf files${NC}"
     exit 1
 fi
-
-# Navigate back to root
-cd ..
 
 echo -e "${YELLOW}🔄 Updating module dependencies...${NC}"
 
@@ -109,25 +118,13 @@ if ! go mod tidy; then
 fi
 cd ..
 
-# Update proto dependencies
-echo "Updating proto dependencies..."
-cd proto
-if ! go mod tidy; then
-    echo -e "${RED}❌ Failed to update proto dependencies${NC}"
-    exit 1
-fi
-cd ..
-
 echo -e "${GREEN}🎉 Protobuf code generation complete!${NC}"
 echo ""
 echo -e "${BLUE}📋 Summary:${NC}"
-echo "   - Generated protobuf Go files in proto/ directory"
-echo "   - Updated all module dependencies"
+echo "   - Generated protobuf Go files in server/internal/proto/ and agent/internal/proto/"
+echo "   - Updated module dependencies"
 echo "   - Ready to build and run server and agent"
 echo ""
 echo -e "${BLUE}🚀 Next steps:${NC}"
 echo "   - Run server: cd server && go run cmd/server/main.go"
 echo "   - Run agent:  cd agent && go run cmd/agent/main.go"
-echo ""
-echo -e "${BLUE}📁 Generated files:${NC}"
-ls -la proto/*.pb.go

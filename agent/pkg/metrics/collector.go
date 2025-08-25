@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"time"
 
-	pb "github.com/mooncorn/nodelink/proto"
+	pb "github.com/mooncorn/nodelink/agent/internal/proto"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"

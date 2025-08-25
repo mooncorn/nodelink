@@ -3,7 +3,7 @@ package metrics
 import (
 	"log"
 
-	pb "github.com/mooncorn/nodelink/proto"
+	pb "github.com/mooncorn/nodelink/agent/internal/proto"
 )
 
 // MessageSender interface for sending messages to the server

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	pb "github.com/mooncorn/nodelink/proto"
+	pb "github.com/mooncorn/nodelink/agent/internal/proto"
 )
 
 // Executor handles command execution on the agent side

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/mooncorn/nodelink/proto"
+	pb "github.com/mooncorn/nodelink/agent/internal/proto"
 )
 
 // Session represents a terminal session

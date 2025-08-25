@@ -3,7 +3,7 @@ package metrics
 import (
 	"time"
 
-	pb "github.com/mooncorn/nodelink/proto"
+	pb "github.com/mooncorn/nodelink/server/internal/proto"
 )
 
 // MetricsMessageFormatter formats metrics messages for SSE transmission

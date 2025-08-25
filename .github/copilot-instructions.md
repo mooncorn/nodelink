@@ -4,13 +4,14 @@
 Nodelink is a distributed task execution system with gRPC-based agent communication and real-time streaming capabilities. The system consists of:
 - **Server**: Central orchestrator with HTTP APIs and SSE streaming
 - **Agent**: Task executor that connects to server via gRPC
-- **Proto**: Shared protocol buffer definitions for communication
+- **Proto**: Protocol buffer definitions (source of truth in `proto/agent.proto`)
 
 ## Architecture Components
 
 ### Communication Protocol
 - **gRPC**: Bidirectional streaming between server and agents
 - **Protocol Buffers**: [`agent.proto`](proto/agent.proto) defines all message types
+- **Generated Code**: Each service has its own generated protobuf files in `internal/proto/`
 - **Message Types**: Uses `oneof` for type-safe message routing (ping/pong, commands, responses)
 
 ### Internal Package Structure
@@ -116,17 +117,19 @@ common → (no dependencies - foundation layer)
 ```
 
 ### Adding New Features
-1. Update protocol buffers if new message types are needed
-2. Create new package in `internal/` for the feature domain 
-3. Implement core logic, HTTP handlers, and SSE handlers within the package
-4. Add dependencies only to lower-level packages
-5. Register routes in main.go
-6. Implement core logic in the agent
+1. Update protocol buffers in `proto/agent.proto` if new message types are needed
+2. Run `./generate.sh` to regenerate protobuf files in both services
+3. Create new package in `internal/` for the feature domain 
+4. Implement core logic, HTTP handlers, and SSE handlers within the package
+5. Add dependencies only to lower-level packages
+6. Register routes in main.go
+7. Implement core logic in the agent
 
 ## File Organization
 
 ### Server Structure
 - `cmd/server/main.go`: Main server entry point
+- `internal/proto/`: Generated protobuf files for server
 - `internal/sse/`: Real-time streaming infrastructure
 - `internal/status/`: Centralized agent status tracking
 - `internal/ping/`: Heartbeat and connection monitoring
@@ -139,14 +142,16 @@ common → (no dependencies - foundation layer)
 
 ### Agent Structure  
 - `cmd/agent/main.go`: Main agent entry point
+- `internal/proto/`: Generated protobuf files for agent
 - `pkg/grpc/client.go`: gRPC client implementation
 - `pkg/command/`: Command execution handling on agent side
 - `pkg/terminal/`: Terminal session management on agent side
 - `pkg/metrics/`: Metrics collection on agent side
 
 ### Protocol Definitions
-- Use generate.sh script to generate protobuf files
-- `proto/agent.proto`: Protocol buffer definitions
+- `proto/agent.proto`: Protocol buffer definitions (source of truth)
+- `generate.sh`: Script to generate protobuf files in both services
+- Generated files are located in `server/internal/proto/` and `agent/internal/proto/`
 
 ## Security Considerations
 - Agent authentication via tokens

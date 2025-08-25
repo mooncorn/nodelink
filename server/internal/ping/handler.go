@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/mooncorn/nodelink/proto"
+	pb "github.com/mooncorn/nodelink/server/internal/proto"
 	"github.com/mooncorn/nodelink/server/internal/common"
 	"github.com/mooncorn/nodelink/server/internal/status"
 )

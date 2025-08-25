@@ -10,7 +10,7 @@ import (
 	"github.com/mooncorn/nodelink/agent/pkg/command"
 	"github.com/mooncorn/nodelink/agent/pkg/metrics"
 	"github.com/mooncorn/nodelink/agent/pkg/terminal"
-	pb "github.com/mooncorn/nodelink/proto"
+	pb "github.com/mooncorn/nodelink/agent/internal/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

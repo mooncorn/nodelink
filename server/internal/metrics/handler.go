@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	pb "github.com/mooncorn/nodelink/proto"
+	pb "github.com/mooncorn/nodelink/server/internal/proto"
 	"github.com/mooncorn/nodelink/server/internal/common"
 )
 
