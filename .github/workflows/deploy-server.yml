@@ -11,6 +11,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: do_production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
