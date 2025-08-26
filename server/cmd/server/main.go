@@ -136,7 +136,7 @@ func main() {
 	config.AllowOrigins = []string{
 		"http://localhost:5173",
 		"http://127.0.0.1:5173",
-		"https://mooncorn.github.io/nodelink/",
+		"https://mooncorn.github.io",
 	}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "Cache-Control"}
