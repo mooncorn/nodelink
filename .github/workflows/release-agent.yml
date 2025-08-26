@@ -37,18 +37,17 @@ jobs:
       run: |
         cd agent
         VERSION=${{ steps.version.outputs.VERSION }}
-        LDFLAGS="-ldflags \"-X main.Version=${VERSION}\""
         
         mkdir -p dist
         
         # Linux AMD64
-        GOOS=linux GOARCH=amd64 go build ${LDFLAGS} -o dist/nodelink-agent-linux-amd64 ./cmd/agent
-        GOOS=linux GOARCH=amd64 go build ${LDFLAGS} -o dist/nodelink-updater-linux-amd64 ./cmd/updater
+        GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${VERSION}" -o dist/nodelink-agent-linux-amd64 ./cmd/agent
+        GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${VERSION}" -o dist/nodelink-updater-linux-amd64 ./cmd/updater
         tar -czf dist/nodelink-agent_linux_amd64.tar.gz -C dist nodelink-agent-linux-amd64 nodelink-updater-linux-amd64
         
         # Linux ARM64
-        GOOS=linux GOARCH=arm64 go build ${LDFLAGS} -o dist/nodelink-agent-linux-arm64 ./cmd/agent
-        GOOS=linux GOARCH=arm64 go build ${LDFLAGS} -o dist/nodelink-updater-linux-arm64 ./cmd/updater
+        GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${VERSION}" -o dist/nodelink-agent-linux-arm64 ./cmd/agent
+        GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${VERSION}" -o dist/nodelink-updater-linux-arm64 ./cmd/updater
         tar -czf dist/nodelink-agent_linux_arm64.tar.gz -C dist nodelink-agent-linux-arm64 nodelink-updater-linux-arm64
         
     - name: Create Release
