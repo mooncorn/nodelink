@@ -11,6 +11,11 @@ on:
         required: true
         default: 'v0.1.0'
 
+# Set required permissions for GITHUB_TOKEN
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
