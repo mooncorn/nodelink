@@ -35,13 +35,8 @@ jobs:
             
             # Create environment file
             sudo tee /opt/gshub/.env > /dev/null << EOF
-            PORT=${{ secrets.SERVER_PORT }}
-            GRPC_PORT=${{ secrets.GRPC_PORT }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
-            AUTH_TOKEN=${{ secrets.AUTH_TOKEN }}
-            LOG_LEVEL=${{ secrets.LOG_LEVEL }}
             DATABASE_URL=${{ secrets.DATABASE_URL }}
-            REDIS_URL=${{ secrets.REDIS_URL }}
             EOF
             
             # Set proper permissions
