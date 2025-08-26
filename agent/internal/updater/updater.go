@@ -64,14 +64,13 @@ func (u *Updater) Start() error {
 		log.Printf("Initial update check failed: %v", err)
 	}
 
-	for {
-		select {
-		case <-ticker.C:
-			if err := u.checkForUpdates(); err != nil {
-				log.Printf("Update check failed: %v", err)
-			}
+	for range ticker.C {
+		if err := u.checkForUpdates(); err != nil {
+			log.Printf("Update check failed: %v", err)
 		}
 	}
+
+	return nil
 }
 
 // checkForUpdates checks GitHub for new releases
@@ -83,7 +82,11 @@ func (u *Updater) checkForUpdates() error {
 		return fmt.Errorf("failed to get latest release: %w", err)
 	}
 
-	if release.TagName == u.config.CurrentVersion {
+	// Normalize version strings for comparison (remove 'v' prefix if present)
+	currentVersion := strings.TrimPrefix(u.config.CurrentVersion, "v")
+	latestVersion := strings.TrimPrefix(release.TagName, "v")
+
+	if latestVersion == currentVersion {
 		log.Printf("Already running latest version: %s", u.config.CurrentVersion)
 		return nil
 	}
@@ -311,7 +314,7 @@ func (u *Updater) restartAgent() error {
 	log.Println("Restarting agent service...")
 
 	if runtime.GOOS != "linux" {
-		return fmt.Errorf("unsupported operating system: %s. Only Linux is supported.", runtime.GOOS)
+		return fmt.Errorf("unsupported operating system: %s. Only Linux is supported", runtime.GOOS)
 	}
 
 	// Try to restart using systemctl

@@ -205,8 +205,33 @@ EOF
 install_services() {
     log "Installing systemd services..."
     
-    # Create temporary service files
-    cat > "/tmp/nodelink-agent.service" << 'EOF'
+    # Check if we're in a directory that has the service files
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local agent_service_file=""
+    local updater_service_file=""
+    
+    # Look for service files in the same directory as the script
+    if [[ -f "$script_dir/nodelink-agent.service" ]]; then
+        agent_service_file="$script_dir/nodelink-agent.service"
+    elif [[ -f "./nodelink-agent.service" ]]; then
+        agent_service_file="./nodelink-agent.service"
+    fi
+    
+    if [[ -f "$script_dir/nodelink-updater.service" ]]; then
+        updater_service_file="$script_dir/nodelink-updater.service"
+    elif [[ -f "./nodelink-updater.service" ]]; then
+        updater_service_file="./nodelink-updater.service"
+    fi
+    
+    # Use existing service files if available, otherwise create them
+    if [[ -n "$agent_service_file" && -n "$updater_service_file" ]]; then
+        log "Using existing service files"
+        cp "$agent_service_file" "/etc/systemd/system/"
+        cp "$updater_service_file" "/etc/systemd/system/"
+    else
+        log "Creating service files"
+        # Create agent service file
+        cat > "/etc/systemd/system/nodelink-agent.service" << 'EOF'
 [Unit]
 Description=Nodelink Agent
 Documentation=https://github.com/mooncorn/nodelink
@@ -217,7 +242,7 @@ Wants=network.target
 Type=simple
 User=nodelink
 Group=nodelink
-ExecStart=/usr/local/bin/nodelink-agent -agent_id=${AGENT_ID} -agent_token=${AGENT_TOKEN} -address=${SERVER_ADDRESS} -version=${AGENT_VERSION}
+ExecStart=/usr/local/bin/nodelink-agent -agent_id=${AGENT_ID} -agent_token=${AGENT_TOKEN} -address=${SERVER_ADDRESS}
 Restart=always
 RestartSec=5
 StartLimitInterval=60s
@@ -242,7 +267,8 @@ SyslogIdentifier=nodelink-agent
 WantedBy=multi-user.target
 EOF
 
-    cat > "/tmp/nodelink-updater.service" << 'EOF'
+        # Create updater service file
+        cat > "/etc/systemd/system/nodelink-updater.service" << 'EOF'
 [Unit]
 Description=Nodelink Agent Updater
 Documentation=https://github.com/mooncorn/nodelink
@@ -277,10 +303,7 @@ SyslogIdentifier=nodelink-updater
 [Install]
 WantedBy=multi-user.target
 EOF
-
-    # Install service files
-    mv "/tmp/nodelink-agent.service" "/etc/systemd/system/"
-    mv "/tmp/nodelink-updater.service" "/etc/systemd/system/"
+    fi
     
     # Reload systemd
     systemctl daemon-reload
