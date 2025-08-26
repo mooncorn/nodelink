@@ -2,16 +2,20 @@ package grpc
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
+	"strings"
 	"time"
 
+	pb "github.com/mooncorn/nodelink/agent/internal/proto"
 	"github.com/mooncorn/nodelink/agent/pkg/command"
 	"github.com/mooncorn/nodelink/agent/pkg/metrics"
 	"github.com/mooncorn/nodelink/agent/pkg/terminal"
-	pb "github.com/mooncorn/nodelink/agent/internal/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -30,8 +34,22 @@ type StreamClient struct {
 }
 
 // NewStreamClient creates a new stream client
-func NewStreamClient(serverAddr string) (*StreamClient, error) {
-	conn, err := grpc.Dial(serverAddr, grpc.WithInsecure())
+func NewStreamClient(serverAddr string, opts ...grpc.DialOption) (*StreamClient, error) {
+	// If no dial options provided, determine TLS configuration based on address
+	if len(opts) == 0 {
+		if isProdAddress(serverAddr) {
+			// Use TLS for production
+			creds := credentials.NewTLS(&tls.Config{})
+			opts = append(opts, grpc.WithTransportCredentials(creds))
+			log.Println("Using TLS connection for production address")
+		} else {
+			// Use insecure connection for localhost/dev
+			opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			log.Println("Using insecure connection for development address")
+		}
+	}
+
+	conn, err := grpc.Dial(serverAddr, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -188,4 +206,17 @@ func (c *StreamClient) Close() error {
 		return c.conn.Close()
 	}
 	return nil
+}
+
+// isProdAddress determines if the given address is a production address that requires TLS
+func isProdAddress(address string) bool {
+	// Check for localhost or local development addresses
+	if strings.HasPrefix(address, "localhost:") ||
+		strings.HasPrefix(address, "127.0.0.1:") ||
+		strings.HasPrefix(address, "0.0.0.0:") {
+		return false
+	}
+
+	// Default to TLS for any other external address
+	return true
 }

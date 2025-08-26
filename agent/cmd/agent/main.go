@@ -11,14 +11,15 @@ import (
 )
 
 func main() {
-	agentID := flag.String("agent_id", "", "Agent ID")
-	agentToken := flag.String("agent_token", "", "Agent Auth Token")
+	agentID := flag.String("agent_id", "agent1", "Agent ID")
+	agentToken := flag.String("agent_token", "secret_token1", "Agent Auth Token")
+	address := flag.String("address", "localhost:9090", "gRPC server address")
 	flag.Parse()
 
 	log.Println("Starting Agent...")
 
 	// Create grpc client
-	client, err := grpc.NewStreamClient("localhost:9090")
+	client, err := grpc.NewStreamClient(*address)
 	if err != nil {
 		log.Fatalf("Failed to create grpc client: %v", err)
 	}
