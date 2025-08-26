@@ -6,9 +6,6 @@ bin/
 *.exe
 **/main
 
-# Go build cache
-go.sum
-
 # IDE files
 .vscode/
 .idea/
