@@ -21,16 +21,32 @@ jobs:
         working-directory: ./server
         run: |
           GOOS=linux GOARCH=amd64 go build -o out cmd/server/main.go
-      
-      - name: Deploy to DigitalOcean
+
+      - name: Configure environment
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
           script: |
+            # Stop service
             sudo systemctl stop gshub.service
             rm -f /opt/gshub/out
+            
+            # Create environment file
+            sudo tee /opt/gshub/.env > /dev/null << EOF
+            PORT=${{ secrets.SERVER_PORT }}
+            GRPC_PORT=${{ secrets.GRPC_PORT }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            AUTH_TOKEN=${{ secrets.AUTH_TOKEN }}
+            LOG_LEVEL=${{ secrets.LOG_LEVEL }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            REDIS_URL=${{ secrets.REDIS_URL }}
+            EOF
+            
+            # Set proper permissions
+            sudo chown gshub:gshub /opt/gshub/.env
+            sudo chmod 600 /opt/gshub/.env
       
       - name: Copy binary
         uses: appleboy/scp-action@v0.1.4
