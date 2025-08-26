@@ -36,6 +36,8 @@ jobs:
             
             # Create environment file
             sudo tee /opt/gshub/.env > /dev/null << EOF
+            PORT=${{ vars.PORT }}
+            GRPC_PORT=${{ vars.GRPC_PORT }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             EOF
