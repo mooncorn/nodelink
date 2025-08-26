@@ -1,0 +1,137 @@
+name: Build and Release Agent
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: true
+        default: 'v0.1.0'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        
+    - name: Get version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "VERSION=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Build for Linux
+      run: |
+        cd agent
+        VERSION=${{ steps.version.outputs.VERSION }}
+        LDFLAGS="-ldflags \"-X main.Version=${VERSION}\""
+        
+        mkdir -p dist
+        
+        # Linux AMD64
+        GOOS=linux GOARCH=amd64 go build ${LDFLAGS} -o dist/nodelink-agent-linux-amd64 ./cmd/agent
+        GOOS=linux GOARCH=amd64 go build ${LDFLAGS} -o dist/nodelink-updater-linux-amd64 ./cmd/updater
+        tar -czf dist/nodelink-agent_linux_amd64.tar.gz -C dist nodelink-agent-linux-amd64 nodelink-updater-linux-amd64
+        
+        # Linux ARM64
+        GOOS=linux GOARCH=arm64 go build ${LDFLAGS} -o dist/nodelink-agent-linux-arm64 ./cmd/agent
+        GOOS=linux GOARCH=arm64 go build ${LDFLAGS} -o dist/nodelink-updater-linux-arm64 ./cmd/updater
+        tar -czf dist/nodelink-agent_linux_arm64.tar.gz -C dist nodelink-agent-linux-arm64 nodelink-updater-linux-arm64
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        release_name: Nodelink Agent ${{ steps.version.outputs.VERSION }}
+        body: |
+          ## Nodelink Agent ${{ steps.version.outputs.VERSION }}
+          
+          ### Download
+          
+          Choose the appropriate binary for your platform:
+          
+          - **Linux x64**: `nodelink-agent_linux_amd64.tar.gz`
+          - **Linux ARM64**: `nodelink-agent_linux_arm64.tar.gz`
+          
+          ### Installation
+          
+          #### Quick Install (Linux)
+          ```bash
+          # Set your configuration
+          export AGENT_ID="your-agent-id"
+          export AGENT_TOKEN="your-agent-token"
+          export SERVER_ADDRESS="your-server:9090"
+          
+          # Download and run deployment script
+          curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/deploy.sh -o deploy.sh
+          chmod +x deploy.sh
+          sudo ./deploy.sh
+          ```
+          
+          #### Manual Installation
+          1. Download the appropriate archive for your platform
+          2. Extract the binaries (`nodelink-agent` and `nodelink-updater`)
+          3. Place them in your PATH (e.g., `/usr/local/bin/`)
+          4. Configure environment variables
+          5. Set up systemd services (Linux) or equivalent
+          
+          ### Configuration
+          
+          The agent requires the following environment variables:
+          - `AGENT_ID`: Unique identifier for this agent
+          - `AGENT_TOKEN`: Authentication token
+          - `SERVER_ADDRESS`: Nodelink server address (host:port)
+          
+          ### Features
+          - Automatic updates via GitHub releases
+          - Systemd integration
+          - Cross-platform support
+          - Secure authentication
+        draft: false
+        prerelease: false
+        
+    - name: Upload Linux AMD64 Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./agent/dist/nodelink-agent_linux_amd64.tar.gz
+        asset_name: nodelink-agent_linux_amd64.tar.gz
+        asset_content_type: application/gzip
+        
+    - name: Upload Linux ARM64 Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./agent/dist/nodelink-agent_linux_arm64.tar.gz
+        asset_name: nodelink-agent_linux_arm64.tar.gz
+        asset_content_type: application/gzip
+        
+    - name: Upload Deployment Script
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./agent/deploy.sh
+        asset_name: deploy.sh
+        asset_content_type: text/plain
