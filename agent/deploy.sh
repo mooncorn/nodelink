@@ -317,9 +317,11 @@ start_services() {
     systemctl enable nodelink-agent.service
     systemctl enable nodelink-updater.service
     
-    # Start services
-    systemctl start nodelink-agent.service
-    systemctl start nodelink-updater.service
+    # Restart services to ensure they use new binaries and configuration
+    # Use restart instead of start to handle both new installs and updates
+    log "Restarting services to apply new configuration..."
+    systemctl restart nodelink-agent.service
+    systemctl restart nodelink-updater.service
     
     # Check status
     sleep 2

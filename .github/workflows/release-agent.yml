@@ -86,12 +86,13 @@ jobs:
             export AGENT_TOKEN="your-agent-token"
             export SERVER_ADDRESS="your-server:9090"
 
-            # Download deployment script and service files
-            curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/deploy.sh -o deploy.sh
-            curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/nodelink-agent.service -o nodelink-agent.service
-            curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/nodelink-updater.service -o nodelink-updater.service
-            chmod +x deploy.sh
-            sudo ./deploy.sh
+             # Download deployment script and service files
+             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/deploy.sh -o deploy.sh
+             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/uninstall.sh -o uninstall.sh
+             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/nodelink-agent.service -o nodelink-agent.service
+             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/nodelink-updater.service -o nodelink-updater.service
+             chmod +x deploy.sh uninstall.sh
+             sudo -E ./deploy.sh
             ```
 
             #### Manual Installation
@@ -108,16 +109,27 @@ jobs:
             - `AGENT_TOKEN`: Authentication token
             - `SERVER_ADDRESS`: Nodelink server address (host:port)
 
-            ### Features
-            - Automatic updates via GitHub releases
-            - Systemd integration
-            - Cross-platform support
-            - Secure authentication
+             ### Uninstall
+             
+             To completely remove the agent:
+             ```bash
+             # Download and run uninstall script
+             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/uninstall.sh -o uninstall.sh
+             chmod +x uninstall.sh
+             sudo ./uninstall.sh
+             ```
+             
+             ### Features
+             - Automatic updates via GitHub releases
+             - Systemd integration
+             - Cross-platform support
+             - Secure authentication
           draft: false
           prerelease: false
           files: |
             ./agent/dist/nodelink-agent_linux_amd64.tar.gz
             ./agent/dist/nodelink-agent_linux_arm64.tar.gz
             ./agent/deploy.sh
+            ./agent/uninstall.sh
             ./agent/nodelink-agent.service
             ./agent/nodelink-updater.service
