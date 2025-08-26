@@ -26,15 +26,15 @@ NC='\033[0m' # No Color
 
 # Logging function
 log() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}" >&2
+    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] $1${NC}"
 }
 
 warn() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}" >&2
+    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"
 }
 
 error() {
-    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}" >&2
+    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
     exit 1
 }
 
@@ -129,7 +129,7 @@ download_agent() {
 
     # Look for the binaries in the extracted files
     for file in "$temp_dir"/*; do
-        if [[ -f "$file" ]]; then
+        if [[ -f "$file" && -x "$file" ]]; then
             local basename=$(basename "$file")
             if [[ "$basename" == *"agent"* && "$basename" != *"updater"* ]]; then
                 agent_binary="$file"

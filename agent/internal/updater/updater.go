@@ -268,8 +268,8 @@ func (u *Updater) extractBinary(tarGzPath string) (string, error) {
 			return "", err
 		}
 
-		// Look for the agent binary (assuming it's named "agent" or "nodelink-agent")
-		if header.Typeflag == tar.TypeReg && (header.Name == "agent" || header.Name == "nodelink-agent" || strings.HasSuffix(header.Name, "/agent") || strings.HasSuffix(header.Name, "/nodelink-agent")) {
+		// Look for the agent binary (match any file containing "agent" but not "updater")
+		if header.Typeflag == tar.TypeReg && strings.Contains(header.Name, "agent") && !strings.Contains(header.Name, "updater") {
 			// Create temporary file for extracted binary
 			tempFile, err := os.CreateTemp("", "nodelink-agent-extracted-*")
 			if err != nil {
