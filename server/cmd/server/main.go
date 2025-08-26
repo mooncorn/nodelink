@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -35,6 +36,10 @@ func (l *AgentStatusLogger) OnStatusChange(event common.StatusChangeEvent) {
 }
 
 func main() {
+	// Test if environment variables are set in prod
+	fmt.Printf("JWT_SECRET: %s\n", os.Getenv("JWT_SECRET"))
+	fmt.Printf("DATABASE_URL: %s\n", os.Getenv("DATABASE_URL"))
+
 	// Get ports from environment variables
 	// Railway provides PORT automatically, defaulting to 8080 for local development
 	httpPort := os.Getenv("PORT")
