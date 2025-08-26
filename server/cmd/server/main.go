@@ -134,11 +134,9 @@ func main() {
 	// Configure CORS middleware
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{
-		"http://localhost:3000",
 		"http://localhost:5173",
 		"http://127.0.0.1:5173",
-		"https://*.railway.app",    // Railway preview deployments
-		"https://*.up.railway.app", // Railway custom domains
+		"https://mooncorn.github.io/nodelink/",
 	}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "Cache-Control"}
