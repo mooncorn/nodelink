@@ -193,13 +193,6 @@ case "${1:-}" in
         echo "  - Configuration directory ($CONFIG_DIR)"
         echo "  - Optionally: log directory, data directory, and system user"
         echo
-        echo "Environment Variables (optional):"
-        echo "  INSTALL_DIR     - Installation directory (default: /usr/local/bin)"
-        echo "  CONFIG_DIR      - Configuration directory (default: /etc/nodelink)"
-        echo "  LOG_DIR         - Log directory (default: /var/log/nodelink)"
-        echo "  DATA_DIR        - Data directory (default: /var/lib/nodelink)"
-        echo "  SERVICE_USER    - System user for services (default: nodelink)"
-        echo
         echo "Usage:"
         echo "  sudo ./uninstall.sh"
         exit 0
