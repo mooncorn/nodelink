@@ -67,11 +67,11 @@ jobs:
           VERSION=${{ steps.get_version.outputs.version }}
           
           # Create versioned setup script
-          sed "s/__VERSION_PLACEHOLDER__/${VERSION}/g" scripts/setup.sh > dist/setup.sh
+          sed "s/VERSION=\"\${VERSION:-__VERSION_PLACEHOLDER__}\"/VERSION=\"${VERSION}\"/" scripts/setup.sh > dist/setup.sh
           chmod +x dist/setup.sh
           
           # Create versioned uninstall script  
-          sed "s/__VERSION_PLACEHOLDER__/${VERSION}/g" scripts/uninstall.sh > dist/uninstall.sh
+          sed "s/SCRIPT_VERSION=\"\${SCRIPT_VERSION:-__VERSION_PLACEHOLDER__}\"/SCRIPT_VERSION=\"${VERSION}\"/" scripts/uninstall.sh > dist/uninstall.sh
           chmod +x dist/uninstall.sh
 
       - name: Create Release
