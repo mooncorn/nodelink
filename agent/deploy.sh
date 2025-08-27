@@ -196,7 +196,9 @@ Wants=network.target
 Type=simple
 User=nodelink
 Group=nodelink
-ExecStart=/usr/local/bin/nodelink-agent -agent_id=${AGENT_ID} -agent_token=${AGENT_TOKEN}
+Environment=AGENT_ID=${AGENT_ID}
+Environment=AGENT_TOKEN=${AGENT_TOKEN}
+ExecStart=/usr/local/bin/nodelink-agent
 Restart=always
 RestartSec=5
 StartLimitInterval=60s
