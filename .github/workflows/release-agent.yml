@@ -74,7 +74,7 @@ jobs:
             ### Quick Install (Linux)
             ```bash
              # Download and run deployment script
-             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/deploy.sh -o deploy.sh
+             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.get_version.outputs.version }}/deploy.sh -o deploy.sh
              sudo AGENT_ID=my-agent AGENT_TOKEN=secret ./deploy.sh
             ```
 
@@ -89,7 +89,7 @@ jobs:
              To completely remove the agent:
              ```bash
              # Download and run uninstall script
-             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/uninstall.sh -o uninstall.sh
+             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.get_version.outputs.version }}/uninstall.sh -o uninstall.sh
              sudo ./uninstall.sh
              ```
           draft: false
