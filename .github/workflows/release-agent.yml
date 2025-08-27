@@ -1,9 +1,6 @@
 name: Build and Release Agent
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       tag:
@@ -33,7 +30,9 @@ jobs:
 
       - name: Get version
         id: get_version
-        uses: jannemattila/get-version-from-tag@v4
+        run: |
+          VERSION="${{ github.event.inputs.tag }}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Display version
         run: |
