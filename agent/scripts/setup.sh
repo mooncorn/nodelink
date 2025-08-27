@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# Nodelink Agent Setup Script
+# Nodelink Agent Clean Install Script
+# This script performs a clean installation by removing any existing installation
+# and then installing the specified version of the Nodelink Agent.
 set -euo pipefail
 
 # Configuration
@@ -166,18 +168,74 @@ create_directories() {
     chmod 755 "$CONFIG_DIR" "$LOG_DIR" "$DATA_DIR"
 }
 
-# Check if services are running and stop them for reinstallation
-handle_existing_services() {
-    log "Checking for existing services..."
+# Get installed agent version
+get_installed_version() {
+    local version="unknown"
     
+    # Try to get version from the binary
+    if [[ -f "$INSTALL_DIR/nodelink-agent" ]]; then
+        # Try to extract version from the binary (capture both stdout and stderr)
+        version=$("$INSTALL_DIR/nodelink-agent" --version 2>&1 | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || echo "unknown")
+    fi
+    
+    echo "$version"
+}
+
+# Stop and disable service
+stop_service() {
+    log "Stopping and disabling service..."
+    
+    # Stop service if it exists and is running
     if systemctl is-active --quiet nodelink-agent.service 2>/dev/null; then
-        log "Stopping existing nodelink-agent service for reinstallation..."
+        log "Stopping nodelink-agent service..."
         systemctl stop nodelink-agent.service
     fi
     
+    # Disable service if it exists
     if systemctl is-enabled --quiet nodelink-agent.service 2>/dev/null; then
-        log "Disabling existing nodelink-agent service..."
+        log "Disabling nodelink-agent service..."
         systemctl disable nodelink-agent.service
+    fi
+}
+
+# Remove service file
+remove_service_file() {
+    if [[ -f "/etc/systemd/system/nodelink-agent.service" ]]; then
+        log "Removing existing systemd service file..."
+        rm -f "/etc/systemd/system/nodelink-agent.service"
+        systemctl daemon-reload
+    fi
+}
+
+# Remove existing binary
+remove_binary() {
+    if [[ -f "$INSTALL_DIR/nodelink-agent" ]]; then
+        log "Removing existing binary..."
+        rm -f "$INSTALL_DIR/nodelink-agent"
+        
+        # Remove backup files if they exist
+        if [[ -f "$INSTALL_DIR/nodelink-agent.backup" ]]; then
+            rm -f "$INSTALL_DIR/nodelink-agent.backup"
+        fi
+    fi
+}
+
+# Clean uninstall of existing installation
+clean_uninstall() {
+    local installed_version
+    installed_version=$(get_installed_version)
+    
+    if [[ "$installed_version" != "unknown" || -f "$INSTALL_DIR/nodelink-agent" || -f "/etc/systemd/system/nodelink-agent.service" ]]; then
+        log "Existing Nodelink Agent installation detected (version: $installed_version)"
+        log "Performing clean uninstall before installing $VERSION..."
+        
+        stop_service
+        remove_service_file
+        remove_binary
+        
+        log "Clean uninstall completed"
+    else
+        log "No existing installation detected"
     fi
 }
 
@@ -254,7 +312,8 @@ show_status() {
 
 # Main setup function
 main() {
-    log "Starting Nodelink Agent setup..."
+    log "Starting Nodelink Agent clean install..."
+    log "This will uninstall any existing installation and install version $VERSION"
     
     check_root
     validate_config
@@ -270,8 +329,8 @@ main() {
     
     log "Download URL: $download_url"
     
-    # Handle existing services
-    handle_existing_services
+    # Perform clean uninstall of any existing installation
+    clean_uninstall
     
     # Create user and directories
     create_user
@@ -285,7 +344,7 @@ main() {
     install_service
     start_service
     
-    log "Setup completed successfully!"
+    log "Clean install completed successfully!"
     log "Agent ID: $AGENT_ID"
     log "Version: $installed_version"
     echo
@@ -298,7 +357,12 @@ main() {
 # Handle command line arguments
 case "${1:-}" in
     --help|-h)
-        echo "Nodelink Agent Setup Script"
+        echo "Nodelink Agent Clean Install Script"
+        echo
+        echo "This script performs a clean installation by:"
+        echo "  1. Detecting any existing Nodelink Agent installation"
+        echo "  2. Safely removing the existing installation (service, binary)"
+        echo "  3. Installing the new version from scratch"
         echo
         echo "Environment Variables (required):"
         echo "  AGENT_ID        - Unique identifier"
@@ -307,6 +371,8 @@ case "${1:-}" in
         echo "Usage:"
         echo "  sudo AGENT_ID=my-agent AGENT_TOKEN=secret ./setup.sh"
         echo
+        echo "Note: This script will preserve user data and logs but replace"
+        echo "      the agent binary and service configuration."
         exit 0
         ;;
     *)
