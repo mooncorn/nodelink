@@ -19,6 +19,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: agent-release
 
     steps:
       - name: Checkout code
@@ -31,13 +32,12 @@ jobs:
           cache-dependency-path: agent/go.sum
 
       - name: Get version
-        id: version
+        id: get_version
+        uses: jannemattila/get-version-from-tag@v4
+
+      - name: Display version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "VERSION=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-          else
-            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          fi
+          echo "Version: ${{ steps.get_version.outputs.version }}"
 
       - name: Download dependencies
         run: |
@@ -48,66 +48,41 @@ jobs:
       - name: Build for Linux
         run: |
           cd agent
-          VERSION=${{ steps.version.outputs.VERSION }}
+          VERSION=${{ steps.get_version.outputs.version }}
+          SERVER_ADDRESS=${{ vars.SERVER_ADDRESS }}
 
           mkdir -p dist
 
           # Linux AMD64
-          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${VERSION}" -o dist/nodelink-agent-linux-amd64 ./cmd/agent
-          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${VERSION}" -o dist/nodelink-updater-linux-amd64 ./cmd/updater
-          tar -czf dist/nodelink-agent_linux_amd64.tar.gz -C dist nodelink-agent-linux-amd64 nodelink-updater-linux-amd64
+          GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${VERSION} -X main.ServerAddress=${SERVER_ADDRESS}" -o dist/nodelink-agent-linux-amd64 ./cmd/agent
+          # GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${VERSION} -X main.ServerAddress=${SERVER_ADDRESS}" -o dist/nodelink-updater-linux-amd64 ./cmd/updater
+          tar -czf dist/nodelink-agent_linux_amd64.tar.gz -C dist nodelink-agent-linux-amd64
 
           # Linux ARM64
-          GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${VERSION}" -o dist/nodelink-agent-linux-arm64 ./cmd/agent
-          GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${VERSION}" -o dist/nodelink-updater-linux-arm64 ./cmd/updater
-          tar -czf dist/nodelink-agent_linux_arm64.tar.gz -C dist nodelink-agent-linux-arm64 nodelink-updater-linux-arm64
+          GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${VERSION} -X main.ServerAddress=${SERVER_ADDRESS}" -o dist/nodelink-agent-linux-arm64 ./cmd/agent
+          # GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${VERSION} -X main.ServerAddress=${SERVER_ADDRESS}" -o dist/nodelink-updater-linux-arm64 ./cmd/updater
+          tar -czf dist/nodelink-agent_linux_arm64.tar.gz -C dist nodelink-agent-linux-arm64
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.VERSION }}
-          name: Nodelink Agent ${{ steps.version.outputs.VERSION }}
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: Agent ${{ steps.get_version.outputs.version }}
           body: |
-            ## Nodelink Agent ${{ steps.version.outputs.VERSION }}
+            ## Agent ${{ steps.get_version.outputs.version }}
 
-            ### Download
-
-            Choose the appropriate binary for your platform:
-
-            - **Linux x64**: `nodelink-agent_linux_amd64.tar.gz`
-            - **Linux ARM64**: `nodelink-agent_linux_arm64.tar.gz`
-
-            ### Installation
-
-            #### Quick Install (Linux)
+            ### Quick Install (Linux)
             ```bash
-            # Set your configuration
-            export AGENT_ID="your-agent-id"
-            export AGENT_TOKEN="your-agent-token"
-            export SERVER_ADDRESS="your-server:9090"
-
-             # Download deployment script and service files
+             # Download and run deployment script
              curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/deploy.sh -o deploy.sh
-             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/uninstall.sh -o uninstall.sh
-             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/nodelink-agent.service -o nodelink-agent.service
-             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/nodelink-updater.service -o nodelink-updater.service
-             chmod +x deploy.sh uninstall.sh
-             sudo -E ./deploy.sh
+             sudo AGENT_ID=my-agent AGENT_TOKEN=secret ./deploy.sh
             ```
-
-            #### Manual Installation
-            1. Download the appropriate archive for your platform
-            2. Extract the binaries (`nodelink-agent` and `nodelink-updater`)
-            3. Place them in your PATH (e.g., `/usr/local/bin/`)
-            4. Configure environment variables
-            5. Set up systemd services (Linux) or equivalent
 
             ### Configuration
 
             The agent requires the following environment variables:
             - `AGENT_ID`: Unique identifier for this agent
             - `AGENT_TOKEN`: Authentication token
-            - `SERVER_ADDRESS`: Nodelink server address (host:port)
 
              ### Uninstall
              
@@ -115,15 +90,8 @@ jobs:
              ```bash
              # Download and run uninstall script
              curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.version.outputs.VERSION }}/uninstall.sh -o uninstall.sh
-             chmod +x uninstall.sh
              sudo ./uninstall.sh
              ```
-             
-             ### Features
-             - Automatic updates via GitHub releases
-             - Systemd integration
-             - Cross-platform support
-             - Secure authentication
           draft: false
           prerelease: false
           files: |
@@ -131,5 +99,3 @@ jobs:
             ./agent/dist/nodelink-agent_linux_arm64.tar.gz
             ./agent/deploy.sh
             ./agent/uninstall.sh
-            ./agent/nodelink-agent.service
-            ./agent/nodelink-updater.service

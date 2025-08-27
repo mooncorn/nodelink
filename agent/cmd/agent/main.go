@@ -10,19 +10,32 @@ import (
 	"github.com/mooncorn/nodelink/agent/pkg/grpc"
 )
 
-// Version is set during build time
-var Version = "dev"
+// Set during build time
+var (
+	Version       = "dev"
+	ServerAddress = "localhost:9090"
+)
 
 func main() {
-	agentID := flag.String("agent_id", "agent1", "Agent ID")
-	agentToken := flag.String("agent_token", "secret_token1", "Agent Auth Token")
-	address := flag.String("address", "localhost:9090", "gRPC server address")
+	address := flag.String("address", ServerAddress, "gRPC server address")
 	version := flag.Bool("version", false, "Print version and exit")
 	flag.Parse()
 
 	if *version {
 		log.Printf("Nodelink Agent version: %s", Version)
 		os.Exit(0)
+	}
+
+	// Get agentID from environment variable
+	agentID := os.Getenv("AGENT_ID")
+	if agentID == "" {
+		log.Fatal("AGENT_ID environment variable is required")
+	}
+
+	// Get agentToken from environment variable
+	agentToken := os.Getenv("AGENT_TOKEN")
+	if agentToken == "" {
+		log.Fatal("AGENT_TOKEN environment variable is required")
 	}
 
 	log.Printf("Starting Agent (version %s)...", Version)
@@ -35,7 +48,7 @@ func main() {
 	defer client.Close()
 
 	// Connect to the server
-	if err := client.Connect(*agentID, *agentToken); err != nil {
+	if err := client.Connect(agentID, agentToken); err != nil {
 		log.Fatalf("Failed to connect to grpc server: %v", err)
 	}
 

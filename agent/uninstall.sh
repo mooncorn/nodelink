@@ -37,63 +37,43 @@ check_root() {
     fi
 }
 
-# Stop and disable services
-stop_services() {
-    log "Stopping and disabling services..."
+# Stop and disable service
+stop_service() {
+    log "Stopping and disabling service..."
     
-    # Stop services if they exist and are running
+    # Stop service if it exists and is running
     if systemctl is-active --quiet nodelink-agent.service 2>/dev/null; then
         log "Stopping nodelink-agent service..."
         systemctl stop nodelink-agent.service
     fi
     
-    if systemctl is-active --quiet nodelink-updater.service 2>/dev/null; then
-        log "Stopping nodelink-updater service..."
-        systemctl stop nodelink-updater.service
-    fi
-    
-    # Disable services if they exist
+    # Disable service if it exists
     if systemctl is-enabled --quiet nodelink-agent.service 2>/dev/null; then
         log "Disabling nodelink-agent service..."
         systemctl disable nodelink-agent.service
     fi
-    
-    if systemctl is-enabled --quiet nodelink-updater.service 2>/dev/null; then
-        log "Disabling nodelink-updater service..."
-        systemctl disable nodelink-updater.service
-    fi
 }
 
-# Remove service files
-remove_service_files() {
-    log "Removing systemd service files..."
+# Remove service file
+remove_service_file() {
+    log "Removing systemd service file..."
     
     if [[ -f "/etc/systemd/system/nodelink-agent.service" ]]; then
         rm -f "/etc/systemd/system/nodelink-agent.service"
         log "Removed nodelink-agent.service"
     fi
     
-    if [[ -f "/etc/systemd/system/nodelink-updater.service" ]]; then
-        rm -f "/etc/systemd/system/nodelink-updater.service"
-        log "Removed nodelink-updater.service"
-    fi
-    
     # Reload systemd to reflect changes
     systemctl daemon-reload
 }
 
-# Remove binaries
-remove_binaries() {
-    log "Removing binaries..."
+# Remove binary
+remove_binary() {
+    log "Removing binary..."
     
     if [[ -f "$INSTALL_DIR/nodelink-agent" ]]; then
         rm -f "$INSTALL_DIR/nodelink-agent"
         log "Removed nodelink-agent binary"
-    fi
-    
-    if [[ -f "$INSTALL_DIR/nodelink-updater" ]]; then
-        rm -f "$INSTALL_DIR/nodelink-updater"
-        log "Removed nodelink-updater binary"
     fi
     
     # Remove backup files if they exist
@@ -155,9 +135,9 @@ show_summary() {
     log "Uninstall Summary:"
     echo
     log "The following components have been removed:"
-    log "  ✓ Nodelink Agent and Updater services stopped and disabled"
-    log "  ✓ Service files removed from /etc/systemd/system/"
-    log "  ✓ Binary files removed from $INSTALL_DIR"
+    log "  ✓ Nodelink Agent service stopped and disabled"
+    log "  ✓ Service file removed from /etc/systemd/system/"
+    log "  ✓ Binary file removed from $INSTALL_DIR"
     log "  ✓ Configuration directory removed: $CONFIG_DIR"
     echo
     log "Remaining items (if kept):"
@@ -190,9 +170,9 @@ main() {
     check_root
     
     # Perform uninstall steps
-    stop_services
-    remove_service_files
-    remove_binaries
+    stop_service
+    remove_service_file
+    remove_binary
     remove_directories
     remove_user
     
@@ -208,8 +188,8 @@ case "${1:-}" in
         echo "This script removes all components installed by the Nodelink Agent deployment script."
         echo
         echo "Components removed:"
-        echo "  - Systemd services (nodelink-agent, nodelink-updater)"
-        echo "  - Binary files (nodelink-agent, nodelink-updater)"
+        echo "  - Systemd service (nodelink-agent)"
+        echo "  - Binary file (nodelink-agent)"
         echo "  - Configuration directory ($CONFIG_DIR)"
         echo "  - Optionally: log directory, data directory, and system user"
         echo
