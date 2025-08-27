@@ -80,14 +80,9 @@ detect_architecture() {
 # Get latest release information from GitHub
 get_latest_release() {
     local api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
-    local curl_opts=("-s")
-
-    if [[ -n "$GITHUB_TOKEN" ]]; then
-        curl_opts+=("-H" "Authorization: token $GITHUB_TOKEN")
-    fi
 
     local response
-    response=$(curl "${curl_opts[@]}" "$api_url")
+    response=$(curl -s "$api_url")
 
     if [[ $? -ne 0 ]]; then
         error "Failed to fetch release information from GitHub"
