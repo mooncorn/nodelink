@@ -46,8 +46,8 @@ get_installed_version() {
     
     # Try to get version from the binary
     if [[ -f "$INSTALL_DIR/nodelink-agent" ]]; then
-        # Try to extract version from the binary
-        version=$("$INSTALL_DIR/nodelink-agent" --version 2>/dev/null | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || echo "unknown")
+        # Try to extract version from the binary (capture both stdout and stderr)
+        version=$("$INSTALL_DIR/nodelink-agent" --version 2>&1 | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || echo "unknown")
     fi
     
     echo "$version"
