@@ -130,36 +130,56 @@ remove_directories() {
     fi
     
     # Ask user about log and data directories
-    read -p "Remove log directory ($LOG_DIR)? This will delete all agent logs. [y/N]: " -r
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if [[ "${FORCE_UNINSTALL:-}" == "1" ]]; then
+        # Force mode: remove directories without asking
         if [[ -d "$LOG_DIR" ]]; then
             rm -rf "$LOG_DIR"
             log "Removed log directory: $LOG_DIR"
         fi
-    else
-        log "Keeping log directory: $LOG_DIR"
-    fi
-    
-    read -p "Remove data directory ($DATA_DIR)? This will delete all agent data. [y/N]: " -r
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
         if [[ -d "$DATA_DIR" ]]; then
             rm -rf "$DATA_DIR"
             log "Removed data directory: $DATA_DIR"
         fi
     else
-        log "Keeping data directory: $DATA_DIR"
+        # Interactive mode: ask user
+        read -p "Remove log directory ($LOG_DIR)? This will delete all agent logs. [y/N]: " -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if [[ -d "$LOG_DIR" ]]; then
+                rm -rf "$LOG_DIR"
+                log "Removed log directory: $LOG_DIR"
+            fi
+        else
+            log "Keeping log directory: $LOG_DIR"
+        fi
+        
+        read -p "Remove data directory ($DATA_DIR)? This will delete all agent data. [y/N]: " -r
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            if [[ -d "$DATA_DIR" ]]; then
+                rm -rf "$DATA_DIR"
+                log "Removed data directory: $DATA_DIR"
+            fi
+        else
+            log "Keeping data directory: $DATA_DIR"
+        fi
     fi
 }
 
 # Remove system user
 remove_user() {
     if id "$SERVICE_USER" &>/dev/null; then
-        read -p "Remove system user '$SERVICE_USER'? [y/N]: " -r
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if [[ "${FORCE_UNINSTALL:-}" == "1" ]]; then
+            # Force mode: remove user without asking
             log "Removing system user: $SERVICE_USER"
             userdel "$SERVICE_USER" 2>/dev/null || warn "Failed to remove user $SERVICE_USER (may not exist or have dependencies)"
         else
-            log "Keeping system user: $SERVICE_USER"
+            # Interactive mode: ask user
+            read -p "Remove system user '$SERVICE_USER'? [y/N]: " -r
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                log "Removing system user: $SERVICE_USER"
+                userdel "$SERVICE_USER" 2>/dev/null || warn "Failed to remove user $SERVICE_USER (may not exist or have dependencies)"
+            else
+                log "Keeping system user: $SERVICE_USER"
+            fi
         fi
     else
         log "System user $SERVICE_USER does not exist"
@@ -199,11 +219,15 @@ main() {
     echo
     
     # Confirmation prompt
-    warn "This will completely remove the Nodelink Agent from this system."
-    read -p "Are you sure you want to continue? [y/N]: " -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        log "Uninstall cancelled by user"
-        exit 0
+    if [[ "${FORCE_UNINSTALL:-}" != "1" ]]; then
+        warn "This will completely remove the Nodelink Agent from this system."
+        read -p "Are you sure you want to continue? [y/N]: " -r
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            log "Uninstall cancelled by user"
+            exit 0
+        fi
+    else
+        log "Force uninstall mode: skipping confirmation prompts"
     fi
     
     echo
@@ -234,8 +258,13 @@ case "${1:-}" in
         echo "  - Optionally: log directory, data directory, and system user"
         echo
         echo "Usage:"
-        echo "  sudo ./uninstall.sh"
-        echo "  sudo ./uninstall.sh --force    # Skip confirmation prompts"
+        echo "  sudo ./uninstall.sh                    # Interactive mode (default)"
+        echo "  sudo ./uninstall.sh --force            # Force mode - skip all prompts"
+        echo
+        echo "Force mode behavior:"
+        echo "  - Skips confirmation prompts"
+        echo "  - Automatically removes log and data directories"
+        echo "  - Automatically removes system user"
         echo
         echo "Note: For best compatibility, use the uninstall script from the same"
         echo "      release as your installed agent version."
