@@ -10,6 +10,9 @@ LOG_DIR="${LOG_DIR:-/var/log/nodelink}"
 DATA_DIR="${DATA_DIR:-/var/lib/nodelink}"
 SERVICE_USER="${SERVICE_USER:-nodelink}"
 
+# Script version info (will be replaced during build)
+SCRIPT_VERSION="${SCRIPT_VERSION:-__VERSION_PLACEHOLDER__}"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -34,6 +37,39 @@ error() {
 check_root() {
     if [[ $EUID -ne 0 ]]; then
         error "This script must be run as root (use sudo)"
+    fi
+}
+
+# Get installed agent version
+get_installed_version() {
+    local version="unknown"
+    
+    # Try to get version from the binary
+    if [[ -f "$INSTALL_DIR/nodelink-agent" ]]; then
+        # Try to extract version from the binary
+        version=$("$INSTALL_DIR/nodelink-agent" --version 2>/dev/null | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || echo "unknown")
+    fi
+    
+    echo "$version"
+}
+
+# Show version information
+show_version_info() {
+    local installed_version
+    installed_version=$(get_installed_version)
+    
+    # Check if script version was properly set during build
+    if [[ "$SCRIPT_VERSION" == "__VERSION_PLACEHOLDER__" ]]; then
+        warn "Script version not set. This script should be downloaded from a specific release."
+        SCRIPT_VERSION="unknown"
+    fi
+    
+    log "Uninstall Script Version: $SCRIPT_VERSION"
+    log "Installed Agent Version: $installed_version"
+    
+    if [[ "$installed_version" != "unknown" && "$SCRIPT_VERSION" != "unknown" && "$installed_version" != "$SCRIPT_VERSION" ]]; then
+        warn "Version mismatch detected between installed agent ($installed_version) and uninstall script ($SCRIPT_VERSION)"
+        warn "This may indicate you're using a different version of the uninstall script"
     fi
 }
 
@@ -158,6 +194,10 @@ main() {
     log "Starting Nodelink Agent uninstall..."
     echo
     
+    # Show version information
+    show_version_info
+    echo
+    
     # Confirmation prompt
     warn "This will completely remove the Nodelink Agent from this system."
     read -p "Are you sure you want to continue? [y/N]: " -r
@@ -183,7 +223,7 @@ main() {
 # Handle command line arguments
 case "${1:-}" in
     --help|-h)
-        echo "Nodelink Agent Uninstall Script"
+        echo "Nodelink Agent Uninstall Script (version: $SCRIPT_VERSION)"
         echo
         echo "This script removes all components installed by the Nodelink Agent deployment script."
         echo
@@ -195,6 +235,10 @@ case "${1:-}" in
         echo
         echo "Usage:"
         echo "  sudo ./uninstall.sh"
+        echo "  sudo ./uninstall.sh --force    # Skip confirmation prompts"
+        echo
+        echo "Note: For best compatibility, use the uninstall script from the same"
+        echo "      release as your installed agent version."
         exit 0
         ;;
     --force)

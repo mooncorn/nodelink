@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Nodelink Agent Deployment Script
+# Nodelink Agent Setup Script
 set -euo pipefail
 
 # Configuration
@@ -11,6 +11,9 @@ CONFIG_DIR="${CONFIG_DIR:-/etc/nodelink}"
 LOG_DIR="${LOG_DIR:-/var/log/nodelink}"
 DATA_DIR="${DATA_DIR:-/var/lib/nodelink}"
 SERVICE_USER="${SERVICE_USER:-nodelink}"
+
+# Version to install (will be replaced during build)
+VERSION="${VERSION:-__VERSION_PLACEHOLDER__}"
 
 # Required environment variables for the agent
 AGENT_ID="${AGENT_ID:-}"
@@ -77,18 +80,17 @@ detect_architecture() {
     echo "${os}_${arch}"
 }
 
-# Get latest release information from GitHub
-get_latest_release() {
-    local api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
-
-    local response
-    response=$(curl -s "$api_url")
-
-    if [[ $? -ne 0 ]]; then
-        error "Failed to fetch release information from GitHub"
+# Validate that version is set
+validate_version() {
+    if [[ "$VERSION" == "__VERSION_PLACEHOLDER__" ]]; then
+        error "VERSION is not set. This script should be downloaded from a specific release."
     fi
-
-    echo "$response"
+    
+    if [[ -z "$VERSION" ]]; then
+        error "VERSION is not set. This script should be downloaded from a specific release."
+    fi
+    
+    log "Installing Nodelink Agent version: $VERSION"
 }
 
 # Download and extract the agent
@@ -250,39 +252,21 @@ show_status() {
     systemctl status nodelink-agent.service --no-pager -l
 }
 
-# Main deployment function
+# Main setup function
 main() {
-    log "Starting Nodelink Agent deployment..."
+    log "Starting Nodelink Agent setup..."
     
     check_root
     validate_config
+    validate_version
     
     local platform
     platform=$(detect_architecture)
     log "Detected platform: $platform"
     
-    # Get latest release
-    log "Fetching latest release information..."
-    local release_info
-    release_info=$(get_latest_release)
-    
-    local version
-    version=$(echo "$release_info" | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/')
-    
-    if [[ -z "$version" ]]; then
-        error "Failed to extract version from release information"
-    fi
-    
-    log "Latest version: $version"
-    
-    # Find download URL for our platform
+    # Build download URL for specific version
     local asset_name="nodelink-agent_${platform}.tar.gz"
-    local download_url
-    download_url=$(echo "$release_info" | grep "browser_download_url.*$asset_name" | sed -E 's/.*"browser_download_url": "([^"]+)".*/\1/')
-    
-    if [[ -z "$download_url" ]]; then
-        error "No download URL found for platform $platform (looking for $asset_name)"
-    fi
+    local download_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${VERSION}/${asset_name}"
     
     log "Download URL: $download_url"
     
@@ -295,13 +279,13 @@ main() {
     
     # Download and install
     local installed_version
-    installed_version=$(download_agent "$platform" "$version" "$download_url")
+    installed_version=$(download_agent "$platform" "$VERSION" "$download_url")
     
     # Install and start service
     install_service
     start_service
     
-    log "Deployment completed successfully!"
+    log "Setup completed successfully!"
     log "Agent ID: $AGENT_ID"
     log "Version: $installed_version"
     echo
@@ -314,14 +298,14 @@ main() {
 # Handle command line arguments
 case "${1:-}" in
     --help|-h)
-        echo "Nodelink Agent Deployment Script"
+        echo "Nodelink Agent Setup Script"
         echo
         echo "Environment Variables (required):"
         echo "  AGENT_ID        - Unique identifier"
         echo "  AGENT_TOKEN     - Authentication token"
         echo
         echo "Usage:"
-        echo "  sudo AGENT_ID=my-agent AGENT_TOKEN=secret ./deploy.sh"
+        echo "  sudo AGENT_ID=my-agent AGENT_TOKEN=secret ./setup.sh"
         echo
         exit 0
         ;;

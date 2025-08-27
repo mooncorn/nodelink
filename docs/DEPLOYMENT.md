@@ -60,8 +60,10 @@ This guide covers everything you need to know about deploying and managing Nodel
    - Confirm the new release is published with all assets:
      - `nodelink-agent_linux_amd64.tar.gz`
      - `nodelink-agent_linux_arm64.tar.gz`
-     - `deploy.sh`
+     - `deploy.sh` (version-specific deployment script)
+     - `uninstall.sh` (version-specific uninstall script)
    - Test download one of the assets to ensure they're accessible
+   - Verify the deployment script installs the correct version
 
 #### Manual Release (if needed)
 
@@ -115,15 +117,17 @@ Download the appropriate binary for your platform and follow the [deployment gui
 ```bash
 export AGENT_ID="your-agent-id"
 export AGENT_TOKEN="your-agent-token"
-export SERVER_ADDRESS="your-server:9090"
 
+# Download version-specific deployment script (installs exactly v1.2.3)
 curl -L https://github.com/mooncorn/nodelink/releases/download/v1.2.3/deploy.sh -o deploy.sh
 chmod +x deploy.sh
 sudo ./deploy.sh
 ```
 
+**Note:** This deployment script will install exactly the specified version. The agent's built-in updater will handle future upgrades automatically.
+
 ### 🔄 Automatic Updates
-Existing agents with the updater service will automatically download and install this version within 30 minutes.
+Existing agents with the updater service will automatically check for updates and upgrade to this version within 30 minutes.
 ```
 
 ---
@@ -159,8 +163,11 @@ The automatic deployment script handles everything for you:
 
 2. **Download and Run Deployment Script**
    ```bash
-   # Download the latest deployment script
-   curl -L https://github.com/mooncorn/nodelink/releases/latest/download/deploy.sh -o deploy.sh
+   # Download deployment script for a specific version (recommended)
+   curl -L https://github.com/mooncorn/nodelink/releases/download/v1.2.3/deploy.sh -o deploy.sh
+
+   # Alternative: Download from latest release (gets the newest version)
+   # curl -L https://github.com/mooncorn/nodelink/releases/latest/download/deploy.sh -o deploy.sh
 
    # Make it executable
    chmod +x deploy.sh
@@ -168,6 +175,8 @@ The automatic deployment script handles everything for you:
    # Run the deployment
    sudo ./deploy.sh
    ```
+   
+   **Important:** Using a specific version ensures predictable deployments. The script will install exactly that version, and the built-in updater will handle future upgrades.
 
 3. **Verify Installation**
    ```bash

@@ -61,6 +61,19 @@ jobs:
           # GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${VERSION} -X main.ServerAddress=${SERVER_ADDRESS}" -o dist/nodelink-updater-linux-arm64 ./cmd/updater
           tar -czf dist/nodelink-agent_linux_arm64.tar.gz -C dist nodelink-agent-linux-arm64
 
+      - name: Prepare versioned scripts
+        run: |
+          cd agent
+          VERSION=${{ steps.get_version.outputs.version }}
+          
+          # Create versioned setup script
+          sed "s/__VERSION_PLACEHOLDER__/${VERSION}/g" scripts/setup.sh > dist/setup.sh
+          chmod +x dist/setup.sh
+          
+          # Create versioned uninstall script  
+          sed "s/__VERSION_PLACEHOLDER__/${VERSION}/g" scripts/uninstall.sh > dist/uninstall.sh
+          chmod +x dist/uninstall.sh
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -71,11 +84,13 @@ jobs:
 
             ### Quick Install (Linux)
             ```bash
-             # Download and run deployment script
-             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.get_version.outputs.version }}/deploy.sh -o deploy.sh
-             chmod +x deploy.sh
-             sudo AGENT_ID=my-agent AGENT_TOKEN=secret ./deploy.sh
+            # Download and run setup script for this specific version
+            curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.get_version.outputs.version }}/setup.sh -o setup.sh
+            chmod +x setup.sh
+            sudo AGENT_ID=my-agent AGENT_TOKEN=secret ./setup.sh
             ```
+            
+            **Note:** This script will install exactly version ${{ steps.get_version.outputs.version }}. The agent's built-in updater will handle future upgrades.
 
             ### Configuration
 
@@ -83,19 +98,19 @@ jobs:
             - `AGENT_ID`: Unique identifier for this agent
             - `AGENT_TOKEN`: Authentication token
 
-             ### Uninstall
-             
-             To completely remove the agent:
-             ```bash
-             # Download and run uninstall script
-             curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.get_version.outputs.version }}/uninstall.sh -o uninstall.sh
-             chmod +x uninstall.sh
-             sudo ./uninstall.sh
-             ```
+            ### Uninstall
+            
+            To completely remove the agent:
+            ```bash
+            # Download and run uninstall script (use same version as installed agent)
+            curl -L https://github.com/mooncorn/nodelink/releases/download/${{ steps.get_version.outputs.version }}/uninstall.sh -o uninstall.sh
+            chmod +x uninstall.sh
+            sudo ./uninstall.sh
+            ```
           draft: false
           prerelease: false
           files: |
             ./agent/dist/nodelink-agent_linux_amd64.tar.gz
             ./agent/dist/nodelink-agent_linux_arm64.tar.gz
-            ./agent/scripts/deploy.sh
-            ./agent/scripts/uninstall.sh
+            ./agent/dist/setup.sh
+            ./agent/dist/uninstall.sh
