@@ -33,34 +33,37 @@ log_operation() {
     local level="$1"
     local message="$2"
     local timestamp=$(date +'%Y-%m-%d %H:%M:%S')
+    local full_message="[$timestamp] [PID:$$] [$level] $message"
     
-    # Log to file
-    echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+    # Log to file (ensure directory exists first)
+    local log_dir=$(dirname "$LOG_FILE")
+    if [[ ! -d "$log_dir" ]]; then
+        mkdir -p "$log_dir" 2>/dev/null || true
+        chown nodelink:nodelink "$log_dir" 2>/dev/null || true
+    fi
+    
+    # Use a lock file for atomic logging to prevent message corruption
+    local lock_file="${LOG_FILE}.lock"
+    {
+        flock -x 200
+        echo "$full_message" >> "$LOG_FILE" 2>/dev/null || true
+    } 200>"$lock_file"
     
     # Log to stdout/stderr with colors
     case "$level" in
         "INFO")
-            echo -e "${GREEN}[$timestamp] [INFO] $message${NC}" >&1
+            echo -e "${GREEN}$full_message${NC}"
             ;;
         "WARN")
-            echo -e "${YELLOW}[$timestamp] [WARN] $message${NC}" >&2
+            echo -e "${YELLOW}$full_message${NC}" >&2
             ;;
         "ERROR")
-            echo -e "${RED}[$timestamp] [ERROR] $message${NC}" >&2
+            echo -e "${RED}$full_message${NC}" >&2
             ;;
         *)
-            echo "[$timestamp] [$level] $message" >&1
+            echo "$full_message"
             ;;
     esac
-}
-
-# Ensure log directory exists
-ensure_log_directory() {
-    local log_dir=$(dirname "$LOG_FILE")
-    if [[ ! -d "$log_dir" ]]; then
-        mkdir -p "$log_dir"
-        chown nodelink:nodelink "$log_dir" 2>/dev/null || true
-    fi
 }
 
 # Get the latest release version from GitHub API
@@ -69,7 +72,7 @@ get_latest_version() {
     local latest_version
     
     # Use curl to get the latest release info
-    if latest_version=$(curl -s "$api_url" | grep '"tag_name":' | cut -d'"' -f4); then
+    if latest_version=$(curl -s "$api_url" | grep '"tag_name":' | cut -d'"' -f4 2>/dev/null); then
         echo "$latest_version"
         return 0
     else
@@ -147,6 +150,8 @@ download_binary() {
         local download_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/${asset_name}"
         local archive_file="$TEMP_DIR/nodelink-agent.tar.gz"
         
+        log_operation "INFO" "Downloading from: $download_url"
+        
         # Download the archive
         if ! curl -L -o "$archive_file" "$download_url"; then
             log_operation "ERROR" "Failed to download agent from $download_url"
@@ -179,6 +184,8 @@ download_binary() {
     elif [[ "$binary_type" == "updater" ]]; then
         # Download updater script
         local download_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/nodelink-updater.sh"
+        
+        log_operation "INFO" "Downloading from: $download_url"
         
         if ! curl -L -o "$output_path" "$download_url"; then
             log_operation "ERROR" "Failed to download updater from $download_url"
@@ -223,6 +230,10 @@ update_updater() {
     
     # Restart the updater service to pick up the new version
     log_operation "INFO" "Restarting updater service..."
+    
+    # Give a moment for log to be written before restart
+    sleep 1
+    
     systemctl restart "$UPDATER_SERVICE"
     
     # This process will be terminated by the restart, so log completion
@@ -304,7 +315,7 @@ verify_update() {
         log_operation "ERROR" "Agent service is not active after update"
         return 1
     fi
-
+    
     # Get the actual version from the agent binary
     local actual_version
     if [[ -f "$AGENT_BINARY_PATH" ]]; then
@@ -418,7 +429,6 @@ validate_configuration() {
 
 # Main entry point
 main() {
-    ensure_log_directory
     validate_configuration
     main_loop
 }
@@ -437,7 +447,7 @@ case "${1:-}" in
         echo "  Log File: $LOG_FILE"
         echo
         echo "Usage:"
-        echo "  $0                   # Start updater daemon"
+        echo "  $0                    # Start updater daemon"
         echo "  $0 --help            # Show this help"
         echo "  $0 --version         # Show version"
         echo

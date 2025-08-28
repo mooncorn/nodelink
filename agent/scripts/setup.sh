@@ -245,6 +245,12 @@ remove_binary() {
         log "Removing nodelink-updater script..."
         rm -f "$INSTALL_DIR/nodelink-updater.sh"
     fi
+    
+    # Also remove old filename if it exists
+    if [[ -f "$INSTALL_DIR/updater.sh" ]]; then
+        log "Removing old updater script..."
+        rm -f "$INSTALL_DIR/updater.sh"
+    fi
 }
 
 # Clean uninstall of existing installation
@@ -252,7 +258,7 @@ clean_uninstall() {
     local installed_version
     installed_version=$(get_installed_version)
     
-    if [[ "$installed_version" != "unknown" || -f "$INSTALL_DIR/nodelink-agent" || -f "$INSTALL_DIR/nodelink-updater.sh" || -f "/etc/systemd/system/nodelink-agent.service" || -f "/etc/systemd/system/nodelink-updater.service" ]]; then
+    if [[ "$installed_version" != "unknown" || -f "$INSTALL_DIR/nodelink-agent" || -f "$INSTALL_DIR/nodelink-updater.sh" || -f "$INSTALL_DIR/updater.sh" || -f "/etc/systemd/system/nodelink-agent.service" || -f "/etc/systemd/system/nodelink-updater.service" ]]; then
         log "Existing Nodelink Agent installation detected (version: $installed_version)"
         log "Performing clean uninstall before installing $VERSION..."
         
@@ -271,7 +277,7 @@ install_updater() {
     log "Installing Nodelink Updater..."
     
     # Download the versioned updater script
-    local updater_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${VERSION}/updater.sh"
+    local updater_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${VERSION}/nodelink-updater.sh"
     local temp_updater="/tmp/nodelink-updater.sh"
     
     log "Downloading updater script from $updater_url..."

@@ -73,8 +73,8 @@ jobs:
           chmod +x dist/uninstall.sh
           
           # Create versioned updater script
-          sed "s/VERSION=\"__VERSION_PLACEHOLDER__\"/VERSION=\"${VERSION}\"/" scripts/updater.sh > dist/updater.sh
-          chmod +x dist/updater.sh
+          sed "s/VERSION=\"__VERSION_PLACEHOLDER__\"/VERSION=\"${VERSION}\"/" scripts/updater.sh > dist/nodelink-updater.sh
+          chmod +x dist/nodelink-updater.sh
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -116,4 +116,4 @@ jobs:
             ./agent/dist/nodelink-agent_linux_arm64.tar.gz
             ./agent/dist/setup.sh
             ./agent/dist/uninstall.sh
-            ./agent/dist/updater.sh
+            ./agent/dist/nodelink-updater.sh

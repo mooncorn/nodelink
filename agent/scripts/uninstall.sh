@@ -134,6 +134,12 @@ remove_binary() {
         log "Removed nodelink-updater script"
     fi
     
+    # Also remove old filename if it exists
+    if [[ -f "$INSTALL_DIR/updater.sh" ]]; then
+        rm -f "$INSTALL_DIR/updater.sh"
+        log "Removed old updater script"
+    fi
+    
     # Remove backup files if they exist
     if [[ -f "$INSTALL_DIR/nodelink-agent.backup" ]]; then
         rm -f "$INSTALL_DIR/nodelink-agent.backup"
