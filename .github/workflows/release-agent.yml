@@ -53,12 +53,10 @@ jobs:
 
           # Linux AMD64
           GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${VERSION} -X main.ServerAddress=${SERVER_ADDRESS}" -o dist/nodelink-agent-linux-amd64 ./cmd/agent
-          # GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${VERSION} -X main.ServerAddress=${SERVER_ADDRESS}" -o dist/nodelink-updater-linux-amd64 ./cmd/updater
           tar -czf dist/nodelink-agent_linux_amd64.tar.gz -C dist nodelink-agent-linux-amd64
 
           # Linux ARM64
           GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${VERSION} -X main.ServerAddress=${SERVER_ADDRESS}" -o dist/nodelink-agent-linux-arm64 ./cmd/agent
-          # GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${VERSION} -X main.ServerAddress=${SERVER_ADDRESS}" -o dist/nodelink-updater-linux-arm64 ./cmd/updater
           tar -czf dist/nodelink-agent_linux_arm64.tar.gz -C dist nodelink-agent-linux-arm64
 
       - name: Prepare versioned scripts
@@ -76,7 +74,7 @@ jobs:
           
           # Create versioned updater script
           sed "s/VERSION=\"__VERSION_PLACEHOLDER__\"/VERSION=\"${VERSION}\"/" scripts/updater.sh > dist/updater.sh
-          chmod +x dist/nodelink-updater.sh
+          chmod +x dist/updater.sh
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
