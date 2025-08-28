@@ -49,10 +49,10 @@ log_operation() {
         echo "$full_message" >> "$LOG_FILE" 2>/dev/null || true
     } 200>"$lock_file"
     
-    # Log to stdout/stderr with colors
+    # Log to stderr with colors (never to stdout to avoid interfering with function returns)
     case "$level" in
         "INFO")
-            echo -e "${GREEN}$full_message${NC}"
+            echo -e "${GREEN}$full_message${NC}" >&2
             ;;
         "WARN")
             echo -e "${YELLOW}$full_message${NC}" >&2
@@ -61,7 +61,7 @@ log_operation() {
             echo -e "${RED}$full_message${NC}" >&2
             ;;
         *)
-            echo "$full_message"
+            echo "$full_message" >&2
             ;;
     esac
 }
