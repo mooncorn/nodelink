@@ -15,7 +15,7 @@ DATA_DIR="${DATA_DIR:-/var/lib/nodelink}"
 SERVICE_USER="${SERVICE_USER:-nodelink}"
 
 # Version to install (will be replaced during build)
-VERSION="${VERSION:-__VERSION_PLACEHOLDER__}"
+VERSION="__VERSION_PLACEHOLDER__"
 
 # Required environment variables for the agent
 AGENT_ID="${AGENT_ID:-}"
@@ -181,42 +181,69 @@ get_installed_version() {
     echo "$version"
 }
 
-# Stop and disable service
+# Stop and disable services
 stop_service() {
-    log "Stopping and disabling service..."
+    log "Stopping and disabling services..."
     
-    # Stop service if it exists and is running
+    # Stop agent service if it exists and is running
     if systemctl is-active --quiet nodelink-agent.service 2>/dev/null; then
         log "Stopping nodelink-agent service..."
         systemctl stop nodelink-agent.service
     fi
     
-    # Disable service if it exists
+    # Disable agent service if it exists
     if systemctl is-enabled --quiet nodelink-agent.service 2>/dev/null; then
         log "Disabling nodelink-agent service..."
         systemctl disable nodelink-agent.service
     fi
-}
-
-# Remove service file
-remove_service_file() {
-    if [[ -f "/etc/systemd/system/nodelink-agent.service" ]]; then
-        log "Removing existing systemd service file..."
-        rm -f "/etc/systemd/system/nodelink-agent.service"
-        systemctl daemon-reload
+    
+    # Stop updater service if it exists and is running
+    if systemctl is-active --quiet nodelink-updater.service 2>/dev/null; then
+        log "Stopping nodelink-updater service..."
+        systemctl stop nodelink-updater.service
+    fi
+    
+    # Disable updater service if it exists
+    if systemctl is-enabled --quiet nodelink-updater.service 2>/dev/null; then
+        log "Disabling nodelink-updater service..."
+        systemctl disable nodelink-updater.service
     fi
 }
 
-# Remove existing binary
+# Remove service files
+remove_service_file() {
+    log "Removing existing systemd service files..."
+    
+    if [[ -f "/etc/systemd/system/nodelink-agent.service" ]]; then
+        log "Removing nodelink-agent service file..."
+        rm -f "/etc/systemd/system/nodelink-agent.service"
+    fi
+    
+    if [[ -f "/etc/systemd/system/nodelink-updater.service" ]]; then
+        log "Removing nodelink-updater service file..."
+        rm -f "/etc/systemd/system/nodelink-updater.service"
+    fi
+    
+    systemctl daemon-reload
+}
+
+# Remove existing binaries
 remove_binary() {
+    log "Removing existing binaries..."
+    
     if [[ -f "$INSTALL_DIR/nodelink-agent" ]]; then
-        log "Removing existing binary..."
+        log "Removing nodelink-agent binary..."
         rm -f "$INSTALL_DIR/nodelink-agent"
         
         # Remove backup files if they exist
         if [[ -f "$INSTALL_DIR/nodelink-agent.backup" ]]; then
             rm -f "$INSTALL_DIR/nodelink-agent.backup"
         fi
+    fi
+    
+    if [[ -f "$INSTALL_DIR/nodelink-updater.sh" ]]; then
+        log "Removing nodelink-updater script..."
+        rm -f "$INSTALL_DIR/nodelink-updater.sh"
     fi
 }
 
@@ -225,7 +252,7 @@ clean_uninstall() {
     local installed_version
     installed_version=$(get_installed_version)
     
-    if [[ "$installed_version" != "unknown" || -f "$INSTALL_DIR/nodelink-agent" || -f "/etc/systemd/system/nodelink-agent.service" ]]; then
+    if [[ "$installed_version" != "unknown" || -f "$INSTALL_DIR/nodelink-agent" || -f "$INSTALL_DIR/nodelink-updater.sh" || -f "/etc/systemd/system/nodelink-agent.service" || -f "/etc/systemd/system/nodelink-updater.service" ]]; then
         log "Existing Nodelink Agent installation detected (version: $installed_version)"
         log "Performing clean uninstall before installing $VERSION..."
         
@@ -239,11 +266,35 @@ clean_uninstall() {
     fi
 }
 
-# Install systemd service
-install_service() {
-    log "Installing systemd service..."
+# Download and install updater script
+install_updater() {
+    log "Installing Nodelink Updater..."
     
-    log "Creating service file"
+    # Download the versioned updater script
+    local updater_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${VERSION}/updater.sh"
+    local temp_updater="/tmp/nodelink-updater.sh"
+    
+    log "Downloading updater script from $updater_url..."
+    if ! curl -L -o "$temp_updater" "$updater_url"; then
+        error "Failed to download updater script from $updater_url"
+    fi
+    
+    # Install updater script
+    cp "$temp_updater" "$INSTALL_DIR/nodelink-updater.sh"
+    chmod +x "$INSTALL_DIR/nodelink-updater.sh"
+    chown root:root "$INSTALL_DIR/nodelink-updater.sh"
+    
+    # Clean up temp file
+    rm -f "$temp_updater"
+    
+    log "Updater script installed successfully"
+}
+
+# Install systemd services
+install_service() {
+    log "Installing systemd services..."
+    
+    log "Creating agent service file"
     # Create agent service file
     cat > "/etc/systemd/system/nodelink-agent.service" << EOF
 [Unit]
@@ -279,21 +330,59 @@ SyslogIdentifier=nodelink-agent
 [Install]
 WantedBy=multi-user.target
 EOF
+
+    log "Creating updater service file"
+    # Create updater service file
+    cat > "/etc/systemd/system/nodelink-updater.service" << EOF
+[Unit]
+Description=Nodelink Agent Updater
+Documentation=https://github.com/mooncorn/nodelink
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/local/bin/nodelink-updater.sh
+Restart=always
+RestartSec=60
+StartLimitInterval=300s
+StartLimitBurst=3
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=false
+ProtectHome=true
+ReadWritePaths=/usr/local/bin /var/log/nodelink /tmp
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nodelink-updater
+
+[Install]
+WantedBy=multi-user.target
+EOF
     
     # Reload systemd
     systemctl daemon-reload
 }
 
-# Start and enable service
+# Start and enable services
 start_service() {
-    log "Starting and enabling service..."
+    log "Starting and enabling services..."
     
-    # Enable service
+    # Enable and start agent service
     systemctl enable nodelink-agent.service
-    
-    # Start service
     log "Starting nodelink-agent service..."
     systemctl start nodelink-agent.service
+    
+    # Enable and start updater service
+    systemctl enable nodelink-updater.service
+    log "Starting nodelink-updater service..."
+    systemctl start nodelink-updater.service
     
     # Check status
     sleep 2
@@ -302,12 +391,23 @@ start_service() {
     else
         warn "Nodelink Agent service failed to start. Check logs with: journalctl -u nodelink-agent.service"
     fi
+    
+    if systemctl is-active --quiet nodelink-updater.service; then
+        log "Nodelink Updater service started successfully"
+    else
+        warn "Nodelink Updater service failed to start. Check logs with: journalctl -u nodelink-updater.service"
+    fi
 }
 
 # Show status
 show_status() {
     log "Service Status:"
+    echo
+    log "Agent Service:"
     systemctl status nodelink-agent.service --no-pager -l
+    echo
+    log "Updater Service:"
+    systemctl status nodelink-updater.service --no-pager -l
 }
 
 # Main setup function
@@ -340,7 +440,10 @@ main() {
     local installed_version
     installed_version=$(download_agent "$platform" "$VERSION" "$download_url")
     
-    # Install and start service
+    # Install updater
+    install_updater
+    
+    # Install and start services
     install_service
     start_service
     
@@ -349,7 +452,8 @@ main() {
     log "Version: $installed_version"
     echo
     log "You can check the logs with:"
-    log "  journalctl -u nodelink-agent.service -f"
+    log "  journalctl -u nodelink-agent.service -f     # Agent logs"
+    log "  journalctl -u nodelink-updater.service -f   # Updater logs"
     echo
     show_status
 }

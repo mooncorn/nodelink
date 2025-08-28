@@ -11,7 +11,7 @@ DATA_DIR="${DATA_DIR:-/var/lib/nodelink}"
 SERVICE_USER="${SERVICE_USER:-nodelink}"
 
 # Script version info (will be replaced during build)
-SCRIPT_VERSION="${SCRIPT_VERSION:-__VERSION_PLACEHOLDER__}"
+VERSION="__VERSION_PLACEHOLDER__"
 
 # Colors for output
 RED='\033[0;31m'
@@ -59,57 +59,79 @@ show_version_info() {
     installed_version=$(get_installed_version)
     
     # Check if script version was properly set during build
-    if [[ "$SCRIPT_VERSION" == "__VERSION_PLACEHOLDER__" ]]; then
+    if [[ "$VERSION" == "__VERSION_PLACEHOLDER__" ]]; then
         warn "Script version not set. This script should be downloaded from a specific release."
-        SCRIPT_VERSION="unknown"
+        VERSION="unknown"
     fi
     
-    log "Uninstall Script Version: $SCRIPT_VERSION"
+    log "Uninstall Script Version: $VERSION"
     log "Installed Agent Version: $installed_version"
     
-    if [[ "$installed_version" != "unknown" && "$SCRIPT_VERSION" != "unknown" && "$installed_version" != "$SCRIPT_VERSION" ]]; then
-        warn "Version mismatch detected between installed agent ($installed_version) and uninstall script ($SCRIPT_VERSION)"
+    if [[ "$installed_version" != "unknown" && "$VERSION" != "unknown" && "$installed_version" != "$VERSION" ]]; then
+        warn "Version mismatch detected between installed agent ($installed_version) and uninstall script ($VERSION)"
         warn "This may indicate you're using a different version of the uninstall script"
     fi
 }
 
-# Stop and disable service
+# Stop and disable services
 stop_service() {
-    log "Stopping and disabling service..."
+    log "Stopping and disabling services..."
     
-    # Stop service if it exists and is running
+    # Stop agent service if it exists and is running
     if systemctl is-active --quiet nodelink-agent.service 2>/dev/null; then
         log "Stopping nodelink-agent service..."
         systemctl stop nodelink-agent.service
     fi
     
-    # Disable service if it exists
+    # Disable agent service if it exists
     if systemctl is-enabled --quiet nodelink-agent.service 2>/dev/null; then
         log "Disabling nodelink-agent service..."
         systemctl disable nodelink-agent.service
     fi
+    
+    # Stop updater service if it exists and is running
+    if systemctl is-active --quiet nodelink-updater.service 2>/dev/null; then
+        log "Stopping nodelink-updater service..."
+        systemctl stop nodelink-updater.service
+    fi
+    
+    # Disable updater service if it exists
+    if systemctl is-enabled --quiet nodelink-updater.service 2>/dev/null; then
+        log "Disabling nodelink-updater service..."
+        systemctl disable nodelink-updater.service
+    fi
 }
 
-# Remove service file
+# Remove service files
 remove_service_file() {
-    log "Removing systemd service file..."
+    log "Removing systemd service files..."
     
     if [[ -f "/etc/systemd/system/nodelink-agent.service" ]]; then
         rm -f "/etc/systemd/system/nodelink-agent.service"
         log "Removed nodelink-agent.service"
     fi
     
+    if [[ -f "/etc/systemd/system/nodelink-updater.service" ]]; then
+        rm -f "/etc/systemd/system/nodelink-updater.service"
+        log "Removed nodelink-updater.service"
+    fi
+    
     # Reload systemd to reflect changes
     systemctl daemon-reload
 }
 
-# Remove binary
+# Remove binaries
 remove_binary() {
-    log "Removing binary..."
+    log "Removing binaries..."
     
     if [[ -f "$INSTALL_DIR/nodelink-agent" ]]; then
         rm -f "$INSTALL_DIR/nodelink-agent"
         log "Removed nodelink-agent binary"
+    fi
+    
+    if [[ -f "$INSTALL_DIR/nodelink-updater.sh" ]]; then
+        rm -f "$INSTALL_DIR/nodelink-updater.sh"
+        log "Removed nodelink-updater script"
     fi
     
     # Remove backup files if they exist
@@ -192,8 +214,9 @@ show_summary() {
     echo
     log "The following components have been removed:"
     log "  ✓ Nodelink Agent service stopped and disabled"
-    log "  ✓ Service file removed from /etc/systemd/system/"
-    log "  ✓ Binary file removed from $INSTALL_DIR"
+    log "  ✓ Nodelink Updater service stopped and disabled"
+    log "  ✓ Service files removed from /etc/systemd/system/"
+    log "  ✓ Binary files removed from $INSTALL_DIR"
     log "  ✓ Configuration directory removed: $CONFIG_DIR"
     echo
     log "Remaining items (if kept):"
@@ -247,13 +270,13 @@ main() {
 # Handle command line arguments
 case "${1:-}" in
     --help|-h)
-        echo "Nodelink Agent Uninstall Script (version: $SCRIPT_VERSION)"
+        echo "Nodelink Agent Uninstall Script (version: $VERSION)"
         echo
         echo "This script removes all components installed by the Nodelink Agent deployment script."
         echo
         echo "Components removed:"
-        echo "  - Systemd service (nodelink-agent)"
-        echo "  - Binary file (nodelink-agent)"
+        echo "  - Systemd services (nodelink-agent, nodelink-updater)"
+        echo "  - Binary files (nodelink-agent, nodelink-updater.sh)"
         echo "  - Configuration directory ($CONFIG_DIR)"
         echo "  - Optionally: log directory, data directory, and system user"
         echo
