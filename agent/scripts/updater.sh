@@ -107,15 +107,34 @@ check_for_updates() {
         return 1
     fi
     
-    log_operation "INFO" "Current agent version: $VERSION"
+    # Get actual agent binary version
+    local agent_version="unknown"
+    if [[ -f "$AGENT_BINARY_PATH" ]]; then
+        agent_version=$("$AGENT_BINARY_PATH" --version 2>&1 | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || echo "unknown")
+    fi
+    
+    log_operation "INFO" "Current updater version: $VERSION"
+    log_operation "INFO" "Current agent version: $agent_version"
     log_operation "INFO" "Latest available version: $latest_version"
     
+    # Check if either updater or agent needs updating
+    local updater_needs_update=false
+    local agent_needs_update=false
+    
     if version_is_newer "$latest_version" "$VERSION"; then
-        log_operation "INFO" "New version available: $latest_version"
+        updater_needs_update=true
+    fi
+    
+    if [[ "$agent_version" == "unknown" ]] || version_is_newer "$latest_version" "$agent_version"; then
+        agent_needs_update=true
+    fi
+    
+    if [[ "$updater_needs_update" == "true" ]] || [[ "$agent_needs_update" == "true" ]]; then
+        log_operation "INFO" "Update available: $latest_version (updater: $updater_needs_update, agent: $agent_needs_update)"
         echo "$latest_version"
         return 0
     else
-        log_operation "INFO" "Agent is up to date"
+        log_operation "INFO" "Both updater and agent are up to date"
         return 1
     fi
 }
@@ -348,31 +367,66 @@ cleanup() {
     fi
 }
 
+# Check if agent binary needs updating (independent of updater version)
+agent_needs_update() {
+    local target_version="$1"
+    
+    # Get actual agent binary version
+    local agent_version="unknown"
+    if [[ -f "$AGENT_BINARY_PATH" ]]; then
+        agent_version=$("$AGENT_BINARY_PATH" --version 2>&1 | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1 || echo "unknown")
+    fi
+    
+    log_operation "INFO" "Agent binary version: $agent_version"
+    log_operation "INFO" "Target version: $target_version"
+    
+    if [[ "$agent_version" == "unknown" ]]; then
+        return 0  # Update if we can't determine version
+    fi
+    
+    if version_is_newer "$target_version" "$agent_version"; then
+        return 0  # Agent needs update
+    else
+        return 1  # Agent is up to date
+    fi
+}
+
 # Main update process
 perform_update() {
     local new_version="$1"
     
     log_operation "INFO" "Starting update process to version $new_version"
     
-    # First, always update the updater itself
-    if ! update_updater "$new_version"; then
-        log_operation "ERROR" "Updater self-update failed"
-        return 1
+    # First, always update the updater itself if needed
+    if [[ "$VERSION" != "$new_version" ]]; then
+        log_operation "INFO" "Updater needs update from $VERSION to $new_version"
+        if ! update_updater "$new_version"; then
+            log_operation "ERROR" "Updater self-update failed"
+            return 1
+        fi
+        # Process will restart here, the new instance will continue
+        return 0
     fi
     
-    # The process will restart here with the new updater version
-    # The new instance will continue with agent update
-    
-    # Update the agent
-    if ! update_agent "$new_version"; then
-        log_operation "ERROR" "Agent update failed"
-        return 1
-    fi
-    
-    # Verify the update
-    if ! verify_update "$new_version"; then
-        log_operation "ERROR" "Update verification failed"
-        return 1
+    # If we reach here, updater is already up to date, check agent
+    if agent_needs_update "$new_version"; then
+        log_operation "INFO" "Agent binary needs update to $new_version"
+        
+        # Update the agent
+        if ! update_agent "$new_version"; then
+            log_operation "ERROR" "Agent update failed"
+            return 1
+        fi
+        
+        # Verify the update
+        if ! verify_update "$new_version"; then
+            log_operation "ERROR" "Update verification failed"
+            return 1
+        fi
+        
+        log_operation "INFO" "Agent update completed successfully"
+    else
+        log_operation "INFO" "Agent binary is already up to date"
     fi
     
     log_operation "INFO" "Update process completed successfully"
