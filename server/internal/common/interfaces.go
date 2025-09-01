@@ -53,6 +53,7 @@ type SSEManager interface {
 	RemoveClient(clientID string)
 	JoinRoom(clientID, room string) error
 	SendToRoom(room string, data any, eventType string) error
+	Broadcast(data any, eventType string) error
 }
 
 // TerminalSessionManager interface for managing terminal sessions

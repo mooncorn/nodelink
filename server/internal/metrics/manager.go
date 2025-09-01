@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	pb "github.com/mooncorn/nodelink/server/internal/proto"
 	"github.com/mooncorn/nodelink/server/internal/common"
+	pb "github.com/mooncorn/nodelink/server/internal/proto"
 )
 
 // StreamingManager manages continuous metrics collection and distribution
@@ -32,9 +32,8 @@ type StreamingManager struct {
 	// Status change listener
 	statusListener *metricsStatusListener
 
-	// Utilities
-	formatter *MetricsMessageFormatter
-	rooms     *MetricsRooms
+	// SSE Handler for broadcasting
+	sseHandler *SSEHandler
 }
 
 // metricsStatusListener listens for agent status changes
@@ -68,8 +67,7 @@ func NewStreamingManager(handler *Handler, statusManager common.StatusManager, s
 		sysInfoInterval: 60 * time.Second, // Poll system info every 60 seconds
 		ctx:             ctx,
 		cancel:          cancel,
-		formatter:       NewMetricsMessageFormatter(),
-		rooms:           NewMetricsRooms(),
+		sseHandler:      nil, // Will be set by the SSE handler when it's created
 	}
 
 	manager.statusListener = &metricsStatusListener{manager: manager}
@@ -163,7 +161,7 @@ func (m *StreamingManager) collectMetrics(agentID string) {
 	m.broadcastMetrics(agentID, metrics)
 }
 
-// collectSystemInfo collects system info from an agent and broadcasts to clients
+// collectSystemInfo collects system info from an agent
 func (m *StreamingManager) collectSystemInfo(agentID string) {
 	ctx, cancel := context.WithTimeout(m.ctx, 10*time.Second)
 	defer cancel()
@@ -178,38 +176,19 @@ func (m *StreamingManager) collectSystemInfo(agentID string) {
 	m.mu.Lock()
 	m.agentSystemInfo[agentID] = systemInfo
 	m.mu.Unlock()
-
-	// Broadcast to interested clients
-	m.broadcastSystemInfo(agentID, systemInfo)
 }
 
 // broadcastMetrics broadcasts metrics to all clients interested in this agent
 func (m *StreamingManager) broadcastMetrics(agentID string, metrics *pb.SystemMetrics) {
-	room := m.rooms.GetMetricsRoomName(agentID)
-	data := m.formatter.FormatMetricsMessage(agentID, metrics)
-
-	if err := m.sseManager.SendToRoom(room, data, "metrics"); err != nil {
-		log.Printf("Error broadcasting metrics for agent %s: %v", agentID, err)
-	}
-}
-
-// broadcastSystemInfo broadcasts system info to all clients interested in this agent
-func (m *StreamingManager) broadcastSystemInfo(agentID string, systemInfo *pb.SystemInfo) {
-	room := m.rooms.GetMetricsRoomName(agentID)
-	data := m.formatter.FormatSystemInfoMessage(agentID, systemInfo)
-
-	if err := m.sseManager.SendToRoom(room, data, "system_info"); err != nil {
-		log.Printf("Error broadcasting system info for agent %s: %v", agentID, err)
+	if m.sseHandler != nil {
+		m.sseHandler.BroadcastMetrics(agentID, metrics)
 	}
 }
 
 // broadcastMetricsError broadcasts an error to all clients interested in this agent
 func (m *StreamingManager) broadcastMetricsError(agentID string, errorMsg string) {
-	room := m.rooms.GetMetricsRoomName(agentID)
-	data := m.formatter.FormatErrorMessage(agentID, errorMsg)
-
-	if err := m.sseManager.SendToRoom(room, data, "error"); err != nil {
-		log.Printf("Error broadcasting metrics error for agent %s: %v", agentID, err)
+	if m.sseHandler != nil {
+		m.sseHandler.BroadcastMetricsError(agentID, errorMsg)
 	}
 }
 
@@ -221,12 +200,14 @@ func (m *StreamingManager) cleanupAgent(agentID string) {
 	m.mu.Unlock()
 
 	// Broadcast offline status to clients
-	room := m.rooms.GetMetricsRoomName(agentID)
-	data := m.formatter.FormatAgentOfflineMessage(agentID)
-
-	if err := m.sseManager.SendToRoom(room, data, "agent_offline"); err != nil {
-		log.Printf("Error broadcasting agent offline status for agent %s: %v", agentID, err)
+	if m.sseHandler != nil {
+		m.sseHandler.BroadcastAgentOffline(agentID)
 	}
+}
+
+// SetSSEHandler sets the SSE handler for broadcasting
+func (m *StreamingManager) SetSSEHandler(handler *SSEHandler) {
+	m.sseHandler = handler
 }
 
 // GetCachedMetrics returns cached metrics for an agent
