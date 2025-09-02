@@ -1,3 +1,7 @@
+# Claude AI configuration files - DO NOT IGNORE
+# .claude/ directories contain important project documentation
+# and should be tracked in version control
+
 tmp
 node_modules
 
